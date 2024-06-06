@@ -1,0 +1,16 @@
+[package]
+name = "i18next-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.4", features = ["unicode", "string", "derive"] }
+lazy_static = "1.4.0"
+log = "0.4.21"
+oxc = "0.13.3"
+oxc_allocator = { version = "0.13.3", features = ["serialize"] }
+oxc_ast = { version = "0.13.3", features = ["serialize"] }
+oxc_parser = "0.13.3"
+oxc_span = { version = "0.13.3", features = ["serialize"] }
+regex = "1.10.4"
+simple_logger = "5.0.0"
