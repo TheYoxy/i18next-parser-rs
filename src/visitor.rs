@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use log::{debug, trace, warn};
+use oxc_ast::ast::*;
 use oxc_ast::{
   ast::{Argument, CallExpression, Expression, IdentifierReference, ObjectPropertyKind, Program, Statement},
   visit::walk,
@@ -20,7 +21,7 @@ pub struct Entry {
 #[derive(Debug)]
 pub struct I18NVisitor<'a> {
   pub program: &'a Program<'a>,
-  pub keys: Vec<Entry>,
+  pub entries: Vec<Entry>,
 
   /// the current namespace while parsing a file
   current_namespace: Option<String>,
@@ -29,7 +30,7 @@ pub struct I18NVisitor<'a> {
 impl<'a> I18NVisitor<'a> {
   /// Creates a new [`CountASTNodes`].
   pub fn new(program: &'a Program<'a>) -> Self {
-    I18NVisitor { program, current_namespace: Default::default(), keys: Default::default() }
+    I18NVisitor { program, current_namespace: Default::default(), entries: Default::default() }
   }
 
   fn parse_string_literal_or_satisfies_expression(expr: &Expression<'_>) -> Option<String> {
@@ -42,23 +43,16 @@ impl<'a> I18NVisitor<'a> {
 
   /// Find the value of an identifier.
   fn find_identifier_value(&self, identifier: &oxc_allocator::Box<IdentifierReference>) -> Option<String> {
-    let collect = &self
-      .program
-      .body
-      .iter()
-      .filter_map(|stmt| {
+    let arr =
+      self.program.body.iter().find_map(|stmt| {
         if let Statement::VariableDeclaration(var) = stmt {
-          let filtered =
-            var.declarations.iter().filter(|v| v.id.get_identifier() == Some(&identifier.name)).collect::<Vec<_>>();
-          filtered.first().and_then(|item| {
+          var.declarations.iter().find(|v| v.id.get_identifier() == Some(&identifier.name)).and_then(|item| {
             item.init.as_ref().and_then(|init| Self::parse_string_literal_or_satisfies_expression(init))
           })
         } else {
           None
         }
-      })
-      .collect::<Vec<_>>();
-    let arr = collect.first();
+      });
 
     arr.map(|arr| arr.to_string())
   }
@@ -107,7 +101,6 @@ impl<'a> I18NVisitor<'a> {
             }
           },
           ObjectPropertyKind::SpreadProperty(_) => {
-            trace!("Spread property");
             warn!("Unsupported spread property");
             None
           },
@@ -119,6 +112,141 @@ impl<'a> I18NVisitor<'a> {
       None
     }
   }
+
+  fn get_prop_value(&self, elem: &JSXElement<'_>, attribute_name: &str) -> Option<String> {
+    let collect = elem
+      .opening_element
+      .attributes
+      .iter()
+      .filter_map(|elem| match elem {
+        JSXAttributeItem::Attribute(attribute) => {
+          if let JSXAttributeName::Identifier(identifier) = &attribute.name {
+            if identifier.name == attribute_name {
+              if let Some(value) = &attribute.value {
+                match value {
+                  JSXAttributeValue::StringLiteral(str) => Some(str.value.to_string()),
+                  JSXAttributeValue::ExpressionContainer(e) => {
+                    // todo this expression will contains the required identifier
+                    match &e.expression {
+                      JSXExpression::StringLiteral(str) => Some(str.value.to_string()),
+                      JSXExpression::Identifier(identifier) => self.find_identifier_value(identifier),
+                      _ => todo!("expression container {e:?} not supported"),
+                    }
+                  },
+                  JSXAttributeValue::Element(_) => todo!("element not supported"),
+                  JSXAttributeValue::Fragment(_) => todo!("fragment not supported"),
+                }
+              } else {
+                None
+              }
+            } else {
+              None
+            }
+          } else {
+            None
+          }
+        },
+        JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
+      })
+      .collect::<Vec<_>>();
+
+    collect.first().map(|v| v.to_string())
+  }
+
+  #[allow(clippy::ptr_arg)]
+  fn elem_to_string(childs: &Vec<NodeChild>) -> String {
+    childs
+      .iter()
+      .enumerate()
+      .map(|(index, e)| match e {
+        NodeChild::Text(text) => text.clone(),
+        NodeChild::Js(text) => text.clone(),
+        NodeChild::Tag(tag) => {
+          let use_tag_name = tag.is_basic;
+          let element_name = if use_tag_name { tag.name.clone() } else { format!("{}", index) };
+          let children_string = tag.children.as_ref().map(Self::elem_to_string).unwrap_or_default();
+
+          if !children_string.is_empty() || !(use_tag_name && tag.self_closing) {
+            format!("<{element_name}>{children_string}</{element_name}>")
+          } else {
+            format!("<{element_name} />")
+          }
+        },
+      })
+      .collect::<Vec<_>>()
+      .concat()
+  }
+
+  fn parse_children(childs: &oxc_allocator::Vec<JSXChild<'a>>) -> Vec<NodeChild> {
+    childs
+      .iter()
+      .map(|child| match child {
+        JSXChild::Text(text) => {
+          let atom = &text.value;
+          let clean_multi_line_code = clean_multi_line_code(atom);
+          debug!("Text: {atom:?} -> {clean_multi_line_code:?}");
+          NodeChild::Text(clean_multi_line_code)
+        },
+        JSXChild::Element(element) => {
+          let name = if let JSXElementName::Identifier(id) = &element.opening_element.name { &id.name } else { "" };
+          let is_basic = element.opening_element.attributes.len() == 0;
+          let has_dynamic_children = element.children.iter().any(|child| match child {
+            JSXChild::Text(_) => todo!(),
+            JSXChild::Element(e) => {
+              if let JSXElementName::Identifier(id) = &e.opening_element.name {
+                id.name.eq("i18nIsDynamicList")
+              } else {
+                false
+              }
+            },
+            _ => false,
+          });
+          let children = if has_dynamic_children {
+            None
+          } else {
+            let childs = &element.children;
+            Some(Self::parse_children(childs))
+          };
+
+          NodeChild::Tag(NodeTag {
+            children,
+            name: name.to_string(),
+            is_basic,
+            self_closing: element.closing_element.is_none(),
+          })
+        },
+        JSXChild::ExpressionContainer(exp) => {
+          let exp = exp.expression.as_expression().map(|exp| Self::parse_expression(&exp));
+          exp.unwrap_or(NodeChild::Text("".to_string()))
+        },
+        _ => todo!(),
+      })
+      .filter(|e| !e.is_empty())
+      .collect::<Vec<_>>()
+  }
+}
+
+enum NodeChild {
+  Text(String),
+  Tag(NodeTag),
+  Js(String),
+}
+
+impl NodeChild {
+  fn is_empty(&self) -> bool {
+    match self {
+      NodeChild::Text(text) => text.is_empty(),
+      NodeChild::Tag(tag) => tag.children.is_none(),
+      NodeChild::Js(js) => js.is_empty(),
+    }
+  }
+}
+
+struct NodeTag {
+  children: Option<Vec<NodeChild>>,
+  name: String,
+  is_basic: bool,
+  self_closing: bool,
 }
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
@@ -174,7 +302,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           i18next_options = self.parse_i18next_option(expr.arguments.get(2));
         }
 
-        self.keys.push(Entry {
+        self.entries.push(Entry {
           key: value.unwrap_or_default(),
           default_value,
           namespace: self
@@ -188,13 +316,126 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
     }
     walk::walk_call_expression(self, expr);
   }
+
+  fn visit_jsx_element(&mut self, elem: &JSXElement<'a>) {
+    // println!("JSX element: {elem:?}");
+    let component_functions = ["Trans"];
+    let name = match &elem.opening_element.name {
+      JSXElementName::Identifier(id) => &id.name,
+      JSXElementName::NamespacedName(_) => todo!(),
+      JSXElementName::MemberExpression(_) => todo!(),
+    };
+    if component_functions.contains(&name.as_str()) {
+      let key = self.get_prop_value(elem, "i18nKey");
+      let ns = self.get_prop_value(elem, "ns");
+      let default_value = self.get_prop_value(elem, "defaults");
+      let count = self.get_prop_value(elem, "count");
+      let options = self.get_prop_value(elem, "i18n");
+
+      debug!("Childrens: {:?}", elem.children);
+      let node_as_string = {
+        let content = Self::parse_children(&elem.children);
+        Self::elem_to_string(&content)
+      };
+      debug!("Element as string: {node_as_string:?}");
+
+      let default_value = default_value.unwrap_or(node_as_string);
+      if let Some(key) = key {
+        self.entries.push(Entry {
+          key,
+          default_value: if default_value.is_empty() { None } else { Some(default_value) },
+          namespace: ns,
+          // i18next_options: options,
+          ..Default::default()
+        });
+      }
+    }
+
+    walk::walk_jsx_element(self, elem);
+  }
+}
+
+impl<'a> I18NVisitor<'a> {
+  fn parse_expression(exp: &Expression<'a>) -> NodeChild {
+    match &exp {
+      Expression::StringLiteral(str) => NodeChild::Text(str.value.to_string()),
+      Expression::AssignmentExpression(e) => Self::parse_expression(&e.right),
+      Expression::TSAsExpression(e) => Self::parse_expression(&e.expression),
+      Expression::CallExpression(e) if e.callee.is_identifier_reference() && e.arguments.len() >= 1 => {
+        Self::parse_expression(&e.callee)
+      },
+      Expression::ObjectExpression(e) => {
+        let non_format_props = e
+          .properties
+          .iter()
+          .filter_map(|prop| {
+            if let ObjectPropertyKind::ObjectProperty(obj) = prop {
+              let option = obj.key.name().map(|name| name != "format");
+              if let Some(option) = option {
+                if option {
+                  Some(obj)
+                } else {
+                  None
+                }
+              } else {
+                None
+              }
+            } else {
+              None
+            }
+          })
+          .collect::<Vec<_>>();
+        let format_props = e.properties.iter().find(|a| {
+          if let ObjectPropertyKind::ObjectProperty(obj) = a {
+            obj.key.name().map(|name| name == "format").unwrap_or_default()
+          } else {
+            false
+          }
+        });
+        if non_format_props.len() > 1 {
+          warn!("The passed in object contained more than one variable - the object should look like {{{{ value, format }}}} where format is optional");
+          return NodeChild::Text("".to_string());
+        }
+
+        let value = if let Some(format_props) = format_props {
+          let text = non_format_props.first().and_then(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default();
+          if let ObjectPropertyKind::ObjectProperty(obj) = format_props {
+            if let Some(init) = &obj.init {
+              match init {
+                Expression::StringLiteral(str) => Some(format!("{}, {}", text, str.value)),
+                _ => {
+                  warn!("The format property should be a string");
+                  None
+                },
+              }
+            } else {
+              None
+            }
+          } else {
+            None
+          }
+        } else {
+          non_format_props.first().map(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default()
+        };
+
+        NodeChild::Js(format!("{{ {} }}", value.unwrap_or_default()))
+      },
+      _ => NodeChild::Text("".to_string()),
+    }
+  }
+}
+
+fn clean_multi_line_code(text: &str) -> String {
+  text.replace(|c: char| c.is_whitespace(), " ").trim().to_string()
 }
 
 #[cfg(test)]
 mod tests {
+  use log::LevelFilter;
   use oxc_allocator::Allocator;
   use oxc_parser::Parser;
   use oxc_span::SourceType;
+  use simple_logger::SimpleLogger;
 
   use super::*;
 
@@ -215,7 +456,7 @@ mod tests {
 
     let mut visitor = I18NVisitor::new(&program);
     visitor.visit_program(&program);
-    visitor.keys
+    visitor.entries
   }
 
   #[test]
@@ -327,5 +568,31 @@ mod tests {
     for el in keys {
       el.assert_eq("toast.title", None, None);
     }
+  }
+  #[test]
+  fn should_parse_jsx_with_ns_defined_in_variable() {
+    let source_text = r#"
+        const ns = "ns";
+        const el = <Trans ns={ns} i18nKey="dialog.title">
+							Reset password
+						</Trans>;
+						"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_ns() {
+    let source_text = r#"
+        const el = <Trans ns="ns" i18nKey="dialog.title">
+							Reset password
+						</Trans>;
+						"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
   }
 }

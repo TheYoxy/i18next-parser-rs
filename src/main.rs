@@ -59,11 +59,11 @@ fn main() -> Result<(), String> {
   visitor.visit_program(&program);
   let elapsed_time = now.elapsed();
   info!("File parsed in {}ms.", elapsed_time.as_millis());
-  info!("Found {} entries", visitor.keys.len());
+  info!("Found {} entries", visitor.entries.len());
 
   let options = Options::default();
 
-  let entries = visitor.keys;
+  let entries = visitor.entries;
 
   for locale in locales.iter() {
     let mut unique_count = HashMap::new();

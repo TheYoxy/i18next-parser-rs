@@ -51,11 +51,11 @@ fn should_parse() {
   visitor.visit_program(&program);
   let elapsed_time = now.elapsed();
   info!("File parsed in {}ms.", elapsed_time.as_millis());
-  info!("Found {} entries", visitor.keys.len());
+  info!("Found {} entries", visitor.entries.len());
 
   let options = Options::default();
 
-  let entries = visitor.keys;
+  let entries = visitor.entries;
 
   assert_eq!(locales.len(), 2);
   for locale in locales.iter() {
@@ -145,10 +145,10 @@ fn should_parse() {
           "toast.validation.error",
           "toast.text.success",
           "toast.text.error",
-          // "dialog.title", // todo: add jsx parsing to extract the following keys
-          // "dialog.description",
-          // "button.clear",
-          // "button.submit",
+          "dialog.title",
+          "dialog.description",
+          "button.clear",
+          "button.submit",
         ] {
           assert!(new.contains_key(key), "the key {key:?} is present in the new catalog");
         }

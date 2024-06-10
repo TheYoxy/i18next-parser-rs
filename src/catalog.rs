@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-use log::{debug, trace, warn};
+use log::{trace, warn};
 use serde_json::Value;
 
 pub fn get_catalog(path: &PathBuf) -> Option<Value> {
