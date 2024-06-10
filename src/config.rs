@@ -1,48 +1,16 @@
-use serde::Deserialize;
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
+
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{cmp::Ordering, collections::HashMap, fmt::Display, path::PathBuf};
 
-#[derive(Clone, Default)]
-pub struct Options {
-  pub full_key_prefix: String,
-  pub reset_and_flag: bool,
-  pub keep_removed: Option<KeepRemoved>,
-  pub key_separator: Option<String>,
-  pub plural_separator: Option<String>,
-  pub locale: String,
-  pub suffix: Option<String>,
-  pub separator: Option<String>,
-  pub custom_value_template: Option<Value>,
-  pub reset_default_value_locale: Option<String>,
-  pub line_ending: String,
-  pub create_old_catalogs: bool,
-}
-
-pub enum DefaultValue {
-  Str(String),
-  Func(Box<dyn Fn(Option<String>, Option<String>, Option<String>, Option<String>) -> String>),
-}
-
-#[derive(Clone, Debug)]
-pub enum KeepRemoved {
-  Bool(bool),
-  Patterns(Vec<regex::Regex>),
-}
-
-impl Default for KeepRemoved {
-  fn default() -> Self {
-    KeepRemoved::Bool(false)
-  }
-}
-
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub enum KeySeparator {
   #[default]
   False,
   Str(String),
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub enum LineEnding {
   #[default]
   Auto,
@@ -51,18 +19,31 @@ pub enum LineEnding {
   Lf,
 }
 
-pub enum Sort {
-  Bool(bool),
-  Func(Box<dyn Fn(String, String) -> Ordering>),
+#[derive(Clone, Default, Serialize, Deserialize)]
+pub struct Options {
+  pub full_key_prefix: String,
+  pub reset_and_flag: bool,
+  pub keep_removed: Option<bool>,
+  pub key_separator: Option<KeySeparator>,
+  pub plural_separator: Option<String>,
+  pub locale: String,
+  pub suffix: Option<String>,
+  pub separator: Option<String>,
+  pub custom_value_template: Option<Value>,
+  pub reset_default_value_locale: Option<String>,
+  pub line_ending: LineEnding,
+  pub create_old_catalogs: bool,
+  pub namespace_separator: KeySeparator,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserConfig {
   context_separator: Option<String>,
   create_old_catalogs: Option<bool>,
   default_namespace: Option<String>,
-  default_value: Option<DefaultValue>,
+  default_value: Option<String>,
   indentation: Option<u32>,
-  keep_removed: Option<KeepRemoved>,
+  keep_removed: Option<bool>,
   key_separator: Option<KeySeparator>,
   line_ending: Option<LineEnding>,
   locales: Option<Vec<String>>,
@@ -70,14 +51,70 @@ pub struct UserConfig {
   output: Option<String>,
   plural_separator: Option<String>,
   input: Option<Vec<String>>,
-  sort: Option<Sort>,
+  sort: Option<bool>,
   verbose: Option<bool>,
   fail_on_warnings: Option<bool>,
   fail_on_update: Option<bool>,
-  custom_value_template: Option<HashMap<String, String>>,
+  custom_value_template: Option<Value>,
   reset_default_value_locale: Option<String>,
-  i18next_options: Option<HashMap<String, serde_json::Value>>,
-  yaml_options: Option<HashMap<String, serde_json::Value>>,
+  i18next_options: Option<HashMap<String, Value>>,
+  yaml_options: Option<HashMap<String, Value>>,
+}
+
+impl From<UserConfig> for Options {
+  fn from(val: UserConfig) -> Self {
+    Options {
+      create_old_catalogs: val.create_old_catalogs.unwrap_or(true),
+      custom_value_template: val.custom_value_template,
+      full_key_prefix: "".to_string(),
+      keep_removed: val.keep_removed,
+      key_separator: val.key_separator,
+      line_ending: val.line_ending.unwrap_or(LineEnding::Auto),
+      locale: val.locales.unwrap_or(vec!["en".to_string()])[0].clone(),
+      plural_separator: val.plural_separator,
+      reset_and_flag: val.fail_on_update.unwrap_or(false),
+      reset_default_value_locale: val.reset_default_value_locale,
+      separator: val.context_separator,
+      suffix: None,
+      namespace_separator: val.namespace_separator.unwrap_or(KeySeparator::Str(":".to_string())),
+    }
+  }
+}
+
+impl Default for UserConfig {
+  fn default() -> Self {
+    Self {
+      context_separator: Some("_".to_string()),
+      create_old_catalogs: Some(true),
+      default_namespace: Some("translation".to_string()),
+      default_value: Some("".to_string()),
+      indentation: Some(2),
+      keep_removed: Some(false),
+      key_separator: Some(KeySeparator::Str(".".to_string())),
+      line_ending: Some(LineEnding::Auto),
+      locales: Some(vec!["en".to_string()]),
+      namespace_separator: Some(KeySeparator::Str(":".to_string())),
+      output: Some("locales/$LOCALE/$NAMESPACE.json".to_string()),
+      plural_separator: Some("_".to_string()),
+      input: Some(vec!["src/**/*.{ts,tsx}".to_string()]),
+      sort: Some(true),
+      verbose: Some(false),
+      fail_on_warnings: Some(false),
+      fail_on_update: Some(false),
+      custom_value_template: None,
+      yaml_options: None,
+      i18next_options: {
+        let mut map = HashMap::<String, Value>::new();
+
+        map.insert("nsSeparator".to_string(), Value::String(":".to_string()));
+        map.insert("keySeparator".to_string(), Value::String(".".to_string()));
+        map.insert("pluralSeparator".to_string(), Value::String("_".to_string()));
+
+        Some(map)
+      },
+      reset_default_value_locale: None,
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Default)]
@@ -94,6 +131,8 @@ pub struct AppConfig {
 pub struct Config {
   #[serde(default, flatten)]
   pub config: AppConfig,
+  #[serde(default)]
+  pub options: UserConfig,
 }
 
 impl Config {
@@ -132,7 +171,7 @@ impl Config {
       }
     }
     if !found_config {
-      log::error!("No configuration file found. Application may not behave as expected");
+      log::error!("No configuration file found. Using default configuration.");
     }
 
     let cfg: Self = builder.build()?.try_deserialize()?;

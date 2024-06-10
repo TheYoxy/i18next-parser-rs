@@ -8,21 +8,47 @@ use oxc_ast::{
   Visit,
 };
 
+use crate::printwarn;
+
 #[derive(Debug, Default)]
 pub struct Entry {
   pub key: String,
   pub default_value: Option<String>,
   pub namespace: Option<String>,
-  pub file_paths: String,
   /// all i18next options found in the file
   pub i18next_options: Option<HashMap<String, String>>,
+  pub count: Option<usize>,
+}
+
+#[derive(Debug)]
+pub struct VisitorOptions {
+  pub trans_keep_basic_html_nodes_for: Option<Vec<String>>,
+}
+
+impl Default for VisitorOptions {
+  fn default() -> Self {
+    Self {
+      trans_keep_basic_html_nodes_for: Some(vec![
+        "br".to_string(),
+        "strong".to_string(),
+        "i".to_string(),
+        "p".to_string(),
+      ]),
+    }
+  }
+}
+
+impl VisitorOptions {
+  pub fn trans_support_basic_html_nodes(&self) -> bool {
+    self.trans_keep_basic_html_nodes_for.is_some()
+  }
 }
 
 #[derive(Debug)]
 pub struct I18NVisitor<'a> {
   pub program: &'a Program<'a>,
   pub entries: Vec<Entry>,
-
+  pub options: VisitorOptions,
   /// the current namespace while parsing a file
   current_namespace: Option<String>,
 }
@@ -30,29 +56,38 @@ pub struct I18NVisitor<'a> {
 impl<'a> I18NVisitor<'a> {
   /// Creates a new [`CountASTNodes`].
   pub fn new(program: &'a Program<'a>) -> Self {
-    I18NVisitor { program, current_namespace: Default::default(), entries: Default::default() }
+    I18NVisitor {
+      program,
+      entries: Default::default(),
+      options: Default::default(),
+      current_namespace: Default::default(),
+    }
   }
 
-  fn parse_string_literal_or_satisfies_expression(expr: &Expression<'_>) -> Option<String> {
+  fn parse_expression(&self, expr: &Expression<'_>) -> Option<String> {
     match expr {
       Expression::StringLiteral(str) => Some(str.value.to_string()),
-      Expression::TSSatisfiesExpression(expr) => Self::parse_string_literal_or_satisfies_expression(&expr.expression),
+      Expression::Identifier(identifier) => self.find_identifier_value(identifier),
+      Expression::TSSatisfiesExpression(expr) => self.parse_expression(&expr.expression),
+      Expression::NumericLiteral(num) => Some(num.value.to_string()),
+      Expression::BooleanLiteral(bool) => Some(bool.value.to_string()),
       _ => None,
     }
   }
 
   /// Find the value of an identifier.
   fn find_identifier_value(&self, identifier: &oxc_allocator::Box<IdentifierReference>) -> Option<String> {
-    let arr =
-      self.program.body.iter().find_map(|stmt| {
-        if let Statement::VariableDeclaration(var) = stmt {
-          var.declarations.iter().find(|v| v.id.get_identifier() == Some(&identifier.name)).and_then(|item| {
-            item.init.as_ref().and_then(|init| Self::parse_string_literal_or_satisfies_expression(init))
-          })
-        } else {
-          None
-        }
-      });
+    let arr = self.program.body.iter().find_map(|stmt| {
+      if let Statement::VariableDeclaration(var) = stmt {
+        var
+          .declarations
+          .iter()
+          .find(|v| v.id.get_identifier() == Some(&identifier.name))
+          .and_then(|item| item.init.as_ref().and_then(|init| self.parse_expression(init)))
+      } else {
+        None
+      }
+    });
 
     arr.map(|arr| arr.to_string())
   }
@@ -87,12 +122,8 @@ impl<'a> I18NVisitor<'a> {
           ObjectPropertyKind::ObjectProperty(kv) => {
             trace!("Key: {:?}", kv.key.name());
             trace!("Value: {:?}", kv.value);
-            let value = match &kv.value {
-              Expression::Identifier(identifier) => self.find_identifier_value(identifier),
-              Expression::StringLiteral(str) => Some(str.value.to_string()),
-              Expression::BooleanLiteral(bool) => Some(bool.value.to_string()),
-              _ => None,
-            };
+            let value = self.parse_expression(&kv.value);
+            println!("Parsed value: {value:?} for {:?}", kv.value);
 
             if let Some(value) = value {
               kv.key.name().map(|name| (name.to_string(), value))
@@ -101,7 +132,7 @@ impl<'a> I18NVisitor<'a> {
             }
           },
           ObjectPropertyKind::SpreadProperty(_) => {
-            warn!("Unsupported spread property");
+            printwarn!("Unsupported spread property");
             None
           },
         })
@@ -130,6 +161,7 @@ impl<'a> I18NVisitor<'a> {
                     match &e.expression {
                       JSXExpression::StringLiteral(str) => Some(str.value.to_string()),
                       JSXExpression::Identifier(identifier) => self.find_identifier_value(identifier),
+                      JSXExpression::NumericLiteral(num) => Some(num.value.to_string()),
                       _ => todo!("expression container {e:?} not supported"),
                     }
                   },
@@ -154,7 +186,7 @@ impl<'a> I18NVisitor<'a> {
   }
 
   #[allow(clippy::ptr_arg)]
-  fn elem_to_string(childs: &Vec<NodeChild>) -> String {
+  fn elem_to_string(&self, childs: &Vec<NodeChild>) -> String {
     childs
       .iter()
       .enumerate()
@@ -163,10 +195,21 @@ impl<'a> I18NVisitor<'a> {
         NodeChild::Js(text) => text.clone(),
         NodeChild::Tag(tag) => {
           let use_tag_name = tag.is_basic;
-          let element_name = if use_tag_name { tag.name.clone() } else { format!("{}", index) };
-          let children_string = tag.children.as_ref().map(Self::elem_to_string).unwrap_or_default();
+          let element_name = {
+            if use_tag_name {
+              self
+                .options
+                .trans_keep_basic_html_nodes_for
+                .as_ref()
+                .and_then(|nodes| if nodes.contains(&tag.name) { Some(tag.name.clone()) } else { None })
+                .unwrap_or(format!("{}", index))
+            } else {
+              format!("{}", index)
+            }
+          };
+          let children_string = tag.children.as_ref().map(|v| self.elem_to_string(v)).unwrap_or_default();
 
-          if !children_string.is_empty() || !(use_tag_name && tag.self_closing) {
+          if !(children_string.is_empty() && use_tag_name && tag.self_closing) {
             format!("<{element_name}>{children_string}</{element_name}>")
           } else {
             format!("<{element_name} />")
@@ -190,16 +233,16 @@ impl<'a> I18NVisitor<'a> {
         JSXChild::Element(element) => {
           let name = if let JSXElementName::Identifier(id) = &element.opening_element.name { &id.name } else { "" };
           let is_basic = element.opening_element.attributes.len() == 0;
-          let has_dynamic_children = element.children.iter().any(|child| match child {
-            JSXChild::Text(_) => todo!(),
-            JSXChild::Element(e) => {
+          let has_dynamic_children = element.children.iter().any(|child| {
+            if let JSXChild::Element(e) = child {
               if let JSXElementName::Identifier(id) = &e.opening_element.name {
                 id.name.eq("i18nIsDynamicList")
               } else {
                 false
               }
-            },
-            _ => false,
+            } else {
+              false
+            }
           });
           let children = if has_dynamic_children {
             None
@@ -216,13 +259,68 @@ impl<'a> I18NVisitor<'a> {
           })
         },
         JSXChild::ExpressionContainer(exp) => {
-          let exp = exp.expression.as_expression().map(|exp| Self::parse_expression(exp));
+          let exp = exp.expression.as_expression().map(Self::parse_expression_child);
           exp.unwrap_or(NodeChild::Text("".to_string()))
         },
         _ => todo!(),
       })
       .filter(|e| !e.is_empty())
       .collect::<Vec<_>>()
+  }
+
+  fn parse_expression_child(exp: &Expression<'a>) -> NodeChild {
+    match &exp {
+      Expression::StringLiteral(str) => NodeChild::Text(str.value.to_string()),
+      Expression::AssignmentExpression(e) => Self::parse_expression_child(&e.right),
+      Expression::TSAsExpression(e) => Self::parse_expression_child(&e.expression),
+      Expression::CallExpression(e) if e.callee.is_identifier_reference() && e.arguments.len() >= 1 => {
+        Self::parse_expression_child(&e.callee)
+      },
+      Expression::ObjectExpression(e) => {
+        let non_format_props = e
+          .properties
+          .iter()
+          .filter_map(|prop| {
+            if let ObjectPropertyKind::ObjectProperty(obj) = prop {
+              obj.key.name().map(|name| name != "format").and_then(|o| if o { Some(obj) } else { None })
+            } else {
+              None
+            }
+          })
+          .collect::<Vec<_>>();
+        let format_props = e.properties.iter().find(|a| {
+          if let ObjectPropertyKind::ObjectProperty(obj) = a {
+            obj.key.name().map(|name| name == "format").unwrap_or_default()
+          } else {
+            false
+          }
+        });
+        if non_format_props.len() > 1 {
+          warn!("The passed in object contained more than one variable - the object should look like {{{{ value, format }}}} where format is optional");
+          return NodeChild::Text("".to_string());
+        }
+
+        let value = if let Some(format_props) = format_props {
+          let text = non_format_props.first().and_then(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default();
+          if let ObjectPropertyKind::ObjectProperty(obj) = format_props {
+            obj.init.as_ref().and_then(|init| match &init {
+              Expression::StringLiteral(str) => Some(format!("{}, {}", text, str.value)),
+              _ => {
+                warn!("The format property should be a string literal");
+                None
+              },
+            })
+          } else {
+            None
+          }
+        } else {
+          non_format_props.first().map(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default()
+        };
+
+        NodeChild::Js(format!("{{ {} }}", value.unwrap_or_default()))
+      },
+      _ => NodeChild::Text("".to_string()),
+    }
   }
 }
 
@@ -251,7 +349,6 @@ struct NodeTag {
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
   fn visit_call_expression(&mut self, expr: &CallExpression<'a>) {
-    // println!("Call expression: {:?}", expr);
     if let Some(name) = expr.callee_name() {
       self.extract_namespace(name, expr);
       if name == "t" {
@@ -308,9 +405,9 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           namespace: self
             .current_namespace
             .clone()
-            .or(i18next_options.clone().and_then(|o| o.get("namespace").map(|v| v.to_string()))),
+            .or(i18next_options.as_ref().and_then(|o| o.get("namespace").map(|v| v.to_string()))),
+          count: i18next_options.as_ref().and_then(|opt| opt.get("count").and_then(|v| v.parse::<usize>().ok())),
           i18next_options,
-          ..Default::default()
         });
       };
     }
@@ -318,7 +415,6 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
   }
 
   fn visit_jsx_element(&mut self, elem: &JSXElement<'a>) {
-    // println!("JSX element: {elem:?}");
     let component_functions = ["Trans"];
     let name = match &elem.opening_element.name {
       JSXElementName::Identifier(id) => &id.name,
@@ -336,7 +432,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
       trace!("Childrens: {:?}", elem.children);
       let node_as_string = {
         let content = Self::parse_children(&elem.children);
-        Self::elem_to_string(&content)
+        self.elem_to_string(&content)
       };
       trace!("Element as string: {node_as_string:?}");
 
@@ -346,8 +442,8 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           key,
           default_value: if default_value.is_empty() { None } else { Some(default_value) },
           namespace: ns,
-          // i18next_options: options,
-          ..Default::default()
+          count: count.and_then(|v| v.parse::<usize>().ok()),
+          i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
         });
       }
     }
@@ -356,75 +452,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
   }
 }
 
-impl<'a> I18NVisitor<'a> {
-  fn parse_expression(exp: &Expression<'a>) -> NodeChild {
-    match &exp {
-      Expression::StringLiteral(str) => NodeChild::Text(str.value.to_string()),
-      Expression::AssignmentExpression(e) => Self::parse_expression(&e.right),
-      Expression::TSAsExpression(e) => Self::parse_expression(&e.expression),
-      Expression::CallExpression(e) if e.callee.is_identifier_reference() && e.arguments.len() >= 1 => {
-        Self::parse_expression(&e.callee)
-      },
-      Expression::ObjectExpression(e) => {
-        let non_format_props = e
-          .properties
-          .iter()
-          .filter_map(|prop| {
-            if let ObjectPropertyKind::ObjectProperty(obj) = prop {
-              let option = obj.key.name().map(|name| name != "format");
-              if let Some(option) = option {
-                if option {
-                  Some(obj)
-                } else {
-                  None
-                }
-              } else {
-                None
-              }
-            } else {
-              None
-            }
-          })
-          .collect::<Vec<_>>();
-        let format_props = e.properties.iter().find(|a| {
-          if let ObjectPropertyKind::ObjectProperty(obj) = a {
-            obj.key.name().map(|name| name == "format").unwrap_or_default()
-          } else {
-            false
-          }
-        });
-        if non_format_props.len() > 1 {
-          warn!("The passed in object contained more than one variable - the object should look like {{{{ value, format }}}} where format is optional");
-          return NodeChild::Text("".to_string());
-        }
-
-        let value = if let Some(format_props) = format_props {
-          let text = non_format_props.first().and_then(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default();
-          if let ObjectPropertyKind::ObjectProperty(obj) = format_props {
-            if let Some(init) = &obj.init {
-              match init {
-                Expression::StringLiteral(str) => Some(format!("{}, {}", text, str.value)),
-                _ => {
-                  warn!("The format property should be a string");
-                  None
-                },
-              }
-            } else {
-              None
-            }
-          } else {
-            None
-          }
-        } else {
-          non_format_props.first().map(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default()
-        };
-
-        NodeChild::Js(format!("{{ {} }}", value.unwrap_or_default()))
-      },
-      _ => NodeChild::Text("".to_string()),
-    }
-  }
-}
+impl<'a> I18NVisitor<'a> {}
 
 fn clean_multi_line_code(text: &str) -> String {
   text.replace(|c: char| c.is_whitespace(), " ").trim().to_string()
@@ -568,6 +596,37 @@ mod tests {
       el.assert_eq("toast.title", None, None);
     }
   }
+
+  #[test]
+  fn should_parse_t_with_count_litteral_spread() {
+    let source_text = r#"const count = 1;const title = t("toast.title", undefined, { count });"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let el = keys.first().unwrap();
+    el.assert_eq("toast.title", None, None);
+    assert_eq!(el.count, Some(1));
+  }
+
+  #[test]
+  fn should_parse_t_with_count_litteral() {
+    let source_text = r#"const count = 1;const title = t("toast.title", undefined, {count: count});"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let el = keys.first().unwrap();
+    el.assert_eq("toast.title", None, None);
+    assert_eq!(el.count, Some(1));
+  }
+
+  #[test]
+  fn should_parse_t_with_count_numeric() {
+    let source_text = r#"const title = t("toast.title", undefined, {count: 1});"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let el = keys.first().unwrap();
+    el.assert_eq("toast.title", None, None);
+    assert_eq!(el.count, Some(1));
+  }
+
   #[test]
   fn should_parse_jsx_with_ns_defined_in_variable() {
     let source_text = r#"
@@ -593,5 +652,46 @@ mod tests {
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
     le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_template_translated() {
+    let source_text = r#"
+    const Comp = () => <i>Reset password</i>;
+    const el = <Trans ns="ns" i18nKey="dialog.title"><Comp>Reset password</Comp></Trans>;
+    "#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("<0>Reset password</0>".to_string()));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_count_identifier() {
+    let source_text = r#"const count = 2; const el = <Trans ns="ns" i18nKey="dialog.title" count={count}><i>Reset password</i></Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("<i>Reset password</i>".to_string()));
+    assert_eq!(le.count, Some(2));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_count_numeral() {
+    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title" count={2}><i>Reset password</i></Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("<i>Reset password</i>".to_string()));
+    assert_eq!(le.count, Some(2));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_template_kept() {
+    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title"><i>Reset password</i></Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("<i>Reset password</i>".to_string()));
   }
 }

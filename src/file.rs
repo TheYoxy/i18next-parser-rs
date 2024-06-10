@@ -37,13 +37,14 @@ where
 
 pub fn write_to_file(locales: Vec<&str>, entries: Vec<Entry>, options: Options, output: &str) {
   for locale in locales.iter() {
-    let TransformEntriesResult { unique_count, unique_plurals_count, value } = transform_entries(&entries, &options);
+    let TransformEntriesResult { unique_count, unique_plurals_count, value } =
+      transform_entries(&entries, locale, &options);
 
     if let Value::Object(catalog) = value {
       for (namespace, catalog) in catalog {
         let MergeAllResults { path, backup, merged, old_catalog } =
           merge_all_results(locale, &namespace, &catalog, output, &unique_count, &unique_plurals_count, &options);
-        // todo: add failOnUpdate / failOnWarnings
+
         push_file(&path, &merged.new, &options).unwrap_or_else(|_| panic!("Unable to write file {path:?}"));
         if options.create_old_catalogs && !old_catalog.is_empty() {
           push_file(&backup, &old_catalog, &options).unwrap_or_else(|_| panic!("Unable to write file {backup:?}"));

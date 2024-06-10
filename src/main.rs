@@ -13,7 +13,7 @@ use log::{debug, trace};
 use serde_json::Value;
 
 use catalog::get_catalog;
-use config::Options;
+use config::{KeySeparator, LineEnding, Options};
 use helper::{dot_path_to_hash, merge_hashes, MergeResult};
 
 use crate::file::{parse_file, write_to_file};
@@ -31,6 +31,7 @@ mod file;
 mod helper;
 mod is_empty;
 mod macros;
+mod plural;
 mod tests;
 mod utils;
 mod visitor;
@@ -50,7 +51,7 @@ fn main() -> Result<()> {
   let output = "locales/$LOCALE/$NAMESPACE.json";
 
   let entries = parse_file(name)?;
-  let options = Options::default();
+  let options = Options::from(config.options);
 
   write_to_file(locales, entries, options, output);
 
@@ -73,8 +74,6 @@ fn merge_all_results(
   unique_plurals_count: &HashMap<String, usize>,
   options: &Options,
 ) -> MergeAllResults {
-  const NS_SEPARATOR: &str = ":"; // TODO: replace this const by options
-
   let path = output.replace("$LOCALE", locale).replace("$NAMESPACE", &namespace.clone());
   trace!("Path for output {output:?}: {path:?}");
   let path = PathBuf::from_str(&path).unwrap_or_else(|_| panic!("Unable to find path {path:?}"));
@@ -92,11 +91,12 @@ fn merge_all_results(
   let old_value = get_catalog(&backup);
   trace!("Value: {:?}", value);
   trace!("Old value: {:?}", old_value);
+  let ns_separator = if let KeySeparator::Str(ref val) = options.namespace_separator { val } else { "" };
   let merged = merge_hashes(
     value.as_ref(),
-    &catalog,
+    catalog,
     Options {
-      full_key_prefix: namespace.to_string() + NS_SEPARATOR,
+      full_key_prefix: namespace.to_string() + ns_separator,
       reset_and_flag: false,
       keep_removed: None,
       key_separator: None,
@@ -108,7 +108,7 @@ fn merge_all_results(
   let old_merged =
     merge_hashes(old_value.as_ref(), &merged.new, Options { keep_removed: None, ..Default::default() }, None);
   let old_catalog = transfer_values(&merged.old, &old_merged.old);
-  print_counts(locale, namespace.as_str(), &unique_count, &unique_plurals_count, &merged, &old_merged, &options);
+  print_counts(locale, namespace.as_str(), unique_count, unique_plurals_count, &merged, &old_merged, options);
   MergeAllResults { path, backup, merged, old_catalog }
 }
 
@@ -117,44 +117,67 @@ struct TransformEntriesResult {
   unique_plurals_count: HashMap<String, usize>,
   value: Value,
 }
-fn transform_entries(entries: &Vec<Entry>, options: &Options) -> TransformEntriesResult {
+fn transform_entries(entries: &Vec<Entry>, locale: &str, options: &Options) -> TransformEntriesResult {
   let mut unique_count = HashMap::new();
   let mut unique_plurals_count = HashMap::new();
   let mut value = Value::Object(Default::default());
 
   for entry in entries {
-    let namespace = entry.namespace.clone().unwrap_or("default".to_string());
-    if !unique_count.contains_key(&namespace) {
-      unique_count.insert(namespace.clone(), 0);
-    }
-    if !unique_plurals_count.contains_key(&namespace) {
-      unique_plurals_count.insert(namespace.clone(), 0);
-    }
+    value = if options.plural_separator.is_some() && entry.count.is_some() {
+      let resolver = plural::PluralResolver::default();
 
-    // TODO:add pluralization resolver to transform the entry
-
-    let suffix = None;
-    let result = dot_path_to_hash(entry, &value, &Options { suffix: suffix.clone(), ..options.clone() });
-    trace!("Result: {:?} <- {:?}", value, result.target);
-    value = result.target;
-
-    if result.duplicate {
-      match result.conflict {
-        Some(val) if val == "key" => printwarn!(
-          "Found translation key already mapped to a map or parent of new key already mapped to a string: {}",
-          entry.key
-        ),
-        Some(val) if val == "value" => printwarn!("Found same keys with different values: {}", entry.key),
-        _ => (),
+      for suffix in resolver.get_suffixes(locale) {
+        value = transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, options, Some(suffix))
       }
+      value
     } else {
-      *unique_count.get_mut(&namespace).unwrap() += 1;
-      if suffix.is_some() {
-        *unique_plurals_count.get_mut(&namespace).unwrap() += 1;
-      }
-    }
+      transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, options, None)
+    };
   }
   TransformEntriesResult { unique_count, unique_plurals_count, value }
+}
+
+fn transform_entry(
+  entry: &Entry,
+  unique_count: &mut HashMap<String, usize>,
+  unique_plurals_count: &mut HashMap<String, usize>,
+  value: &Value,
+  options: &Options,
+  suffix: Option<String>,
+) -> Value {
+  let namespace = entry.namespace.clone().unwrap_or("default".to_string());
+  if !unique_count.contains_key(&namespace) {
+    unique_count.insert(namespace.clone(), 0);
+  }
+  if !unique_plurals_count.contains_key(&namespace) {
+    unique_plurals_count.insert(namespace.clone(), 0);
+  }
+
+  let options = if let Some(suffix) = &suffix {
+    Options { suffix: Some(suffix.clone()), ..options.clone() }
+  } else {
+    options.clone()
+  };
+  let result = dot_path_to_hash(entry, value, &options);
+  trace!("Result: {:?} <- {:?}", value, result.target);
+
+  if result.duplicate {
+    match result.conflict {
+      Some(val) if val == "key" => printwarn!(
+        "Found translation key already mapped to a map or parent of new key already mapped to a string: {}",
+        entry.key
+      ),
+      Some(val) if val == "value" => printwarn!("Found same keys with different values: {}", entry.key),
+      _ => (),
+    }
+  } else {
+    *unique_count.get_mut(&namespace).unwrap() += 1;
+    if suffix.is_some() {
+      *unique_plurals_count.get_mut(&namespace).unwrap() += 1;
+    }
+  }
+
+  result.target
 }
 
 fn transfer_values(source: &Value, target: &Value) -> Value {
@@ -185,16 +208,14 @@ fn push_file(path: &PathBuf, contents: &Value, options: &Options) -> std::io::Re
     text = text.replace("\r\n", "\n").replace('\r', "\n");
   }
 
-  if options.line_ending == "auto" {
-    // Do nothing, as Rust automatically uses the appropriate line endings
-  } else if options.line_ending == "\r\n" || options.line_ending == "crlf" {
-    text = text.replace('\n', "\r\n");
-  } else if options.line_ending == "\r" || options.line_ending == "cr" {
-    text = text.replace('\n', "\r");
-  } else {
-    // Defaults to LF, aka \n
-    // Do nothing, as Rust already uses LF by default
-  }
+  text = match options.line_ending {
+    LineEnding::Crlf => text.replace('\n', "\r\n"),
+    LineEnding::Cr => text.replace('\n', "\r"),
+    _ => {
+      // Do nothing, as Rust automatically uses the appropriate line endings
+      text
+    },
+  };
 
   if let Some(parent) = path.parent() {
     if !parent.exists() {
@@ -237,4 +258,83 @@ fn print_counts(
     println!("Reset keys: {}", reset_count);
   }
   println!();
+}
+
+#[cfg(test)]
+mod transform_entries {
+  use super::*;
+
+  #[test]
+  fn test_transform_entries() {
+    let entries = vec![
+      Entry {
+        namespace: Some("default".to_string()),
+        key: "key1".to_string(),
+        count: None,
+        default_value: Some("value1".to_string()),
+        i18next_options: None,
+      },
+      Entry {
+        namespace: Some("default".to_string()),
+        key: "key2".to_string(),
+        count: Some(3),
+        default_value: Some("value2".to_string()),
+        i18next_options: None,
+      },
+      Entry {
+        namespace: Some("custom".to_string()),
+        key: "key3".to_string(),
+        count: None,
+        default_value: Some("value3".to_string()),
+        i18next_options: None,
+      },
+    ];
+    let locale = "en";
+    let options = Options { plural_separator: Some("_".to_string()), ..Options::default() };
+
+    let result = transform_entries(&entries, locale, &options);
+
+    assert_eq!(result.unique_count.get("default"), Some(&3));
+    assert_eq!(result.unique_count.get("custom"), Some(&1));
+    assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
+    assert_eq!(result.unique_plurals_count.get("custom"), Some(&0));
+    assert_eq!(result.value.get("default").and_then(|v| v.get("key1")), Some(&Value::String("value1".to_string())));
+    assert_eq!(result.value.get("default").and_then(|v| v.get("key2")), Some(&Value::String("value2".to_string())));
+    assert_eq!(result.value.get("custom").and_then(|v| v.get("key3")), Some(&Value::String("value3".to_string())));
+  }
+}
+
+#[cfg(test)]
+mod transform_entry {
+  use serde_json::json;
+
+  use super::*;
+
+  #[test]
+  fn test_transform_entry() {
+    let entry = Entry {
+      namespace: Some("default".to_string()),
+      key: "key1".to_string(),
+      default_value: Some("value1".to_string()),
+      count: None,
+      i18next_options: None,
+    };
+    let mut unique_count = HashMap::new();
+    let mut unique_plurals_count = HashMap::new();
+    let value = Value::Object(Default::default());
+    let options = Options::default();
+
+    let result = transform_entry(&entry, &mut unique_count, &mut unique_plurals_count, &value, &options, None);
+
+    assert_eq!(
+      result,
+      json!({
+        "default": {
+          "key1": "value1"
+        }
+      })
+    );
+    assert_eq!(unique_count.get("default"), Some(&1));
+    assert_eq!(unique_plurals_count.get("default"), Some(&0));
+  }
 }

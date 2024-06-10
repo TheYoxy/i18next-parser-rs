@@ -3,26 +3,31 @@
 use flatten_json_object::Flattener;
 use serde_json::Value;
 
+use crate::config::Config;
 use crate::is_empty::IsEmpty;
+use crate::utils::initialize_logging;
 use crate::{
   config::Options, merge_all_results, parse_file, transform_entries, MergeAllResults, TransformEntriesResult,
 };
 
 #[test]
 fn should_parse() {
+  initialize_logging().unwrap();
   let name = "assets/file.tsx";
   let locales = ["en", "fr"];
   let output = "tmp/locales/$LOCALE/$NAMESPACE.json";
   let entries = parse_file(name).unwrap();
 
-  let options = Options::default();
+  let config = Config::new(Some(name)).unwrap();
+  let options = Options::from(config.options);
 
   assert_eq!(locales.len(), 2);
   for locale in locales.iter() {
-    let TransformEntriesResult { unique_count, unique_plurals_count, value } = transform_entries(&entries, &options);
+    let TransformEntriesResult { unique_count, unique_plurals_count, value } =
+      transform_entries(&entries, locale, &options);
 
     if let Value::Object(catalog) = value {
-      println!("{:?}", catalog);
+      println!("Catalog: {:?}", catalog);
       assert_eq!(catalog.len(), 1, "expected 1 namespace for locale {locale}");
       for (namespace, catalog) in catalog {
         let MergeAllResults { path: _path, backup: _backup, merged, old_catalog: _old_catalog } =

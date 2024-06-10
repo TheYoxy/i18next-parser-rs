@@ -3,7 +3,7 @@ use regex::Regex;
 use serde_json::{Map, Value};
 
 use crate::{
-  config::{KeepRemoved, Options},
+  config::{KeySeparator, Options},
   visitor::Entry,
 };
 
@@ -62,18 +62,16 @@ pub fn merge_hashes(
   }
 
   let keep_removed = match &options.keep_removed {
-    Some(KeepRemoved::Bool(b)) => *b,
+    Some(b) => *b,
     _ => false,
   };
 
-  let binding = vec![];
-  let keep_removed_patterns = match &options.keep_removed {
-    Some(KeepRemoved::Patterns(patterns)) => patterns,
-    _ => &binding,
-  };
-
   let full_key_prefix = options.full_key_prefix.clone();
-  let key_separator = options.key_separator.as_deref().unwrap_or(".");
+  let key_separator = match options.key_separator {
+    Some(KeySeparator::Str(ref separator)) => separator.clone(),
+    Some(KeySeparator::False) => "".to_string(),
+    _ => ".".to_string(),
+  };
   let plural_separator = options.plural_separator.as_deref().unwrap_or("_");
 
   let reset_values_map = reset_values.and_then(|v| v.as_object()).map_or_else(Map::new, |v| v.clone());
@@ -124,8 +122,7 @@ pub fn merge_hashes(
             existing.insert(key.clone(), value.clone());
             pull_count += 1;
           } else {
-            let keep_key = keep_removed
-              || keep_removed_patterns.iter().any(|pattern| pattern.is_match(&(full_key_prefix.clone() + key)));
+            let keep_key = keep_removed;
             if keep_key {
               existing.insert(key.clone(), value.clone());
             } else {
@@ -169,7 +166,6 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
   let mut conflict: Option<String> = None;
   let mut duplicate = false;
   let mut target = target.clone();
-  trace!("base_target: {:?}", target);
   let separator = options.separator.clone().unwrap_or(".".to_string());
   let base_path =
     entry.namespace.clone().or(Some("default".to_string())).map(|ns| ns + &separator + &entry.key).unwrap();
@@ -188,7 +184,7 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
 
   let segments: Vec<&str> = path.split(&separator).collect();
   trace!("Segments: {segments:?}");
-  debug!("Val {:?} {:?} {:?}", &target, entry.key, entry.default_value);
+  trace!("Val {:?} {:?} {:?}", &target, entry.key, entry.default_value);
   let mut inner = &mut target;
   #[allow(clippy::needless_range_loop)]
   for i in 0..segments.len() - 1 {
@@ -204,7 +200,6 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
     }
   }
 
-  // todo: check if this is correct
   let last_segment = segments[segments.len() - 1];
   let old_value = inner[last_segment].as_str().map(|s| s.to_owned());
   trace!("Old value: {old_value:?}");
@@ -232,15 +227,11 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
     .unwrap_or_default();
 
   if let Some(custom_value_template) = &options.custom_value_template {
-    trace!("Custom value template: {:?}", custom_value_template);
     inner[last_segment] = Value::Object(Map::new());
     if let Value::Object(map) = custom_value_template {
       for (key, value) in map {
         if value == "${defaultValue}" {
           inner[last_segment][key] = Value::String(new_value.clone());
-        } else if value == "${filePaths}" {
-          // This assumes that file_paths is a comma-separated string
-          inner[last_segment][key] = Value::String(entry.file_paths.clone());
         } else {
           let value_key = value.as_str().unwrap().replace("${", "").replace('}', "");
           inner[last_segment][key] = Value::String(value_key);
@@ -248,8 +239,142 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
       }
     }
   } else {
+    debug!("Setting {last_segment:?} to {new_value:?}");
     inner[last_segment] = Value::String(new_value);
   }
 
   DotPathToHashResult { target: target.clone(), duplicate, conflict }
+}
+#[cfg(test)]
+mod dot_path_to_hash {
+  use serde_json::json;
+
+  use super::*;
+
+  #[test]
+  fn test_dot_path_to_hash() {
+    let entry = Entry {
+      namespace: Some("namespace".to_string()),
+      key: "key".to_string(),
+      default_value: Some("default_value".to_string()),
+      i18next_options: None,
+      count: None,
+    };
+    let target = json!({
+      "namespace": {
+        "key": "existing_value"
+      }
+    });
+    let options = Options::default();
+
+    let result = dot_path_to_hash(&entry, &target, &options);
+
+    assert_eq!(
+      result.target,
+      json!({
+        "namespace": {
+          "key": "default_value"
+        }
+      })
+    );
+    assert!(result.duplicate, "there is not duplicates");
+    assert_eq!(result.conflict, Some("value".to_string()));
+  }
+}
+
+#[cfg(test)]
+mod merge_hashes {
+  use serde_json::json;
+
+  use super::*;
+
+  #[test]
+  fn test_merge_hashes_no_source() {
+    let existing = json!({
+      "key1": "value1",
+      "key2": "value2"
+    });
+    let options = Options::default();
+    let reset_values = None;
+
+    let result = merge_hashes(None, &existing, options, reset_values);
+
+    assert_eq!(result.new, existing);
+    assert_eq!(result.old, json!({}));
+    assert_eq!(result.reset, json!({}));
+    assert_eq!(result.merge_count, 0);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 0);
+    assert_eq!(result.reset_count, 0);
+  }
+
+  #[test]
+  fn test_merge_hashes_with_source() {
+    let value = json!({
+      "key1": "new_value1",
+      "key3": "value3"
+    });
+    let source = Some(&value);
+    let existing = json!({
+      "key1": "value1",
+      "key2": "value2"
+    });
+    let options = Options::default();
+    let reset_values = None;
+
+    let result = merge_hashes(source, &existing, options, reset_values);
+
+    assert_eq!(
+      result.new,
+      json!({
+        "key1": "new_value1",
+        "key2": "value2",
+      }),
+      "the new hash is not as expected"
+    );
+    assert_eq!(
+      result.old,
+      json!({
+        "key3": "value3"
+      })
+    );
+    assert_eq!(result.reset, json!({}));
+    assert_eq!(result.merge_count, 1);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 1);
+    assert_eq!(result.reset_count, 0);
+  }
+
+  #[test]
+  fn test_merge_hashes_with_source_keep_old_values() {
+    let value = json!({
+      "key1": "new_value1",
+      "key3": "value3"
+    });
+    let source = Some(&value);
+    let existing = json!({
+      "key1": "value1",
+      "key2": "value2"
+    });
+    let options = Options { keep_removed: Some(true), ..Default::default() };
+    let reset_values = None;
+
+    let result = merge_hashes(source, &existing, options, reset_values);
+
+    assert_eq!(
+      result.new,
+      json!({
+        "key1": "new_value1",
+        "key2": "value2",
+        "key3": "value3"
+      }),
+      "the new hash is not as expected"
+    );
+    assert_eq!(result.old, json!({}));
+    assert_eq!(result.reset, json!({}));
+    assert_eq!(result.merge_count, 1);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 1);
+    assert_eq!(result.reset_count, 0);
+  }
 }
