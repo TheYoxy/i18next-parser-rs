@@ -2,7 +2,10 @@ use log::{debug, trace};
 use regex::Regex;
 use serde_json::{Map, Value};
 
-use crate::visitor::Entry;
+use crate::{
+  config::{KeepRemoved, Options},
+  visitor::Entry,
+};
 
 const PLURAL_SUFFIXES: &[&str] = &["zero", "one", "two", "few", "many", "other"];
 
@@ -17,34 +20,6 @@ fn has_related_plural_key(raw_key: &str, source: &Map<String, Value>) -> bool {
 fn get_singular_form(key: &str, plural_separator: &str) -> String {
   let plural_regex = Regex::new(&format!(r"(\{}(?:zero|one|two|few|many|other))$", plural_separator)).unwrap();
   plural_regex.replace(key, "").to_string()
-}
-
-#[derive(Default, Clone)]
-pub struct Options {
-  pub full_key_prefix: String,
-  pub reset_and_flag: bool,
-  pub keep_removed: Option<KeepRemoved>,
-  pub key_separator: Option<String>,
-  pub plural_separator: Option<String>,
-  pub locale: String,
-  pub suffix: Option<String>,
-  pub separator: Option<String>,
-  pub custom_value_template: Option<Value>,
-  pub reset_default_value_locale: Option<String>,
-  pub line_ending: String,
-  pub create_old_catalogs: bool,
-}
-
-#[derive(Clone)]
-pub enum KeepRemoved {
-  Bool(bool),
-  Patterns(Vec<Regex>),
-}
-
-impl Default for KeepRemoved {
-  fn default() -> Self {
-    KeepRemoved::Bool(false)
-  }
 }
 
 pub struct MergeResult {
@@ -105,10 +80,10 @@ pub fn merge_hashes(
 
   if let Some(Value::Object(source_map)) = source {
     for (key, value) in source_map {
-      debug!("Handling {key:?} with value {value:?}");
+      trace!("Handling {key:?} with value {value:?}");
       match existing.get_mut(key) {
         Some(target_value) if target_value.is_object() && value.is_object() => {
-          debug!("Merging nested key: {}", key);
+          trace!("Merging nested key: {}", key);
           let nested_options =
             Options { full_key_prefix: format!("{}{}{}", full_key_prefix, key, key_separator), ..options.clone() };
           let nested_result = merge_hashes(Some(value), target_value, nested_options, reset_values_map.get(key));
@@ -213,6 +188,7 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
 
   let segments: Vec<&str> = path.split(&separator).collect();
   trace!("Segments: {segments:?}");
+  debug!("Val {:?} {:?} {:?}", &target, entry.key, entry.default_value);
   let mut inner = &mut target;
   #[allow(clippy::needless_range_loop)]
   for i in 0..segments.len() - 1 {
@@ -232,17 +208,21 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
   let last_segment = segments[segments.len() - 1];
   let old_value = inner[last_segment].as_str().map(|s| s.to_owned());
   trace!("Old value: {old_value:?}");
-
   let new_value = entry
     .default_value
     .clone()
     .map(|new_value| {
       if let Some(old_value) = old_value {
+        debug!("Values [Old: {:?}] -> [New: {:?}]", old_value, new_value);
         if old_value != new_value && !old_value.is_empty() {
-          old_value
+          if new_value.is_empty() {
+            old_value
+          } else {
+            conflict = Some("value".to_string());
+            duplicate = true;
+            new_value
+          }
         } else {
-          conflict = Some("value".to_string());
-          duplicate = true;
           new_value
         }
       } else {

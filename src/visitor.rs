@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use log::{debug, trace, warn};
+use log::{trace, warn};
 use oxc_ast::ast::*;
 use oxc_ast::{
   ast::{Argument, CallExpression, Expression, IdentifierReference, ObjectPropertyKind, Program, Statement},
@@ -184,7 +184,7 @@ impl<'a> I18NVisitor<'a> {
         JSXChild::Text(text) => {
           let atom = &text.value;
           let clean_multi_line_code = clean_multi_line_code(atom);
-          debug!("Text: {atom:?} -> {clean_multi_line_code:?}");
+          trace!("Text: {atom:?} -> {clean_multi_line_code:?}");
           NodeChild::Text(clean_multi_line_code)
         },
         JSXChild::Element(element) => {
@@ -216,7 +216,7 @@ impl<'a> I18NVisitor<'a> {
           })
         },
         JSXChild::ExpressionContainer(exp) => {
-          let exp = exp.expression.as_expression().map(|exp| Self::parse_expression(&exp));
+          let exp = exp.expression.as_expression().map(|exp| Self::parse_expression(exp));
           exp.unwrap_or(NodeChild::Text("".to_string()))
         },
         _ => todo!(),
@@ -325,6 +325,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
       JSXElementName::NamespacedName(_) => todo!(),
       JSXElementName::MemberExpression(_) => todo!(),
     };
+    #[allow(unused_variables)]
     if component_functions.contains(&name.as_str()) {
       let key = self.get_prop_value(elem, "i18nKey");
       let ns = self.get_prop_value(elem, "ns");
@@ -332,12 +333,12 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
       let count = self.get_prop_value(elem, "count");
       let options = self.get_prop_value(elem, "i18n");
 
-      debug!("Childrens: {:?}", elem.children);
+      trace!("Childrens: {:?}", elem.children);
       let node_as_string = {
         let content = Self::parse_children(&elem.children);
         Self::elem_to_string(&content)
       };
-      debug!("Element as string: {node_as_string:?}");
+      trace!("Element as string: {node_as_string:?}");
 
       let default_value = default_value.unwrap_or(node_as_string);
       if let Some(key) = key {
@@ -431,11 +432,9 @@ fn clean_multi_line_code(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-  use log::LevelFilter;
   use oxc_allocator::Allocator;
   use oxc_parser::Parser;
   use oxc_span::SourceType;
-  use simple_logger::SimpleLogger;
 
   use super::*;
 
