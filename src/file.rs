@@ -35,7 +35,7 @@ where
   Ok(visitor.entries)
 }
 
-pub fn write_to_file(locales: Vec<&str>, entries: Vec<Entry>, options: Options, output: &str) {
+pub fn write_to_file(locales: Vec<String>, entries: Vec<Entry>, options: Options, output: &str) {
   for locale in locales.iter() {
     let TransformEntriesResult { unique_count, unique_plurals_count, value } =
       transform_entries(&entries, locale, &options);

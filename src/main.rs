@@ -9,7 +9,8 @@ use std::{
 };
 
 use color_eyre::eyre::Result;
-use log::{debug, trace};
+use globset::{GlobSet, GlobSetBuilder};
+use log::{debug, info, trace};
 use serde_json::Value;
 
 use catalog::get_catalog;
@@ -42,18 +43,35 @@ fn main() -> Result<()> {
   initialize_logging()?;
   let cli = Cli::parse();
 
+  info!("Working directory: {:?}", cli.path);
   let config = Config::new(cli.path.to_str())?;
   debug!("Configuration: {config:?}");
 
   let name = "assets/file.tsx";
+  let options = config.options.clone();
+  let inputs = options.input.expect("Paths are required");
 
-  let locales = vec!["en", "fr"];
-  let output = "locales/$LOCALE/$NAMESPACE.json";
+  println!("Processing files: {:?}", inputs);
+  let mut builder = GlobSetBuilder::new();
+  for input in inputs {
+    use globset::Glob;
+    let join = &cli.path.join(input);
+    let glob = join.to_str().unwrap();
+    println!("Glob: {:?}", glob);
+    builder.add(Glob::new(glob)?);
+  }
+  let globset = builder.build()?;
+  // loop over all files in 
 
+  todo!("");
+  let locales = options.locales.expect("Localed are required");
+  let output = options.output.expect("Output path is required");
+
+  // TODO: parse glob of file and not only one file
   let entries = parse_file(name)?;
   let options = Options::from(config.options);
 
-  write_to_file(locales, entries, options, output);
+  write_to_file(locales, entries, options, &output);
 
   Ok(())
 }
@@ -66,7 +84,7 @@ struct MergeAllResults {
 }
 
 fn merge_all_results(
-  locale: &&str,
+  locale: &str,
   namespace: &String,
   catalog: &Value,
   output: &str,
