@@ -15,11 +15,9 @@ fn should_parse() {
   initialize_logging().unwrap();
   let name = "assets/file.tsx";
   let locales = ["en", "fr"];
-  let output = "tmp/locales/$LOCALE/$NAMESPACE.json";
   let entries = parse_file(name).unwrap();
-
-  let config = Config::new(Some(name)).unwrap();
-  let options = Options::from(config.options);
+  let config = Config::new(name).unwrap();
+  let options = Options::from(config);
 
   assert_eq!(locales.len(), 2);
   for locale in locales.iter() {
@@ -31,7 +29,7 @@ fn should_parse() {
       assert_eq!(catalog.len(), 1, "expected 1 namespace for locale {locale}");
       for (namespace, catalog) in catalog {
         let MergeAllResults { path: _path, backup: _backup, merged, old_catalog: _old_catalog } =
-          merge_all_results(locale, &namespace, &catalog, output, &unique_count, &unique_plurals_count, &options);
+          merge_all_results(locale, &namespace, &catalog, &unique_count, &unique_plurals_count, &options);
         assert_eq!(merged.old_count, 0, "there isn't any values yet");
         assert_eq!(merged.merge_count, 0, "there is 0 values to merge");
         assert_eq!(merged.pull_count, 0, "there is 8 new values");

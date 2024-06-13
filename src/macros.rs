@@ -5,6 +5,15 @@
 /// this can be customized.
 
 #[macro_export]
+macro_rules! printinfo {
+    ($($arg:tt)*) => {{
+        use color_eyre::owo_colors::OwoColorize;
+        let info_prefix = " INFO ".blue();
+        println!("{}{}", info_prefix, format!($($arg)*));
+    }};
+}
+
+#[macro_export]
 macro_rules! printwarn {
     ($($arg:tt)*) => {{
         use color_eyre::owo_colors::OwoColorize;

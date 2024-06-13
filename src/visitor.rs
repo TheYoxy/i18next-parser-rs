@@ -162,6 +162,7 @@ impl<'a> I18NVisitor<'a> {
                       JSXExpression::StringLiteral(str) => Some(str.value.to_string()),
                       JSXExpression::Identifier(identifier) => self.find_identifier_value(identifier),
                       JSXExpression::NumericLiteral(num) => Some(num.value.to_string()),
+                      JSXExpression::StaticMemberExpression(expression) => self.parse_expression(&expression.object),
                       _ => todo!("expression container {e:?} not supported"),
                     }
                   },
@@ -416,38 +417,34 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
 
   fn visit_jsx_element(&mut self, elem: &JSXElement<'a>) {
     let component_functions = ["Trans"];
-    let name = match &elem.opening_element.name {
-      JSXElementName::Identifier(id) => &id.name,
-      JSXElementName::NamespacedName(_) => todo!(),
-      JSXElementName::MemberExpression(_) => todo!(),
-    };
+    let name = if let JSXElementName::Identifier(id) = &elem.opening_element.name { Some(&id.name) } else { None };
     #[allow(unused_variables)]
-    if component_functions.contains(&name.as_str()) {
-      let key = self.get_prop_value(elem, "i18nKey");
-      let ns = self.get_prop_value(elem, "ns");
-      let default_value = self.get_prop_value(elem, "defaults");
-      let count = self.get_prop_value(elem, "count");
-      let options = self.get_prop_value(elem, "i18n");
+    if let Some(name) = name {
+      if component_functions.contains(&name.as_str()) {
+        let key = self.get_prop_value(elem, "i18nKey");
+        let ns = self.get_prop_value(elem, "ns");
+        let default_value = self.get_prop_value(elem, "defaults");
+        let count = self.get_prop_value(elem, "count");
+        let options = self.get_prop_value(elem, "i18n");
 
-      trace!("Childrens: {:?}", elem.children);
-      let node_as_string = {
-        let content = Self::parse_children(&elem.children);
-        self.elem_to_string(&content)
-      };
-      trace!("Element as string: {node_as_string:?}");
-
-      let default_value = default_value.unwrap_or(node_as_string);
-      if let Some(key) = key {
-        self.entries.push(Entry {
-          key,
-          default_value: if default_value.is_empty() { None } else { Some(default_value) },
-          namespace: ns,
-          count: count.and_then(|v| v.parse::<usize>().ok()),
-          i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
-        });
+        trace!("Childrens: {:?}", elem.children);
+        let node_as_string = {
+          let content = Self::parse_children(&elem.children);
+          self.elem_to_string(&content)
+        };
+        trace!("Element as string: {node_as_string:?}");
+        let default_value = default_value.unwrap_or(node_as_string);
+        if let Some(key) = key {
+          self.entries.push(Entry {
+            key,
+            default_value: if default_value.is_empty() { None } else { Some(default_value) },
+            namespace: ns,
+            count: count.and_then(|v| v.parse::<usize>().ok()),
+            i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
+          });
+        }
       }
     }
-
     walk::walk_jsx_element(self, elem);
   }
 }

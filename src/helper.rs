@@ -2,10 +2,7 @@ use log::{debug, trace};
 use regex::Regex;
 use serde_json::{Map, Value};
 
-use crate::{
-  config::{KeySeparator, Options},
-  visitor::Entry,
-};
+use crate::{config::Options, visitor::Entry};
 
 const PLURAL_SUFFIXES: &[&str] = &["zero", "one", "two", "few", "many", "other"];
 
@@ -67,11 +64,8 @@ pub fn merge_hashes(
   };
 
   let full_key_prefix = options.full_key_prefix.clone();
-  let key_separator = match options.key_separator {
-    Some(KeySeparator::Str(ref separator)) => separator.clone(),
-    Some(KeySeparator::False) => "".to_string(),
-    _ => ".".to_string(),
-  };
+
+  let key_separator = options.key_separator.as_deref().unwrap_or("");
   let plural_separator = options.plural_separator.as_deref().unwrap_or("_");
 
   let reset_values_map = reset_values.and_then(|v| v.as_object()).map_or_else(Map::new, |v| v.clone());
@@ -377,4 +371,18 @@ mod merge_hashes {
     assert_eq!(result.old_count, 1);
     assert_eq!(result.reset_count, 0);
   }
+}
+
+pub fn log_execution_time<F, R>(message: &str, func: F) -> R
+where
+  F: FnOnce() -> R,
+{
+  use log::info;
+  use std::time::Instant;
+  let start = Instant::now();
+  let result = func();
+  let duration = start.elapsed();
+  let duration_ms = duration.as_secs_f64() * 1000.0;
+  info!("{} - Execution time: {:.2} ms", message, duration_ms);
+  result
 }
