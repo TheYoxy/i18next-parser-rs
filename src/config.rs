@@ -42,11 +42,13 @@ impl From<LineEnding> for config::Value {
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
+#[deprecated()]
 pub struct Options {
   pub verbose: bool,
   pub full_key_prefix: String,
   pub reset_and_flag: bool,
   pub keep_removed: Option<bool>,
+  pub default_namespace: String,
   pub key_separator: Option<String>,
   pub plural_separator: Option<String>,
   pub locales: Vec<String>,
@@ -63,7 +65,7 @@ pub struct Options {
 pub struct Config {
   pub context_separator: Option<String>,
   pub create_old_catalogs: Option<bool>,
-  pub default_namespace: Option<String>,
+  pub default_namespace: String,
   pub default_value: Option<String>,
   pub keep_removed: Option<bool>,
   pub key_separator: Option<String>,
@@ -87,6 +89,7 @@ impl From<&Config> for Options {
     Options {
       create_old_catalogs: val.create_old_catalogs.unwrap_or(true),
       custom_value_template: val.custom_value_template.clone(),
+      default_namespace: val.default_namespace.clone(),
       full_key_prefix: "".to_string(),
       keep_removed: val.keep_removed,
       key_separator: val.key_separator.clone(),
@@ -109,18 +112,19 @@ impl From<Config> for Options {
     Options {
       create_old_catalogs: val.create_old_catalogs.unwrap_or(true),
       custom_value_template: val.custom_value_template,
+      default_namespace: val.default_namespace,
       full_key_prefix: "".to_string(),
       keep_removed: val.keep_removed,
       key_separator: val.key_separator,
       line_ending: val.line_ending.unwrap_or(LineEnding::Auto),
-      locales: val.locales.clone(),
+      locales: val.locales,
       plural_separator: val.plural_separator,
       reset_and_flag: val.fail_on_update.unwrap_or(false),
       reset_default_value_locale: val.reset_default_value_locale,
       suffix: None,
-      namespace_separator: val.namespace_separator.clone(),
+      namespace_separator: val.namespace_separator,
       verbose: val.verbose,
-      output: val.output.clone(),
+      output: val.output,
     }
   }
 }

@@ -21,7 +21,20 @@ use std::{
   str::FromStr,
 };
 
-pub fn parse_file<P>(path: P) -> color_eyre::Result<Vec<Entry>>
+///
+///
+/// # Arguments
+///
+/// * `path`:
+///
+/// returns: Result<Vec<Entry, Global>, Report>
+///
+/// # Examples
+///
+/// ```
+///
+/// ```
+fn parse_file<P>(path: P) -> color_eyre::Result<Vec<Entry>>
 where
   P: AsRef<Path>,
 {
@@ -57,7 +70,7 @@ where
 /// # Errors
 ///
 /// This function will return an error if .
-pub fn parse_directory(path: &std::path::PathBuf, config: &crate::config::Config) -> color_eyre::Result<Vec<Entry>> {
+pub fn parse_directory(path: &PathBuf, config: &crate::config::Config) -> color_eyre::Result<Vec<Entry>> {
   let inputs = &config.input;
   let mut builder = globset::GlobSetBuilder::new();
   for input in inputs {
@@ -66,7 +79,7 @@ pub fn parse_directory(path: &std::path::PathBuf, config: &crate::config::Config
     builder.add(globset::Glob::new(glob)?);
   }
 
-  let globset = builder.build()?;
+  let glob = builder.build()?;
 
   let file_name = path.file_name().and_then(|s| s.to_str()).unwrap();
   let entries = log_execution_time(format!("Directory {file_name}"), || {
@@ -74,7 +87,7 @@ pub fn parse_directory(path: &std::path::PathBuf, config: &crate::config::Config
       .standard_filters(true)
       .build()
       .filter_map(Result::ok)
-      .filter(|f| globset.is_match(f.path()))
+      .filter(|f| glob.is_match(f.path()))
       .filter_map(|entry| {
         let entry_path = entry.path();
         crate::printinfo!("Reading file: {:?}", entry_path);
@@ -92,7 +105,7 @@ pub fn parse_directory(path: &std::path::PathBuf, config: &crate::config::Config
 /// # Panics
 ///
 /// Panics if .
-pub fn write_to_file(entries: Vec<Entry>, options: Options) -> color_eyre::Result<()> {
+pub fn write_to_file(entries: Vec<Entry>, options: &Options) -> color_eyre::Result<()> {
   log_execution_time("Writing files", || {
     let locales = &options.locales;
     for locale in locales.iter() {
@@ -102,11 +115,12 @@ pub fn write_to_file(entries: Vec<Entry>, options: Options) -> color_eyre::Resul
       if let Value::Object(catalog) = value {
         for (namespace, catalog) in catalog {
           let MergeAllResults { path, backup, merged, old_catalog } =
-            merge_all_results(locale, &namespace, &catalog, &unique_count, &unique_plurals_count, &options);
+            merge_all_results(locale, &namespace, &catalog, &unique_count, &unique_plurals_count, options);
 
-          push_file(&path, &merged.new, &options)?;
+          let new_catalog = &merged.new;
+          push_file(&path, new_catalog, options)?;
           if options.create_old_catalogs && !old_catalog.is_empty() {
-            push_file(&backup, &old_catalog, &options)?;
+            push_file(&backup, &old_catalog, options)?;
           }
         }
       }

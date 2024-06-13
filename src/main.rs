@@ -44,7 +44,8 @@ fn main() -> Result<()> {
 
   debug!("Actual configuration: {config:?}");
   let entries = parse_directory(path, config)?;
-  write_to_file(entries, config.into())?;
+  let option = &config.into();
+  write_to_file(entries, option)?;
 
   Ok(())
 }

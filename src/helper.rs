@@ -163,7 +163,6 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
   let mut duplicate = false;
   let mut target = target.clone();
   let separator = options.key_separator.clone().unwrap_or(".".to_string());
-  info!("Separator: {:?}", separator);
   let base_path =
     entry.namespace.clone().or(Some("default".to_string())).map(|ns| ns + &separator + &entry.key).unwrap();
   let mut path =

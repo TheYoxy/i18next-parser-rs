@@ -1,10 +1,11 @@
 #![cfg(test)]
 
+use std::path::PathBuf;
+
 use flatten_json_object::Flattener;
 use serde_json::Value;
+use tempdir::TempDir;
 
-use crate::config::Options;
-use crate::{config::Config, file::parse_file};
 use crate::{
   file::{merge_all_results, MergeAllResults},
   is_empty::IsEmpty,
@@ -13,18 +14,26 @@ use crate::{
   transform::{transform_entries, TransformEntriesResult},
   utils::initialize_logging,
 };
+use crate::config::Config;
+use crate::config::Options;
+use crate::file::parse_directory;
 
 #[test]
-fn should_parse() -> color_eyre::Result<()> {
+fn should_parse_successfully() -> color_eyre::Result<()> {
   initialize_logging()?;
-  let name = "assets/file.tsx";
-  let locales = ["en", "fr"];
-  let entries = parse_file(name)?;
-  let config = Config::new(name, false)?;
+  let working_path = "assets";
+  let locales = vec!["en".to_string(), "fr".to_string()];
+  let dir = TempDir::new("translations")?;
+
+  let mut config = Config::new(working_path, false)?;
+  config.locales = locales.into();
+  config.output = dir.path().join("locales/$LOCALE/$NAMESPACE.json").to_str().map(|s| s.to_string()).unwrap();
+  config.input = vec!["**/*.{ts,tsx}".to_string()];
+  let config = &config;
   let options = Options::from(config);
 
-  assert_eq!(locales.len(), 2);
-  for locale in locales.iter() {
+  let entries = parse_directory(&PathBuf::from(working_path), config)?;
+  for locale in options.locales.iter() {
     let TransformEntriesResult { unique_count, unique_plurals_count, value } =
       transform_entries(&entries, locale, &options);
 
