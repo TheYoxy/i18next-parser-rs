@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use log::{debug, trace};
+use log::{debug, info, trace};
 use regex::Regex;
 use serde_json::{Map, Value};
 
@@ -162,7 +162,8 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
   let mut conflict: Option<String> = None;
   let mut duplicate = false;
   let mut target = target.clone();
-  let separator = options.separator.clone().unwrap_or(".".to_string());
+  let separator = options.key_separator.clone().unwrap_or(".".to_string());
+  info!("Separator: {:?}", separator);
   let base_path =
     entry.namespace.clone().or(Some("default".to_string())).map(|ns| ns + &separator + &entry.key).unwrap();
   let mut path =
@@ -179,8 +180,8 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
   }
 
   let segments: Vec<&str> = path.split(&separator).collect();
-  trace!("Segments: {segments:?}");
   trace!("Val {:?} {:?} {:?}", &target, entry.key, entry.default_value);
+
   let mut inner = &mut target;
   #[allow(clippy::needless_range_loop)]
   for i in 0..segments.len() - 1 {
@@ -198,13 +199,12 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
 
   let last_segment = segments[segments.len() - 1];
   let old_value = inner[last_segment].as_str().map(|s| s.to_owned());
-  trace!("Old value: {old_value:?}");
   let new_value = entry
     .default_value
     .clone()
     .map(|new_value| {
       if let Some(old_value) = old_value {
-        debug!("Values [Old: {:?}] -> [New: {:?}]", old_value, new_value);
+        trace!("Values {:?} -> {:?}", old_value, new_value);
         if old_value != new_value && !old_value.is_empty() {
           if new_value.is_empty() {
             old_value
@@ -223,6 +223,7 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
     .unwrap_or_default();
 
   if let Some(custom_value_template) = &options.custom_value_template {
+    todo!("validate the behavior of custom_value_template");
     inner[last_segment] = Value::Object(Map::new());
     if let Value::Object(map) = custom_value_template {
       for (key, value) in map {
@@ -235,11 +236,26 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
       }
     }
   } else {
-    debug!("Setting {last_segment:?} to {new_value:?}");
+    debug!("Setting {path:?} -> {new_value:?}");
     inner[last_segment] = Value::String(new_value);
   }
 
   DotPathToHashResult { target: target.clone(), duplicate, conflict }
+}
+
+pub fn log_execution_time<S, F, R>(message: S, func: F) -> R
+where
+  S: Display,
+  F: FnOnce() -> R,
+{
+  use log::info;
+  use std::time::Instant;
+  let start = Instant::now();
+  let result = func();
+  let duration = start.elapsed();
+  let duration_ms = duration.as_secs_f64() * 1000.0;
+  info!("{} - Execution time: {:.2} ms", message, duration_ms);
+  result
 }
 
 #[cfg(test)]
@@ -376,17 +392,3 @@ mod merge_hashes {
   }
 }
 
-pub fn log_execution_time<S, F, R>(message: S, func: F) -> R
-where
-  S: Display,
-  F: FnOnce() -> R,
-{
-  use log::info;
-  use std::time::Instant;
-  let start = Instant::now();
-  let result = func();
-  let duration = start.elapsed();
-  let duration_ms = duration.as_secs_f64() * 1000.0;
-  info!("{} - Execution time: {:.2} ms", message, duration_ms);
-  result
-}

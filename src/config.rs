@@ -51,7 +51,6 @@ pub struct Options {
   pub plural_separator: Option<String>,
   pub locales: Vec<String>,
   pub suffix: Option<String>,
-  pub separator: Option<String>,
   pub custom_value_template: Option<Value>,
   pub reset_default_value_locale: Option<String>,
   pub line_ending: LineEnding,
@@ -96,7 +95,6 @@ impl From<&Config> for Options {
       plural_separator: val.plural_separator.clone(),
       reset_and_flag: val.fail_on_update.unwrap_or(false),
       reset_default_value_locale: val.reset_default_value_locale.clone(),
-      separator: val.context_separator.clone(),
       suffix: None,
       namespace_separator: val.namespace_separator.clone(),
       verbose: val.verbose,
@@ -119,7 +117,6 @@ impl From<Config> for Options {
       plural_separator: val.plural_separator,
       reset_and_flag: val.fail_on_update.unwrap_or(false),
       reset_default_value_locale: val.reset_default_value_locale,
-      separator: val.context_separator,
       suffix: None,
       namespace_separator: val.namespace_separator.clone(),
       verbose: val.verbose,
@@ -129,7 +126,7 @@ impl From<Config> for Options {
 }
 
 impl Config {
-  pub fn new<T>(working_dir: T) -> Result<Self, config::ConfigError>
+  pub fn new<T>(working_dir: T, verbose: bool) -> Result<Self, config::ConfigError>
   where
     T: Into<PathBuf>,
   {
@@ -147,6 +144,10 @@ impl Config {
       .set_default("plural_separator", "_")?
       .set_default("sort", true)?
       .set_default("verbose", false)?;
+
+    if verbose {
+      builder = builder.set_override("verbose", true)?;
+    }
 
     let working_dir: PathBuf = working_dir.into();
 

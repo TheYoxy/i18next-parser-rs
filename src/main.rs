@@ -1,18 +1,13 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 use clap::Parser;
 
-use std::{
-  collections::HashMap,
-  fs::File,
-  io::Write,
-  path::{Path, PathBuf},
-};
+use std::collections::HashMap;
 
 use color_eyre::eyre::Result;
 use log::{debug, info, trace};
 use serde_json::Value;
 
-use config::{LineEnding, Options};
+use config::Options;
 use helper::{dot_path_to_hash, MergeResult};
 
 use crate::file::write_to_file;
@@ -44,7 +39,7 @@ fn main() -> Result<()> {
   printinfo!("Looking for translations in path {path:?}");
 
   info!("Working directory: {:?}", path);
-  let config = &Config::new(path)?;
+  let config = &Config::new(path, cli.verbose)?;
   debug!("Configuration: {config:?}");
 
   debug!("Actual configuration: {config:?}");
@@ -54,13 +49,13 @@ fn main() -> Result<()> {
   Ok(())
 }
 
-struct TransformEntriesResult {
-  unique_count: HashMap<String, usize>,
-  unique_plurals_count: HashMap<String, usize>,
-  value: Value,
+pub struct TransformEntriesResult {
+  pub unique_count: HashMap<String, usize>,
+  pub unique_plurals_count: HashMap<String, usize>,
+  pub value: Value,
 }
 
-fn transform_entries(entries: &Vec<Entry>, locale: &str, options: &Options) -> TransformEntriesResult {
+pub fn transform_entries(entries: &Vec<Entry>, locale: &str, options: &Options) -> TransformEntriesResult {
   let mut unique_count = HashMap::new();
   let mut unique_plurals_count = HashMap::new();
   let mut value = Value::Object(Default::default());
@@ -80,7 +75,7 @@ fn transform_entries(entries: &Vec<Entry>, locale: &str, options: &Options) -> T
   TransformEntriesResult { unique_count, unique_plurals_count, value }
 }
 
-fn transform_entry(
+pub fn transform_entry(
   entry: &Entry,
   unique_count: &mut HashMap<String, usize>,
   unique_plurals_count: &mut HashMap<String, usize>,
@@ -139,37 +134,6 @@ fn transfer_values(source: &Value, target: &Value) -> Value {
   } else {
     target.clone()
   }
-}
-
-fn push_file(path: &PathBuf, contents: &Value, options: &Options) -> std::io::Result<()> {
-  use std::fs::create_dir_all;
-  let mut text: String;
-  if path.ends_with("yml") {
-    text = serde_yaml::to_string(contents).unwrap();
-  } else {
-    text = serde_json::to_string_pretty(contents).unwrap();
-    text = text.replace("\r\n", "\n").replace('\r', "\n");
-  }
-
-  text = match options.line_ending {
-    LineEnding::Crlf => text.replace('\n', "\r\n"),
-    LineEnding::Cr => text.replace('\n', "\r"),
-    _ => {
-      // Do nothing, as Rust automatically uses the appropriate line endings
-      text
-    },
-  };
-
-  if let Some(parent) = path.parent() {
-    if !parent.exists() {
-      trace!("creating parent directory: {:?}", parent);
-      create_dir_all(parent)?;
-    }
-  }
-  let mut file = File::create(Path::new(path))?;
-  file.write_all(text.as_bytes())?;
-
-  Ok(())
 }
 
 fn print_counts(

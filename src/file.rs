@@ -1,17 +1,22 @@
-use crate::visitor::{Entry, I18NVisitor};
 use crate::{
   catalog::get_catalog,
   config::Options,
   helper::{merge_hashes, MergeResult},
   print_counts, transfer_values,
 };
+use crate::{
+  config::LineEnding,
+  visitor::{Entry, I18NVisitor},
+};
 use crate::{helper::log_execution_time, is_empty::IsEmpty};
-use crate::{push_file, transform_entries, TransformEntriesResult};
+use crate::{transform_entries, TransformEntriesResult};
 use log::{info, trace};
 use oxc_ast::Visit;
 use serde_json::Value;
 use std::{
   collections::HashMap,
+  fs::File,
+  io::Write,
   path::{Path, PathBuf},
   str::FromStr,
 };
@@ -166,4 +171,35 @@ pub fn merge_all_results(
   }
 
   MergeAllResults { path, backup, merged, old_catalog }
+}
+
+fn push_file(path: &PathBuf, contents: &Value, options: &Options) -> std::io::Result<()> {
+  use std::fs::create_dir_all;
+  let mut text: String;
+  if path.ends_with("yml") {
+    text = serde_yaml::to_string(contents).unwrap();
+  } else {
+    text = serde_json::to_string_pretty(contents).unwrap();
+    text = text.replace("\r\n", "\n").replace('\r', "\n");
+  }
+
+  text = match options.line_ending {
+    LineEnding::Crlf => text.replace('\n', "\r\n"),
+    LineEnding::Cr => text.replace('\n', "\r"),
+    _ => {
+      // Do nothing, as Rust automatically uses the appropriate line endings
+      text
+    },
+  };
+
+  if let Some(parent) = path.parent() {
+    if !parent.exists() {
+      trace!("creating parent directory: {:?}", parent);
+      create_dir_all(parent)?;
+    }
+  }
+  let mut file = File::create(Path::new(path))?;
+  file.write_all(text.as_bytes())?;
+
+  Ok(())
 }

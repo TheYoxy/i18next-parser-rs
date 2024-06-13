@@ -17,7 +17,7 @@ fn should_parse() -> color_eyre::Result<()> {
   let name = "assets/file.tsx";
   let locales = ["en", "fr"];
   let entries = parse_file(name)?;
-  let config = Config::new(name)?;
+  let config = Config::new(name, false)?;
   let options = Options::from(config);
 
   assert_eq!(locales.len(), 2);
