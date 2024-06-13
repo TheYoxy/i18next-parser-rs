@@ -3,20 +3,21 @@
 use flatten_json_object::Flattener;
 use serde_json::Value;
 
-use crate::config::Config;
-use crate::is_empty::IsEmpty;
 use crate::utils::initialize_logging;
+use crate::{config::Config, file::parse_file};
+use crate::{config::Options, transform_entries, TransformEntriesResult};
 use crate::{
-  config::Options, merge_all_results, parse_file, transform_entries, MergeAllResults, TransformEntriesResult,
+  file::{merge_all_results, MergeAllResults},
+  is_empty::IsEmpty,
 };
 
 #[test]
-fn should_parse() {
-  initialize_logging().unwrap();
+fn should_parse() -> color_eyre::Result<()> {
+  initialize_logging()?;
   let name = "assets/file.tsx";
   let locales = ["en", "fr"];
-  let entries = parse_file(name).unwrap();
-  let config = Config::new(name).unwrap();
+  let entries = parse_file(name)?;
+  let config = Config::new(name)?;
   let options = Options::from(config);
 
   assert_eq!(locales.len(), 2);
@@ -37,7 +38,7 @@ fn should_parse() {
         assert!(merged.old.is_empty(), "there isn't any old values");
         assert!(merged.reset.is_empty(), "there isn't any reset values");
         assert!(!merged.new.is_empty(), "values must be parsed");
-        let new = Flattener::new().set_key_separator(".").flatten(&merged.new).unwrap();
+        let new = Flattener::new().set_key_separator(".").flatten(&merged.new)?;
         let new = new.as_object().unwrap();
         println!("New: {:?}", new);
         for key in [
@@ -55,4 +56,6 @@ fn should_parse() {
       }
     }
   }
+
+  Ok(())
 }

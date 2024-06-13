@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use log::{debug, trace};
 use regex::Regex;
 use serde_json::{Map, Value};
@@ -239,6 +241,7 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
 
   DotPathToHashResult { target: target.clone(), duplicate, conflict }
 }
+
 #[cfg(test)]
 mod dot_path_to_hash {
   use serde_json::json;
@@ -373,8 +376,9 @@ mod merge_hashes {
   }
 }
 
-pub fn log_execution_time<F, R>(message: &str, func: F) -> R
+pub fn log_execution_time<S, F, R>(message: S, func: F) -> R
 where
+  S: Display,
   F: FnOnce() -> R,
 {
   use log::info;

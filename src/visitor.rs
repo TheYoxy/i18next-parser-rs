@@ -120,11 +120,13 @@ impl<'a> I18NVisitor<'a> {
         .iter()
         .filter_map(|prop| match prop {
           ObjectPropertyKind::ObjectProperty(kv) => {
-            trace!("Key: {:?}", kv.key.name());
-            trace!("Value: {:?}", kv.value);
             let value = self.parse_expression(&kv.value);
-            println!("Parsed value: {value:?} for {:?}", kv.value);
-
+            trace!(
+              "Key: {key:?}, Value: {value:?}, Parsed: {parsed_value:?}",
+              key = kv.key.name(),
+              value = kv.value,
+              parsed_value = value
+            );
             if let Some(value) = value {
               kv.key.name().map(|name| (name.to_string(), value))
             } else {

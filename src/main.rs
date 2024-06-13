@@ -1,32 +1,27 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
 use clap::Parser;
-use globset::Glob;
-use ignore::WalkBuilder;
 
 use std::{
   collections::HashMap,
   fs::File,
   io::Write,
   path::{Path, PathBuf},
-  str::FromStr,
 };
 
 use color_eyre::eyre::Result;
-use globset::GlobSetBuilder;
 use log::{debug, info, trace};
 use serde_json::Value;
 
-use catalog::get_catalog;
 use config::{LineEnding, Options};
-use helper::{dot_path_to_hash, merge_hashes, MergeResult};
+use helper::{dot_path_to_hash, MergeResult};
 
-use crate::file::{parse_file, write_to_file};
-use crate::visitor::Entry;
+use crate::file::write_to_file;
 use crate::{
   cli::Cli,
   config::Config,
   utils::{initialize_logging, initialize_panic_handler},
 };
+use crate::{file::parse_directory, visitor::Entry};
 
 mod catalog;
 mod cli;
@@ -43,9 +38,10 @@ mod visitor;
 fn main() -> Result<()> {
   initialize_panic_handler()?;
   initialize_logging()?;
+
   let cli = Cli::parse();
   let path = &cli.path;
-  println!("Looking for translations in path {path:?}");
+  printinfo!("Looking for translations in path {path:?}");
 
   info!("Working directory: {:?}", path);
   let config = &Config::new(path)?;
@@ -53,96 +49,9 @@ fn main() -> Result<()> {
 
   debug!("Actual configuration: {config:?}");
   let entries = parse_directory(path, config)?;
-  write_to_file(entries, config.into());
+  write_to_file(entries, config.into())?;
 
   Ok(())
-}
-
-fn parse_directory(path: &PathBuf, config: &Config) -> Result<Vec<Entry>> {
-  let inputs = &config.input;
-  let mut builder = GlobSetBuilder::new();
-  for input in inputs {
-    let join = path.join(input);
-    let glob = join.to_str().unwrap();
-    builder.add(Glob::new(glob)?);
-  }
-
-  let globset = builder.build()?;
-
-  let now = std::time::Instant::now();
-  let elapsed_time = now.elapsed();
-  let entries = WalkBuilder::new(path)
-    .standard_filters(true)
-    .build()
-    .filter_map(Result::ok)
-    .filter(|f| globset.is_match(f.path()))
-    .filter_map(|entry| {
-      let entry_path = entry.path();
-      printinfo!("Reading file: {:?}", entry_path);
-      parse_file(entry_path).ok()
-    })
-    .flatten()
-    .collect::<Vec<_>>();
-  let file_name = path.file_name().and_then(|s| s.to_str()).unwrap();
-  info!("Directory {} parsed in {}ms.", file_name, elapsed_time.as_millis());
-
-  Ok(entries)
-}
-
-struct MergeAllResults {
-  path: PathBuf,
-  backup: PathBuf,
-  merged: MergeResult,
-  old_catalog: Value,
-}
-
-fn merge_all_results(
-  locale: &str,
-  namespace: &String,
-  catalog: &Value,
-  unique_count: &HashMap<String, usize>,
-  unique_plurals_count: &HashMap<String, usize>,
-  options: &Options,
-) -> MergeAllResults {
-  let output = &options.output;
-  let path = output.replace("$LOCALE", locale).replace("$NAMESPACE", &namespace.clone());
-  trace!("Path for output {output:?}: {path:?}");
-  let path = PathBuf::from_str(&path).unwrap_or_else(|_| panic!("Unable to find path {path:?}"));
-  // get backup file name
-  let filename = {
-    let filename = path.file_stem().and_then(|o| o.to_str()).unwrap_or_default();
-    let extension = path.extension().and_then(|o| o.to_str()).unwrap_or_default();
-    format!("{}_old.{}", filename, extension)
-  };
-  let backup = path.with_file_name(filename);
-  trace!("File path: {path:?}");
-  trace!("Backup path: {backup:?}");
-
-  let value = get_catalog(&path);
-  let old_value = get_catalog(&backup);
-  trace!("Value: {:?}", value);
-  trace!("Old value: {:?}", old_value);
-  let ns_separator = options.key_separator.as_deref().unwrap_or("");
-  let merged = merge_hashes(
-    value.as_ref(),
-    catalog,
-    Options {
-      full_key_prefix: namespace.to_string() + ns_separator,
-      reset_and_flag: false,
-      keep_removed: None,
-      key_separator: None,
-      plural_separator: None,
-      ..Default::default()
-    },
-    old_value.as_ref(),
-  );
-  let old_merged =
-    merge_hashes(old_value.as_ref(), &merged.new, Options { keep_removed: None, ..Default::default() }, None);
-  let old_catalog = transfer_values(&merged.old, &old_merged.old);
-  if options.verbose {
-    print_counts(locale, namespace.as_str(), unique_count, unique_plurals_count, &merged, &old_merged, options);
-  }
-  MergeAllResults { path, backup, merged, old_catalog }
 }
 
 struct TransformEntriesResult {
