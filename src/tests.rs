@@ -3,12 +3,15 @@
 use flatten_json_object::Flattener;
 use serde_json::Value;
 
-use crate::utils::initialize_logging;
+use crate::config::Options;
 use crate::{config::Config, file::parse_file};
-use crate::{config::Options, transform_entries, TransformEntriesResult};
 use crate::{
   file::{merge_all_results, MergeAllResults},
   is_empty::IsEmpty,
+};
+use crate::{
+  transform::{transform_entries, TransformEntriesResult},
+  utils::initialize_logging,
 };
 
 #[test]

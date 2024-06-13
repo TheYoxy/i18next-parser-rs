@@ -147,7 +147,7 @@ impl<'a> I18NVisitor<'a> {
   }
 
   fn get_prop_value(&self, elem: &JSXElement<'_>, attribute_name: &str) -> Option<String> {
-    let collect = elem
+    elem
       .opening_element
       .attributes
       .iter()
@@ -183,9 +183,8 @@ impl<'a> I18NVisitor<'a> {
         },
         JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
       })
-      .collect::<Vec<_>>();
-
-    collect.first().map(|v| v.to_string())
+      .next()
+      .map(|v| v.to_string())
   }
 
   #[allow(clippy::ptr_arg)]
@@ -451,8 +450,6 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
   }
 }
 
-impl<'a> I18NVisitor<'a> {}
-
 fn clean_multi_line_code(text: &str) -> String {
   text.replace(|c: char| c.is_whitespace(), " ").trim().to_string()
 }
@@ -692,5 +689,12 @@ mod tests {
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
     le.assert_eq("dialog.title", Some("ns".to_string()), Some("<i>Reset password</i>".to_string()));
+  }
+
+  #[test]
+  fn should_parse_jsx_and_return_nothing_on_bad_components() {
+    let source_text = r#"const el = <Trad ns="ns" i18nKey="dialog.title"><i>Reset password</i></Trad>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 0);
   }
 }

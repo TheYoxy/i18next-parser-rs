@@ -391,4 +391,3 @@ mod merge_hashes {
     assert_eq!(result.reset_count, 0);
   }
 }
-

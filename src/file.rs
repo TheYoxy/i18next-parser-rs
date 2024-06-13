@@ -2,14 +2,14 @@ use crate::{
   catalog::get_catalog,
   config::Options,
   helper::{merge_hashes, MergeResult},
-  print_counts, transfer_values,
+  print_counts,
+  transform::{transfer_values, transform_entries, TransformEntriesResult},
 };
 use crate::{
   config::LineEnding,
   visitor::{Entry, I18NVisitor},
 };
 use crate::{helper::log_execution_time, is_empty::IsEmpty};
-use crate::{transform_entries, TransformEntriesResult};
 use log::{info, trace};
 use oxc_ast::Visit;
 use serde_json::Value;
