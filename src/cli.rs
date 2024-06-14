@@ -16,3 +16,15 @@ pub struct Cli {
   #[arg(short, long, default_value = "false")]
   pub verbose: bool,
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn should_parse_cli() {
+    let cli = Cli::parse();
+    assert_eq!(cli.path, get_default_log_path());
+    assert!(!cli.verbose);
+  }
+}

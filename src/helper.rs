@@ -248,7 +248,6 @@ where
   S: Display,
   F: FnOnce() -> R,
 {
-  use log::info;
   use std::time::Instant;
   let start = Instant::now();
   let result = func();

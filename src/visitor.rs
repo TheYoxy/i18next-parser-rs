@@ -38,12 +38,6 @@ impl Default for VisitorOptions {
   }
 }
 
-impl VisitorOptions {
-  pub fn trans_support_basic_html_nodes(&self) -> bool {
-    self.trans_keep_basic_html_nodes_for.is_some()
-  }
-}
-
 #[derive(Debug)]
 pub struct I18NVisitor<'a> {
   pub program: &'a Program<'a>,

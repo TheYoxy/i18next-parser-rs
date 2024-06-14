@@ -257,18 +257,6 @@ impl PluralResolver {
     self.rules.get(cleaned_code.as_str())
   }
 
-  fn needs_plural(&self, code: &str) -> bool {
-    match self.get_rule(code) {
-      Some(rule) => rule.0.len() > 1,
-      None => false,
-    }
-  }
-
-  fn get_plural_forms_of_key(&self, code: &str, key: &str) -> Vec<String> {
-    let suffixes = self.get_suffixes(code);
-    suffixes.into_iter().map(|suffix| format!("{}{}", key, suffix)).collect()
-  }
-
   pub fn get_suffixes(&self, code: &str) -> Vec<String> {
     match self.get_rule(code) {
       Some((numbers, _)) => numbers.iter().map(|&n| self.get_suffix(code, n)).collect(),

@@ -11,8 +11,6 @@ lazy_static! {
     std::env::var(format!("{}_DATA", PROJECT_NAME.clone())).ok().map(PathBuf::from);
   pub static ref CONFIG_FOLDER: Option<PathBuf> =
     std::env::var(format!("{}_CONFIG", PROJECT_NAME.clone())).ok().map(PathBuf::from);
-  pub static ref GIT_COMMIT_HASH: String =
-    std::env::var(format!("{}_GIT_INFO", PROJECT_NAME.clone())).unwrap_or_else(|_| String::from("UNKNOWN"));
   pub static ref LOG_ENV: String = format!("{}_LOGLEVEL", PROJECT_NAME.clone());
   pub static ref LOG_FILE: String = format!("{}.log", env!("CARGO_PKG_NAME"));
 }
@@ -89,17 +87,6 @@ pub fn get_data_dir() -> PathBuf {
     proj_dirs.data_local_dir().to_path_buf()
   } else {
     PathBuf::from(".").join(".data")
-  };
-  directory
-}
-
-pub fn get_config_dir() -> PathBuf {
-  let directory = if let Some(s) = CONFIG_FOLDER.clone() {
-    s
-  } else if let Some(proj_dirs) = project_directory() {
-    proj_dirs.config_local_dir().to_path_buf()
-  } else {
-    PathBuf::from(".").join(".config")
   };
   directory
 }

@@ -12,23 +12,6 @@ pub enum LineEnding {
   Lf,
 }
 
-impl From<config::ValueKind> for LineEnding {
-  #[inline]
-  fn from(kind: config::ValueKind) -> Self {
-    if let config::ValueKind::String(s) = kind {
-      match s.as_str() {
-        "auto" => LineEnding::Auto,
-        "crlf" => LineEnding::Crlf,
-        "cr" => LineEnding::Cr,
-        "lf" => LineEnding::Lf,
-        _ => LineEnding::Auto,
-      }
-    } else {
-      LineEnding::Auto
-    }
-  }
-}
-
 impl From<LineEnding> for config::Value {
   #[inline]
   fn from(val: LineEnding) -> Self {
@@ -38,6 +21,39 @@ impl From<LineEnding> for config::Value {
       LineEnding::Cr => "cr".into(),
       LineEnding::Lf => "lf".into(),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_line_ending_auto() {
+    let line_ending = LineEnding::Auto;
+    let value: config::Value = line_ending.into();
+    assert_eq!(value, "auto".into());
+  }
+
+  #[test]
+  fn test_line_ending_crlf() {
+    let line_ending = LineEnding::Crlf;
+    let value: config::Value = line_ending.into();
+    assert_eq!(value, "crlf".into());
+  }
+
+  #[test]
+  fn test_line_ending_cr() {
+    let line_ending = LineEnding::Cr;
+    let value: config::Value = line_ending.into();
+    assert_eq!(value, "cr".into());
+  }
+
+  #[test]
+  fn test_line_ending_lf() {
+    let line_ending = LineEnding::Lf;
+    let value: config::Value = line_ending.into();
+    assert_eq!(value, "lf".into());
   }
 }
 
