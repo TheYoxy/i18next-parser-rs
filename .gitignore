@@ -1,2 +1,6 @@
 /target
 /tmp
+/.data
+/locales
+*report.html
+/result

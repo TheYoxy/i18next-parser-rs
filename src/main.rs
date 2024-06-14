@@ -1,153 +1,80 @@
-use std::path::Path;
+#![cfg_attr(debug_assertions, allow(dead_code))]
+use clap::Parser;
 
-use log::{debug, info, LevelFilter};
-use oxc_allocator::Allocator;
-use oxc_ast::{
-    ast::{Expression, Program, Statement},
-    visit::walk,
-    Visit,
+use std::collections::HashMap;
+
+use color_eyre::eyre::Result;
+use log::{debug, info};
+
+use helper::MergeResult;
+
+use crate::file::parse_directory;
+use crate::file::write_to_file;
+use crate::{
+  cli::Cli,
+  config::Config,
+  utils::{initialize_logging, initialize_panic_handler},
 };
-use oxc_parser::Parser;
-use oxc_span::SourceType;
-use simple_logger::SimpleLogger;
 
+mod catalog;
 mod cli;
-mod parser;
+mod config;
+mod file;
+mod helper;
+mod is_empty;
+mod macros;
+mod plural;
+mod tests;
+mod transform;
+mod utils;
+mod visitor;
 
-fn main() -> Result<(), String> {
-    // let cli = Cli::parse();
-    #[cfg(debug_assertions)]
-    let level = LevelFilter::Debug;
-    #[cfg(not(debug_assertions))]
-    let level = LevelFilter::Info;
+fn main() -> Result<()> {
+  initialize_panic_handler()?;
+  initialize_logging()?;
 
-    SimpleLogger::new().with_level(level).env().init().unwrap();
+  let cli = Cli::parse();
+  let path = &cli.path;
+  printinfo!("Looking for translations in path {path:?}");
 
-    let name = "tmp/file.tsx";
-    let path = Path::new(&name);
-    let source_text =
-        std::fs::read_to_string(path).map_err(|_| format!("Unable to find {name}"))?;
-    let allocator = Allocator::default();
-    let source_type = SourceType::from_path(path).unwrap();
-    let ret = Parser::new(&allocator, &source_text, source_type).parse();
+  info!("Working directory: {:?}", path);
+  let config = &Config::new(path, cli.verbose)?;
+  debug!("Configuration: {config:?}");
 
-    for error in ret.errors {
-        let error = error.with_source_code(source_text.clone());
-        eprintln!("{error:?}");
-    }
+  debug!("Actual configuration: {config:?}");
+  let entries = parse_directory(path, config)?;
+  write_to_file(entries, config)?;
 
-    let program = ret.program;
-
-    let mut ast_pass = I18NVisitor::new(&program);
-
-    info!("Start parsing...");
-    let now = std::time::Instant::now();
-    ast_pass.visit_program(&program);
-    let elapsed_time = now.elapsed();
-    info!("File parsed in {}ms.", elapsed_time.as_millis());
-
-    // aa(&module);
-    // println!("Module {:?}", module);
-
-    Ok(())
+  Ok(())
 }
 
-#[derive(Debug)]
-struct I18NVisitor<'a> {
-    program: &'a Program<'a>,
-    default_namespace: Option<String>,
-}
-
-impl<'a> I18NVisitor<'a> {
-    /// Creates a new [`CountASTNodes`].
-    fn new(program: &'a Program<'a>) -> Self {
-        I18NVisitor { program }
-    }
-
-    /// Find the value of an identifier.
-    fn find_identifier_value(
-        &mut self,
-        identifier: &oxc_allocator::Box<oxc_ast::ast::IdentifierReference>,
-    ) -> Option<String> {
-        let collect = &self
-            .program
-            .body
-            .iter()
-            .filter_map(|stmt| {
-                if let Statement::VariableDeclaration(var) = stmt {
-                    let filtered = var
-                        .declarations
-                        .iter()
-                        .filter(|v| v.id.get_identifier() == Some(&identifier.name))
-                        .collect::<Vec<_>>();
-                    let item = filtered.first();
-                    if let Some(item) = item {
-                        if let Some(init) = &item.init {
-                            parse_string_literal_or_satisfies_expression(init)
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        let arr = collect.first();
-
-        arr.map(|arr| arr.to_string())
-    }
-    fn extract_namespace(&mut self, name: &str, expr: &oxc_ast::ast::CallExpression<'a>) {
-        let arg = match name {
-            "useTranslation" | "withTranslation" => expr.arguments.first(),
-            "getFixedT" => expr.arguments.get(1),
-            _ => None,
-        };
-        if let Some(arg) = arg {
-            match arg {
-                oxc_ast::ast::Argument::StringLiteral(str) => {
-                    debug!("{name:?} Arg: {str:?}");
-                    todo!("Handle string literal")
-                }
-                oxc_ast::ast::Argument::Identifier(identifier) => {
-                    debug!("{name:?} Arg: {identifier:?}");
-                    let identifier = self.find_identifier_value(identifier);
-                    self.default_namespace = identifier;
-                }
-                _ => {}
-            }
-        }
-    }
-}
-
-impl<'a> Visit<'a> for I18NVisitor<'a> {
-    fn visit_tagged_template_expression(
-        &mut self,
-        expr: &oxc_ast::ast::TaggedTemplateExpression<'a>,
-    ) {
-        debug!("Tagged template: {:?}", expr);
-        walk::walk_tagged_template_expression(self, expr);
-    }
-
-    fn visit_call_expression(&mut self, expr: &oxc_ast::ast::CallExpression<'a>) {
-        // println!("Call expression: {:?}", expr);
-        if let Some(name) = expr.callee_name() {
-            self.extract_namespace(name, expr);
-        }
-        walk::walk_call_expression(self, expr);
-    }
-}
-
-fn parse_string_literal_or_satisfies_expression(
-    expr: &oxc_ast::ast::Expression<'_>,
-) -> Option<String> {
-    match expr {
-        Expression::StringLiteral(str) => Some(str.value.to_string()),
-        Expression::TSSatisfiesExpression(expr) => {
-            parse_string_literal_or_satisfies_expression(&expr.expression)
-        }
-        _ => None,
-    }
+fn print_counts(
+  locale: &str,
+  namespace: &str,
+  unique_count: &HashMap<String, usize>,
+  unique_plurals_count: &HashMap<String, usize>,
+  merged: &MergeResult,
+  old_merged: &MergeResult,
+  config: &Config,
+) {
+  let merge_count = merged.merge_count;
+  let restore_count = old_merged.merge_count;
+  let old_count = merged.old_count;
+  let reset_count = merged.reset_count;
+  println!("[{}] {}", locale, namespace);
+  let unique_count = unique_count.get(namespace).unwrap_or(&0);
+  let unique_plurals_count = unique_plurals_count.get(namespace).unwrap_or(&0);
+  println!("Unique keys: {} ({} are plurals)", unique_count, unique_plurals_count);
+  let add_count = unique_count.saturating_sub(merge_count);
+  println!("Added keys: {}", add_count);
+  println!("Restored keys: {}", restore_count);
+  if config.keep_removed {
+    println!("Unreferenced keys: {}", old_count);
+  } else {
+    println!("Removed keys: {}", old_count);
+  }
+  if config.reset_default_value_locale.is_some() {
+    println!("Reset keys: {}", reset_count);
+  }
+  println!();
 }
