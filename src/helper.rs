@@ -4,7 +4,8 @@ use log::{debug, info, trace};
 use regex::Regex;
 use serde_json::{Map, Value};
 
-use crate::{config::Options, visitor::Entry};
+use crate::config::Config;
+use crate::visitor::Entry;
 
 const PLURAL_SUFFIXES: &[&str] = &["zero", "one", "two", "few", "many", "other"];
 
@@ -36,8 +37,10 @@ pub struct MergeResult {
 pub fn merge_hashes(
   source: Option<&Value>,
   existing: &Value,
-  options: Options,
   reset_values: Option<&Value>,
+  full_key_prefix: &str,
+  reset_and_flag: bool,
+  config: &Config,
 ) -> MergeResult {
   let mut old = Map::new();
   let mut reset = Map::new();
@@ -60,15 +63,8 @@ pub fn merge_hashes(
     };
   }
 
-  let keep_removed = match &options.keep_removed {
-    Some(b) => *b,
-    _ => false,
-  };
-
-  let full_key_prefix = options.full_key_prefix.clone();
-
-  let key_separator = options.key_separator.as_deref().unwrap_or("");
-  let plural_separator = options.plural_separator.as_deref().unwrap_or("_");
+  let key_separator = config.key_separator.as_deref().unwrap_or("");
+  let plural_separator = config.plural_separator.as_deref().unwrap_or("_");
 
   let reset_values_map = reset_values.and_then(|v| v.as_object()).map_or_else(Map::new, |v| v.clone());
 
@@ -78,9 +74,14 @@ pub fn merge_hashes(
       match existing.get_mut(key) {
         Some(target_value) if target_value.is_object() && value.is_object() => {
           trace!("Merging nested key: {}", key);
-          let nested_options =
-            Options { full_key_prefix: format!("{}{}{}", full_key_prefix, key, key_separator), ..options.clone() };
-          let nested_result = merge_hashes(Some(value), target_value, nested_options, reset_values_map.get(key));
+          let nested_result = merge_hashes(
+            Some(value),
+            target_value,
+            reset_values_map.get(key),
+            &format!("{}{}{}", full_key_prefix, key, key_separator),
+            reset_and_flag,
+            config,
+          );
           merge_count += nested_result.merge_count;
           pull_count += nested_result.pull_count;
           old_count += nested_result.old_count;
@@ -93,8 +94,7 @@ pub fn merge_hashes(
           }
         },
         Some(target_value)
-          if options.reset_and_flag && !is_plural(key) && value != target_value
-            || reset_values_map.contains_key(key) =>
+          if reset_and_flag && !is_plural(key) && value != target_value || reset_values_map.contains_key(key) =>
         {
           debug!("Merging nested key: {}", key);
           old.insert(key.clone(), value.clone());
@@ -118,8 +118,7 @@ pub fn merge_hashes(
             existing.insert(key.clone(), value.clone());
             pull_count += 1;
           } else {
-            let keep_key = keep_removed;
-            if keep_key {
+            if config.keep_removed {
               existing.insert(key.clone(), value.clone());
             } else {
               old.insert(key.clone(), value.clone());
@@ -158,16 +157,16 @@ pub struct DotPathToHashResult {
 /// # Errors
 ///
 /// This function will return an error if .
-pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> DotPathToHashResult {
+pub fn dot_path_to_hash(entry: &Entry, target: &Value, suffix: Option<&str>, config: &Config) -> DotPathToHashResult {
   let mut conflict: Option<String> = None;
   let mut duplicate = false;
   let mut target = target.clone();
-  let separator = options.key_separator.clone().unwrap_or(".".to_string());
+  let separator = config.key_separator.clone().unwrap_or(".".to_string());
   let base_path =
     entry.namespace.clone().or(Some("default".to_string())).map(|ns| ns + &separator + &entry.key).unwrap();
   let mut path =
     base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
-  if let Some(suffix) = &options.suffix {
+  if let Some(suffix) = suffix {
     path += suffix;
   }
   trace!("Path: {:?}", path);
@@ -221,7 +220,9 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, options: &Options) -> Dot
     })
     .unwrap_or_default();
 
-  if let Some(custom_value_template) = &options.custom_value_template {
+  #[allow(unused_variables)]
+  #[allow(unreachable_code)]
+  if let Some(custom_value_template) = &config.custom_value_template {
     todo!("validate the behavior of custom_value_template");
     inner[last_segment] = Value::Object(Map::new());
     if let Value::Object(map) = custom_value_template {
@@ -259,6 +260,7 @@ where
 
 #[cfg(test)]
 mod dot_path_to_hash {
+
   use serde_json::json;
 
   use super::*;
@@ -277,9 +279,9 @@ mod dot_path_to_hash {
         "key": "existing_value"
       }
     });
-    let options = Options::default();
+    let config = Default::default();
 
-    let result = dot_path_to_hash(&entry, &target, &options);
+    let result = dot_path_to_hash(&entry, &target, None, &config);
 
     assert_eq!(
       result.target,
@@ -296,6 +298,7 @@ mod dot_path_to_hash {
 
 #[cfg(test)]
 mod merge_hashes {
+
   use serde_json::json;
 
   use super::*;
@@ -306,10 +309,10 @@ mod merge_hashes {
       "key1": "value1",
       "key2": "value2"
     });
-    let options = Options::default();
+    let config = Default::default();
     let reset_values = None;
 
-    let result = merge_hashes(None, &existing, options, reset_values);
+    let result = merge_hashes(None, &existing, reset_values, "", false, &config);
 
     assert_eq!(result.new, existing);
     assert_eq!(result.old, json!({}));
@@ -331,10 +334,10 @@ mod merge_hashes {
       "key1": "value1",
       "key2": "value2"
     });
-    let options = Options::default();
+    let config = Default::default();
     let reset_values = None;
 
-    let result = merge_hashes(source, &existing, options, reset_values);
+    let result = merge_hashes(source, &existing, reset_values, "", false, &config);
 
     assert_eq!(
       result.new,
@@ -368,10 +371,10 @@ mod merge_hashes {
       "key1": "value1",
       "key2": "value2"
     });
-    let options = Options { keep_removed: Some(true), ..Default::default() };
+    let config = Config { keep_removed: true, ..Default::default() };
     let reset_values = None;
 
-    let result = merge_hashes(source, &existing, options, reset_values);
+    let result = merge_hashes(source, &existing, reset_values, "", false, &config);
 
     assert_eq!(
       result.new,

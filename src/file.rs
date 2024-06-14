@@ -1,6 +1,19 @@
+use color_eyre::Report;
+use std::{
+  collections::HashMap,
+  fs::File,
+  io::Write,
+  path::{Path, PathBuf},
+  str::FromStr,
+};
+
+use log::{info, trace};
+use oxc_ast::Visit;
+use serde_json::Value;
+
+use crate::config::Config;
 use crate::{
   catalog::get_catalog,
-  config::Options,
   helper::{merge_hashes, MergeResult},
   print_counts,
   transform::{transfer_values, transform_entries, TransformEntriesResult},
@@ -10,16 +23,6 @@ use crate::{
   visitor::{Entry, I18NVisitor},
 };
 use crate::{helper::log_execution_time, is_empty::IsEmpty};
-use log::{info, trace};
-use oxc_ast::Visit;
-use serde_json::Value;
-use std::{
-  collections::HashMap,
-  fs::File,
-  io::Write,
-  path::{Path, PathBuf},
-  str::FromStr,
-};
 
 ///
 ///
@@ -105,31 +108,53 @@ pub fn parse_directory(path: &PathBuf, config: &crate::config::Config) -> color_
 /// # Panics
 ///
 /// Panics if .
-pub fn write_to_file(entries: Vec<Entry>, options: &Options) -> color_eyre::Result<()> {
+pub fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<()> {
   log_execution_time("Writing files", || {
-    let locales = &options.locales;
-    for locale in locales.iter() {
-      let TransformEntriesResult { unique_count, unique_plurals_count, value } =
-        transform_entries(&entries, locale, &options);
-
-      if let Value::Object(catalog) = value {
-        for (namespace, catalog) in catalog {
-          let MergeAllResults { path, backup, merged, old_catalog } =
-            merge_all_results(locale, &namespace, &catalog, &unique_count, &unique_plurals_count, options);
-
-          let new_catalog = &merged.new;
-          push_file(&path, new_catalog, options)?;
-          if options.create_old_catalogs && !old_catalog.is_empty() {
-            push_file(&backup, &old_catalog, options)?;
-          }
-        }
-      }
+    for result in prepare_to_write(entries, config)? {
+      let MergeAllResults { locale: _locale, path, backup, merged, old_catalog } = result;
+      write_files(&path, &backup, &merged, &old_catalog, config)?;
     }
+
     Ok(())
   })
 }
 
+pub fn prepare_to_write(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<Vec<MergeAllResults>> {
+  let mut vec: Vec<MergeAllResults> = vec![];
+  log_execution_time("Preparing entries to write", || {
+    let locales = &config.locales;
+    for locale in locales.iter() {
+      let TransformEntriesResult { unique_count, unique_plurals_count, value } =
+        transform_entries(&entries, locale, &config);
+
+      if let Value::Object(catalog) = value {
+        for (namespace, catalog) in catalog {
+          let result = merge_all_results(locale, &namespace, &catalog, &unique_count, &unique_plurals_count, config);
+          vec.push(result);
+        }
+      }
+    }
+    Ok(vec)
+  })
+}
+
+fn write_files(
+  path: &PathBuf,
+  backup: &PathBuf,
+  merged: &MergeResult,
+  old_catalog: &Value,
+  config: &Config,
+) -> Result<(), Report> {
+  let new_catalog = &merged.new;
+  push_file(&path, new_catalog, config)?;
+  if config.create_old_catalogs && !old_catalog.is_empty() {
+    push_file(&backup, &old_catalog, config)?;
+  }
+  Ok(())
+}
+
 pub struct MergeAllResults {
+  pub locale: String,
   pub path: PathBuf,
   pub backup: PathBuf,
   pub merged: MergeResult,
@@ -138,14 +163,14 @@ pub struct MergeAllResults {
 
 pub fn merge_all_results(
   locale: &str,
-  namespace: &String,
+  namespace: &str,
   catalog: &Value,
   unique_count: &HashMap<String, usize>,
   unique_plurals_count: &HashMap<String, usize>,
-  options: &Options,
+  config: &Config,
 ) -> MergeAllResults {
-  let output = &options.output;
-  let path = output.replace("$LOCALE", locale).replace("$NAMESPACE", &namespace.clone());
+  let output = &config.output;
+  let path = output.replace("$LOCALE", locale).replace("$NAMESPACE", &namespace);
   trace!("Path for output {output:?}: {path:?}");
   let path = PathBuf::from_str(&path).unwrap_or_else(|_| panic!("Unable to find path {path:?}"));
   // get backup file name
@@ -164,30 +189,27 @@ pub fn merge_all_results(
   let old_value = old_value.as_ref();
 
   trace!("Value: {value:?} -> {old_value:?}");
-  let ns_separator = options.key_separator.as_deref().unwrap_or("");
-  let merged: MergeResult = merge_hashes(
-    value.as_ref(),
-    catalog,
-    Options {
-      full_key_prefix: namespace.to_string() + ns_separator,
-      reset_and_flag: false,
-      keep_removed: None,
-      key_separator: None,
-      plural_separator: None,
-      ..Default::default()
-    },
+
+  let ns_separator = config.key_separator.as_deref().unwrap_or("");
+  let full_key_prefix = namespace.to_string() + ns_separator;
+  let merged: MergeResult = merge_hashes(value.as_ref(), catalog, old_value, &full_key_prefix, false, config);
+  let old_merged = merge_hashes(
     old_value,
+    &merged.new,
+    None,
+    &full_key_prefix,
+    false,
+    &Config { keep_removed: false, ..Default::default() },
   );
-  let old_merged = merge_hashes(old_value, &merged.new, Options { keep_removed: None, ..Default::default() }, None);
   let old_catalog = transfer_values(&merged.old, &old_merged.old);
-  if options.verbose {
-    print_counts(locale, namespace.as_str(), unique_count, unique_plurals_count, &merged, &old_merged, options);
+  if config.verbose {
+    print_counts(locale, namespace, unique_count, unique_plurals_count, &merged, &old_merged, config);
   }
 
-  MergeAllResults { path, backup, merged, old_catalog }
+  MergeAllResults { locale: locale.to_string(), path, backup, merged, old_catalog }
 }
 
-fn push_file(path: &PathBuf, contents: &Value, options: &Options) -> std::io::Result<()> {
+fn push_file(path: &PathBuf, contents: &Value, config: &Config) -> std::io::Result<()> {
   use std::fs::create_dir_all;
   let mut text: String;
   if path.ends_with("yml") {
@@ -197,7 +219,7 @@ fn push_file(path: &PathBuf, contents: &Value, options: &Options) -> std::io::Re
     text = text.replace("\r\n", "\n").replace('\r', "\n");
   }
 
-  text = match options.line_ending {
+  text = match config.line_ending {
     LineEnding::Crlf => text.replace('\n', "\r\n"),
     LineEnding::Cr => text.replace('\n', "\r"),
     _ => {

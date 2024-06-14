@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use log::trace;
 use serde_json::Value;
 
-use crate::{config::Options, helper::dot_path_to_hash, plural, printwarn, visitor::Entry};
+use crate::config::Config;
+use crate::{helper::dot_path_to_hash, plural, printwarn, visitor::Entry};
 
 pub fn transfer_values(source: &Value, target: &Value) -> Value {
   if let (Value::Object(source_map), Value::Object(target_map)) = (source, target) {
@@ -29,21 +30,21 @@ pub struct TransformEntriesResult {
   pub value: Value,
 }
 
-pub fn transform_entries(entries: &Vec<Entry>, locale: &str, options: &Options) -> TransformEntriesResult {
+pub fn transform_entries(entries: &Vec<Entry>, locale: &str, config: &Config) -> TransformEntriesResult {
   let mut unique_count = HashMap::new();
   let mut unique_plurals_count = HashMap::new();
   let mut value = Value::Object(Default::default());
 
   for entry in entries {
-    value = if options.plural_separator.is_some() && entry.count.is_some() {
+    value = if config.plural_separator.is_some() && entry.count.is_some() {
       let resolver = plural::PluralResolver::default();
 
       for suffix in resolver.get_suffixes(locale) {
-        value = transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, options, Some(suffix))
+        value = transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(&suffix))
       }
       value
     } else {
-      transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, options, None)
+      transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, None)
     };
   }
   TransformEntriesResult { unique_count, unique_plurals_count, value }
@@ -54,8 +55,8 @@ pub fn transform_entry(
   unique_count: &mut HashMap<String, usize>,
   unique_plurals_count: &mut HashMap<String, usize>,
   value: &Value,
-  options: &Options,
-  suffix: Option<String>,
+  options: &Config,
+  suffix: Option<&str>,
 ) -> Value {
   let namespace = entry.namespace.clone().unwrap_or("default".to_string());
   if !unique_count.contains_key(&namespace) {
@@ -65,12 +66,7 @@ pub fn transform_entry(
     unique_plurals_count.insert(namespace.clone(), 0);
   }
 
-  let options = if let Some(suffix) = &suffix {
-    Options { suffix: Some(suffix.clone()), ..options.clone() }
-  } else {
-    options.clone()
-  };
-  let result = dot_path_to_hash(entry, value, &options);
+  let result = dot_path_to_hash(entry, value, suffix, options);
   trace!("Result: {:?} <- {:?}", value, result.target);
 
   if result.duplicate {
@@ -122,9 +118,9 @@ mod transform_entries {
       },
     ];
     let locale = "en";
-    let options = Options { plural_separator: Some("_".to_string()), ..Options::default() };
+    let config = Default::default();
 
-    let result = transform_entries(&entries, locale, &options);
+    let result = transform_entries(&entries, locale, &config);
 
     assert_eq!(result.unique_count.get("default"), Some(&3));
     assert_eq!(result.unique_count.get("custom"), Some(&1));
@@ -154,7 +150,7 @@ mod transform_entry {
     let mut unique_count = HashMap::new();
     let mut unique_plurals_count = HashMap::new();
     let value = Value::Object(Default::default());
-    let options = Options::default();
+    let options = Default::default();
 
     let result = transform_entry(&entry, &mut unique_count, &mut unique_plurals_count, &value, &options, None);
 

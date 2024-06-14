@@ -627,9 +627,7 @@ mod tests {
   fn should_parse_jsx_with_ns_defined_in_variable() {
     let source_text = r#"
         const ns = "ns";
-        const el = <Trans ns={ns} i18nKey="dialog.title">
-							Reset password
-						</Trans>;
+        const el = <Trans ns={ns} i18nKey="dialog.title">Reset password</Trans>;
 						"#;
     let keys = parse(source_text);
     assert_eq!(keys.len(), 1);

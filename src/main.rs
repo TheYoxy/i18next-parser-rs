@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use color_eyre::eyre::Result;
 use log::{debug, info};
 
-use config::Options;
 use helper::MergeResult;
 
 use crate::file::parse_directory;
@@ -44,8 +43,7 @@ fn main() -> Result<()> {
 
   debug!("Actual configuration: {config:?}");
   let entries = parse_directory(path, config)?;
-  let option = &config.into();
-  write_to_file(entries, option)?;
+  write_to_file(entries, config)?;
 
   Ok(())
 }
@@ -57,7 +55,7 @@ fn print_counts(
   unique_plurals_count: &HashMap<String, usize>,
   merged: &MergeResult,
   old_merged: &MergeResult,
-  options: &Options,
+  config: &Config,
 ) {
   let merge_count = merged.merge_count;
   let restore_count = old_merged.merge_count;
@@ -70,12 +68,12 @@ fn print_counts(
   let add_count = unique_count.saturating_sub(merge_count);
   println!("Added keys: {}", add_count);
   println!("Restored keys: {}", restore_count);
-  if options.keep_removed.is_some() {
+  if config.keep_removed {
     println!("Unreferenced keys: {}", old_count);
   } else {
     println!("Removed keys: {}", old_count);
   }
-  if options.reset_default_value_locale.is_some() {
+  if config.reset_default_value_locale.is_some() {
     println!("Reset keys: {}", reset_count);
   }
   println!();

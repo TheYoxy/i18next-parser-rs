@@ -35,7 +35,7 @@ pub fn initialize_logging() -> Result<()> {
     .with_target(false)
     .with_ansi(false)
     .with_filter(tracing_subscriber::filter::EnvFilter::from_default_env());
-  tracing_subscriber::registry().with(file_subscriber).with(ErrorLayer::default()).init();
+  tracing_subscriber::registry().with(file_subscriber).with(ErrorLayer::default()).try_init()?;
   Ok(())
 }
 

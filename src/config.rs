@@ -41,41 +41,21 @@ impl From<LineEnding> for config::Value {
   }
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
-#[deprecated()]
-pub struct Options {
-  pub verbose: bool,
-  pub full_key_prefix: String,
-  pub reset_and_flag: bool,
-  pub keep_removed: Option<bool>,
-  pub default_namespace: String,
-  pub key_separator: Option<String>,
-  pub plural_separator: Option<String>,
-  pub locales: Vec<String>,
-  pub suffix: Option<String>,
-  pub custom_value_template: Option<Value>,
-  pub reset_default_value_locale: Option<String>,
-  pub line_ending: LineEnding,
-  pub create_old_catalogs: bool,
-  pub namespace_separator: Option<String>,
-  pub output: String,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
+  pub locales: Vec<String>,
+  pub input: Vec<String>,
+  pub output: String,
   pub context_separator: Option<String>,
-  pub create_old_catalogs: Option<bool>,
+  pub create_old_catalogs: bool,
   pub default_namespace: String,
   pub default_value: Option<String>,
-  pub keep_removed: Option<bool>,
+  pub keep_removed: bool,
   pub key_separator: Option<String>,
-  pub line_ending: Option<LineEnding>,
-  pub locales: Vec<String>,
+  pub line_ending: LineEnding,
   pub namespace_separator: Option<String>,
-  pub output: String,
   pub plural_separator: Option<String>,
-  pub input: Vec<String>,
-  pub sort: Option<bool>,
+  pub sort: bool,
   pub verbose: bool,
   pub fail_on_warnings: Option<bool>,
   pub fail_on_update: Option<bool>,
@@ -83,48 +63,28 @@ pub struct Config {
   pub reset_default_value_locale: Option<String>,
 }
 
-impl From<&Config> for Options {
+impl Default for Config {
   #[inline]
-  fn from(val: &Config) -> Self {
-    Options {
-      create_old_catalogs: val.create_old_catalogs.unwrap_or(true),
-      custom_value_template: val.custom_value_template.clone(),
-      default_namespace: val.default_namespace.clone(),
-      full_key_prefix: "".to_string(),
-      keep_removed: val.keep_removed,
-      key_separator: val.key_separator.clone(),
-      line_ending: val.line_ending.clone().unwrap_or(LineEnding::Auto),
-      locales: val.locales.clone(),
-      plural_separator: val.plural_separator.clone(),
-      reset_and_flag: val.fail_on_update.unwrap_or(false),
-      reset_default_value_locale: val.reset_default_value_locale.clone(),
-      suffix: None,
-      namespace_separator: val.namespace_separator.clone(),
-      verbose: val.verbose,
-      output: val.output.clone(),
-    }
-  }
-}
-
-impl From<Config> for Options {
-  #[inline]
-  fn from(val: Config) -> Self {
-    Options {
-      create_old_catalogs: val.create_old_catalogs.unwrap_or(true),
-      custom_value_template: val.custom_value_template,
-      default_namespace: val.default_namespace,
-      full_key_prefix: "".to_string(),
-      keep_removed: val.keep_removed,
-      key_separator: val.key_separator,
-      line_ending: val.line_ending.unwrap_or(LineEnding::Auto),
-      locales: val.locales,
-      plural_separator: val.plural_separator,
-      reset_and_flag: val.fail_on_update.unwrap_or(false),
-      reset_default_value_locale: val.reset_default_value_locale,
-      suffix: None,
-      namespace_separator: val.namespace_separator,
-      verbose: val.verbose,
-      output: val.output,
+  fn default() -> Self {
+    Self {
+      locales: vec!["en".to_string()],
+      output: "locales/$LOCALE/$NAMESPACE.json".to_string(),
+      input: vec!["src/**/*.{ts,tsx}".to_string()],
+      context_separator: Some("_".to_string()),
+      default_namespace: "translation".to_string(),
+      default_value: Some("".to_string()),
+      keep_removed: false,
+      key_separator: Some(".".to_string()),
+      line_ending: LineEnding::Auto,
+      namespace_separator: Some(":".to_string()),
+      plural_separator: Some("_".to_string()),
+      sort: true,
+      verbose: false,
+      create_old_catalogs: false,
+      fail_on_warnings: None,
+      fail_on_update: None,
+      custom_value_template: None,
+      reset_default_value_locale: None,
     }
   }
 }
@@ -134,20 +94,22 @@ impl Config {
   where
     T: Into<PathBuf>,
   {
+    let default_config = Config::default();
     let mut builder = config::Config::builder()
-      .set_default("locales", vec!["en".to_string()])?
-      .set_default("output", "locales/$LOCALE/$NAMESPACE.json")?
-      .set_default("input", vec!["src/**/*.{ts,tsx}".to_string()])?
-      .set_default("context_separator", "_")?
-      .set_default("default_namespace", "translation")?
-      .set_default("default_value", "")?
-      .set_default("keep_removed", false)?
-      .set_default("key_separator", ".")?
-      .set_default("line_ending", LineEnding::Auto)?
-      .set_default("namespace_separator", ":")?
-      .set_default("plural_separator", "_")?
-      .set_default("sort", true)?
-      .set_default("verbose", false)?;
+      .set_default("locales", default_config.locales)?
+      .set_default("output", default_config.output)?
+      .set_default("input", default_config.input)?
+      .set_default("context_separator", default_config.context_separator)?
+      .set_default("default_namespace", default_config.default_namespace)?
+      .set_default("default_value", default_config.default_value)?
+      .set_default("keep_removed", default_config.keep_removed)?
+      .set_default("key_separator", default_config.key_separator)?
+      .set_default("line_ending", default_config.line_ending)?
+      .set_default("namespace_separator", default_config.namespace_separator)?
+      .set_default("plural_separator", default_config.plural_separator)?
+      .set_default("create_old_catalogs", default_config.create_old_catalogs)?
+      .set_default("sort", default_config.sort)?
+      .set_default("verbose", default_config.verbose)?;
 
     if verbose {
       builder = builder.set_override("verbose", true)?;
