@@ -3,26 +3,12 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
-    # Provides helpers for Rust toolchains
-    rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
   outputs = {
     self,
     nixpkgs,
-    rust-overlay,
   }: let
-    # Overlays enable you to customize the Nixpkgs attribute set
-    overlays = [
-      # Makes a `rust-bin` attribute available in Nixpkgs
-      (import rust-overlay)
-      # Provides a `rustToolchain` attribute for Nixpkgs that we can use to
-      # create a Rust environment
-      (self: super: {
-        rustToolchain = super.rust-bin.stable.latest.default;
-      })
-    ];
-
     # Systems supported
     allSystems = [
       "x86_64-linux" # 64-bit Intel/AMD Linux
@@ -35,35 +21,19 @@
     forAllSystems = f:
       nixpkgs.lib.genAttrs allSystems (system:
         f {
-          pkgs = import nixpkgs {inherit overlays system;};
+          pkgs = import nixpkgs {inherit system;};
         });
   in {
-    overlays.default = final: prev: {
-      # The Rust toolchain used for the package build
-      rustToolchain = final.rust-bin.stable.latest.default;
-    };
-
     formatter = forAllSystems ({pkgs}: pkgs.alejandra);
-
-    # Development environment output
-    devShells = forAllSystems ({pkgs}: {
-      default = pkgs.mkShell {
-        # The Nix packages provided in the environment
-        packages =
-          (with pkgs; [
-            # The package provided by our custom overlay. Includes cargo, Clippy, cargo-fmt,
-            # rustdoc, rustfmt, and other tools.
-            rustToolchain
-          ])
-          ++ pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs; [libiconv]);
-      };
-    });
 
     packages = forAllSystems ({pkgs, ...}: let
       rustPlatform = pkgs.rustPlatform;
+      lib = pkgs.lib;
+      package = (lib.importTOML ./Cargo.toml).package;
     in {
       default = rustPlatform.buildRustPackage {
-        name = "i18next-parser";
+        pname = package.name;
+        version = package.version;
         src = ./.;
         cargoLock = {
           lockFile = ./Cargo.lock;
@@ -71,9 +41,9 @@
 
         doCheck = false;
         meta = {
-          description = "A Rust library for parsing i18next translation files";
-          homepage = "https://github.com/oxalica/i18next-parser-rs";
-          license = pkgs.lib.licenses.mit;
+          description = package.description;
+          homepage = package.repository;
+          license = lib.licenses.mit;
           maintainers = [
             {
               name = "TheYoxy";
