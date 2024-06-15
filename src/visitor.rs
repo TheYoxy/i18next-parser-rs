@@ -22,13 +22,13 @@ pub struct Entry {
 
 #[derive(Debug)]
 pub struct VisitorOptions {
-  pub trans_keep_basic_html_nodes_for: Vec<String>,
+  pub trans_keep_basic_html_nodes_for: Option<Vec<String>>,
 }
 
 impl Default for VisitorOptions {
   fn default() -> Self {
     Self {
-      trans_keep_basic_html_nodes_for: vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()],
+      trans_keep_basic_html_nodes_for: None, // vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]
     }
   }
 }
@@ -176,8 +176,7 @@ impl<'a> I18NVisitor<'a> {
       .map(|v| v.to_string())
   }
 
-  #[allow(clippy::ptr_arg)]
-  fn elem_to_string(&self, childs: &Vec<NodeChild>) -> String {
+  fn elem_to_string(&self, childs: &[NodeChild]) -> String {
     childs
       .iter()
       .enumerate()
@@ -185,16 +184,11 @@ impl<'a> I18NVisitor<'a> {
         NodeChild::Text(text) => text.clone(),
         NodeChild::Js(text) => text.clone(),
         NodeChild::Tag(tag) => {
-          let use_tag_name = tag.is_basic && self.options.trans_keep_basic_html_nodes_for.contains(&tag.name);
-          let element_name = if use_tag_name {
-            tag.name.clone() // TODO: change this to avoid memory allocation
-          } else {
-            format!("{}", index)
-          };
+          let tag_name = &tag.name;
+          let use_tag_name = tag.is_basic
+            && self.options.trans_keep_basic_html_nodes_for.as_ref().is_some_and(|nodes| nodes.contains(tag_name));
+          let element_name = if use_tag_name { tag_name } else { &format!("{}", index) };
           let children_string = tag.children.as_ref().map(|v| self.elem_to_string(v)).unwrap_or_default();
-
-          // println!("{:?} {:?} {:?}", children_string.is_empty(), use_tag_name, tag.self_closing);
-
           if !children_string.is_empty() || !(use_tag_name && tag.self_closing) {
             format!("<{element_name}>{children_string}</{element_name}>")
           } else {
@@ -471,6 +465,19 @@ mod tests {
     visitor.entries
   }
 
+  fn parse_with_options(source_text: &str) -> Vec<Entry> {
+    let allocator = Allocator::default();
+    let source_type = SourceType::from_path("file.tsx").unwrap();
+    let ret = Parser::new(&allocator, source_text, source_type).parse();
+
+    let program = ret.program;
+
+    let mut visitor = I18NVisitor::new(&program);
+    visitor.options.trans_keep_basic_html_nodes_for = Some(vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]);
+    visitor.visit_program(&program);
+    visitor.entries
+  }
+
   #[test]
   fn should_parse_t_with_options_and_ns_defined_in_variable() {
     let source_text = r#"
@@ -653,11 +660,11 @@ mod tests {
 
   #[test]
   fn should_parse_jsx_with_count_identifier() {
-    let source_text = r#"const count = 2; const el = <Trans ns="ns" i18nKey="dialog.title" count={count}><i>Reset password</i></Trans>;"#;
+    let source_text = r#"const count = 2; const el = <Trans ns="ns" i18nKey="dialog.title" count={count}>Reset password</Trans>;"#;
     let keys = parse(source_text);
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
-    le.assert_eq("dialog.title", Some("ns".to_string()), Some("<i>Reset password</i>".to_string()));
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
     assert_eq!(le.count, Some(2));
   }
 
@@ -691,18 +698,28 @@ mod tests {
 
   #[test]
   fn should_parse_jsx_with_count_numeral() {
-    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title" count={2}><i>Reset password</i></Trans>;"#;
+    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title" count={2}>Reset password</Trans>;"#;
     let keys = parse(source_text);
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
-    le.assert_eq("dialog.title", Some("ns".to_string()), Some("<i>Reset password</i>".to_string()));
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
     assert_eq!(le.count, Some(2));
+  }
+
+
+  #[test]
+  fn should_parse_jsx_with_template_removed_when_unspecified() {
+    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title"><i>Reset password</i></Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("<0>Reset password</0>".to_string()));
   }
 
   #[test]
   fn should_parse_jsx_with_template_kept() {
     let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title"><i>Reset password</i></Trans>;"#;
-    let keys = parse(source_text);
+    let keys = parse_with_options(source_text);
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
     le.assert_eq("dialog.title", Some("ns".to_string()), Some("<i>Reset password</i>".to_string()));

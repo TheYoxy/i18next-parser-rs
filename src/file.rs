@@ -65,15 +65,7 @@ where
 }
 
 /// Parse a directory and return a list of entries.
-///
-/// # Panics
-///
-/// Panics if .
-///
-/// # Errors
-///
-/// This function will return an error if .
-pub fn parse_directory(path: &PathBuf, config: &crate::config::Config) -> color_eyre::Result<Vec<Entry>> {
+pub fn parse_directory(path: &PathBuf, config: &Config) -> color_eyre::Result<Vec<Entry>> {
   let inputs = &config.input;
   let mut builder = globset::GlobSetBuilder::new();
   for input in inputs {
@@ -116,10 +108,6 @@ pub fn parse_directory(path: &PathBuf, config: &crate::config::Config) -> color_
 }
 
 /// Write all entries to the specific file based on its namespace
-///
-/// # Panics
-///
-/// Panics if .
 pub fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<()> {
   log_execution_time("Writing files", || {
     for result in prepare_to_write(entries, config)? {
