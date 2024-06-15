@@ -22,18 +22,13 @@ pub struct Entry {
 
 #[derive(Debug)]
 pub struct VisitorOptions {
-  pub trans_keep_basic_html_nodes_for: Option<Vec<String>>,
+  pub trans_keep_basic_html_nodes_for: Vec<String>,
 }
 
 impl Default for VisitorOptions {
   fn default() -> Self {
     Self {
-      trans_keep_basic_html_nodes_for: Some(vec![
-        "br".to_string(),
-        "strong".to_string(),
-        "i".to_string(),
-        "p".to_string(),
-      ]),
+      trans_keep_basic_html_nodes_for: vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()],
     }
   }
 }
@@ -190,22 +185,17 @@ impl<'a> I18NVisitor<'a> {
         NodeChild::Text(text) => text.clone(),
         NodeChild::Js(text) => text.clone(),
         NodeChild::Tag(tag) => {
-          let use_tag_name = tag.is_basic;
-          let element_name = {
-            if use_tag_name {
-              self
-                .options
-                .trans_keep_basic_html_nodes_for
-                .as_ref()
-                .and_then(|nodes| if nodes.contains(&tag.name) { Some(tag.name.clone()) } else { None })
-                .unwrap_or(format!("{}", index))
-            } else {
-              format!("{}", index)
-            }
+          let use_tag_name = tag.is_basic && self.options.trans_keep_basic_html_nodes_for.contains(&tag.name);
+          let element_name = if use_tag_name {
+            tag.name.clone() // TODO: change this to avoid memory allocation
+          } else {
+            format!("{}", index)
           };
           let children_string = tag.children.as_ref().map(|v| self.elem_to_string(v)).unwrap_or_default();
 
-          if !(children_string.is_empty() && use_tag_name && tag.self_closing) {
+          // println!("{:?} {:?} {:?}", children_string.is_empty(), use_tag_name, tag.self_closing);
+
+          if !children_string.is_empty() || !(use_tag_name && tag.self_closing) {
             format!("<{element_name}>{children_string}</{element_name}>")
           } else {
             format!("<{element_name} />")
@@ -313,7 +303,7 @@ impl<'a> I18NVisitor<'a> {
           non_format_props.first().map(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default()
         };
 
-        NodeChild::Js(format!("{{ {} }}", value.unwrap_or_default()))
+        NodeChild::Js(format!("{{{{{}}}}}", value.unwrap_or_default()))
       },
       _ => NodeChild::Text("".to_string()),
     }
@@ -445,7 +435,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
 }
 
 fn clean_multi_line_code(text: &str) -> String {
-  text.replace(|c: char| c.is_whitespace(), " ").trim().to_string()
+  text.replace(|c: char| c.is_whitespace(), " ").to_string()
 }
 
 #[cfg(test)]
@@ -457,10 +447,15 @@ mod tests {
   use super::*;
 
   impl Entry {
-    fn assert_eq(&self, key: &str, namespace: Option<String>, default_value: Option<String>) {
-      assert_eq!(self.key, key, "the key does not match");
-      assert_eq!(self.namespace, namespace, "the namespace does not match");
-      assert_eq!(self.default_value, default_value, "the default value does not match");
+    fn assert_eq<K, Ns, Dv>(&self, key: K, namespace: Ns, default_value: Dv)
+    where
+      K: AsRef<str>,
+      Ns: Into<Option<String>>,
+      Dv: Into<Option<String>>,
+    {
+      assert_eq!(self.key, key.as_ref(), "the key does not match");
+      assert_eq!(self.namespace, namespace.into(), "the namespace does not match");
+      assert_eq!(self.default_value, default_value.into(), "the default value does not match");
     }
   }
 
@@ -608,6 +603,15 @@ mod tests {
   }
 
   #[test]
+  fn should_parse_t_with_value() {
+    let source_text = r#"const title = t("toast.title", {defaultValue: 'Attempt {{num}}', num: 0});"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let el = keys.first().unwrap();
+    el.assert_eq("toast.title", None, Some("Attempt {{num}}".to_string()));
+  }
+
+  #[test]
   fn should_parse_t_with_count_numeric() {
     let source_text = r#"const title = t("toast.title", undefined, {count: 1});"#;
     let keys = parse(source_text);
@@ -631,11 +635,7 @@ mod tests {
 
   #[test]
   fn should_parse_jsx_with_ns() {
-    let source_text = r#"
-        const el = <Trans ns="ns" i18nKey="dialog.title">
-							Reset password
-						</Trans>;
-						"#;
+    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password</Trans>;"#;
     let keys = parse(source_text);
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
@@ -644,10 +644,7 @@ mod tests {
 
   #[test]
   fn should_parse_jsx_with_template_translated() {
-    let source_text = r#"
-    const Comp = () => <i>Reset password</i>;
-    const el = <Trans ns="ns" i18nKey="dialog.title"><Comp>Reset password</Comp></Trans>;
-    "#;
+    let source_text = r#"const Comp = () => <i>Reset password</i>; const el = <Trans ns="ns" i18nKey="dialog.title"><Comp>Reset password</Comp></Trans>;"#;
     let keys = parse(source_text);
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
@@ -662,6 +659,34 @@ mod tests {
     let le = keys.first().unwrap();
     le.assert_eq("dialog.title", Some("ns".to_string()), Some("<i>Reset password</i>".to_string()));
     assert_eq!(le.count, Some(2));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_nested_template() {
+    let source_text =
+      r#"const attempt = 0; const el = <Trans ns="ns" i18nKey="dialog.title">Reset password {{attempt}}</Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password {{attempt}}".to_string()));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_nested_template_object() {
+    let source_text = r#"const attempt = 0; const el = <Trans ns="ns" i18nKey="dialog.title">Reset password {{ attempt: attempt + 1 }}</Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password {{attempt}}".to_string()));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_self_closing_element() {
+    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password<br /></Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password<1></1>".to_string()));
   }
 
   #[test]

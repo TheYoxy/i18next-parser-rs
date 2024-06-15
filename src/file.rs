@@ -7,17 +7,17 @@ use std::{
   str::FromStr,
 };
 
-use log::{debug, info, trace};
+use log::{info, trace};
 use oxc_ast::Visit;
 use serde_json::Value;
 
-use crate::{config::Config, printinfo};
 use crate::{
   catalog::get_catalog,
   helper::{merge_hashes, MergeResult},
   print_counts,
   transform::{transfer_values, transform_entries, TransformEntriesResult},
 };
+use crate::{config::Config, printinfo};
 use crate::{
   config::LineEnding,
   visitor::{Entry, I18NVisitor},
