@@ -3,7 +3,7 @@ use std::{env, path::PathBuf};
 use clap::{command, Parser};
 
 fn get_default_log_path() -> PathBuf {
-  env::current_exe().unwrap()
+  env::current_dir().unwrap()
 }
 
 #[derive(Parser, Debug)]
