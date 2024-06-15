@@ -59,6 +59,7 @@ mod tests {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
+  pub working_dir: PathBuf,
   pub locales: Vec<String>,
   pub input: Vec<String>,
   pub output: String,
@@ -83,6 +84,7 @@ impl Default for Config {
   #[inline]
   fn default() -> Self {
     Self {
+      working_dir: PathBuf::from("."),
       locales: vec!["en".to_string()],
       output: "locales/$LOCALE/$NAMESPACE.json".to_string(),
       input: vec!["src/**/*.{ts,tsx}".to_string()],
@@ -111,6 +113,8 @@ impl Config {
     T: Into<PathBuf>,
   {
     let default_config = Config::default();
+    let working_dir: PathBuf = working_dir.into();
+    let working_dir_opt: &str = working_dir.as_path().to_str().unwrap();
     let mut builder = config::Config::builder()
       .set_default("locales", default_config.locales)?
       .set_default("output", default_config.output)?
@@ -125,13 +129,12 @@ impl Config {
       .set_default("plural_separator", default_config.plural_separator)?
       .set_default("create_old_catalogs", default_config.create_old_catalogs)?
       .set_default("sort", default_config.sort)?
-      .set_default("verbose", default_config.verbose)?;
+      .set_default("verbose", default_config.verbose)?
+      .set_override("working_dir", working_dir_opt)?;
 
     if verbose {
       builder = builder.set_override("verbose", true)?;
     }
-
-    let working_dir: PathBuf = working_dir.into();
 
     let config_files = [
       (".i18next-parser.json5", config::FileFormat::Json5),
@@ -158,8 +161,10 @@ impl Config {
       log::error!("No configuration file found. Using default configuration.");
     }
 
-    let mut cfg: Self = builder.build()?.try_deserialize()?;
-    cfg.output = working_dir.join(&cfg.output).to_str().unwrap().to_string();
-    Ok(cfg)
+    builder.build().and_then(|config| config.try_deserialize())
+  }
+
+  pub fn get_output(&self) -> String {
+    self.working_dir.join(&self.output).to_str().unwrap().to_string()
   }
 }

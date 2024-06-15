@@ -3,7 +3,7 @@ use clap::Parser;
 
 use std::collections::HashMap;
 
-use color_eyre::eyre::Result;
+use color_eyre::{eyre::Result, owo_colors::OwoColorize};
 use log::{debug, info};
 
 use helper::MergeResult;
@@ -29,20 +29,44 @@ mod transform;
 mod utils;
 mod visitor;
 
+fn print_app() {
+  let name = env!("CARGO_CRATE_NAME");
+  let version = env!("CARGO_PKG_VERSION");
+  println!("{name} {version}");
+}
+
+fn print_config(config: &crate::config::Config) {
+  println!("  {}", "i18next Parser rust".bright_cyan());
+  println!("  {}", "--------------".bright_cyan());
+  let input = config.input.iter().map(|input| input.as_str()).collect::<Vec<_>>().join(", ");
+  println!("  {} {}", "Input: ".bright_cyan(), input);
+
+  println!("  {} {}", "Output:".bright_cyan(), config.output);
+}
+
 fn main() -> Result<()> {
+  print_app();
   initialize_panic_handler()?;
   initialize_logging()?;
 
   let cli = Cli::parse();
   let path = &cli.path;
-  printinfo!("Looking for translations in path {path:?}");
 
-  info!("Working directory: {:?}", path);
+  info!("Working directory: {}", path.display());
   let config = &Config::new(path, cli.verbose)?;
   debug!("Configuration: {config:?}");
 
-  debug!("Actual configuration: {config:?}");
-  let entries = parse_directory(path, config)?;
+  print_config(config);
+
+  let entries = parse_directory(path, config);
+  let entries = match entries {
+    Ok(entries) => entries,
+    Err(e) => {
+      printerror!("Error parsing directory: {e}");
+      return Err(e);
+    },
+  };
+
   write_to_file(entries, config)?;
 
   Ok(())

@@ -21,10 +21,10 @@ lazy_static = "1"
 libc = "0.2"
 log = "0.4"
 oxc = "0.14"
-oxc_allocator = { version = "0.14", features = ["serialize"] }
-oxc_ast = { version = "0.14", features = ["serialize"] }
+oxc_allocator = "0.14"
+oxc_ast = "0.14"
 oxc_parser = "0.14"
-oxc_span = { version = "0.14", features = ["serialize"] }
+oxc_span = "0.14"
 pretty_assertions = "1"
 regex = "1"
 serde = "1"
@@ -35,4 +35,8 @@ strip-ansi-escapes = "0.2"
 tempdir = "0.3"
 tracing = "0.1"
 tracing-error = "0.2"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "serde", "time"] }
+tracing-subscriber = { version = "0.3", features = [
+  "env-filter",
+  "serde",
+  "time",
+] }

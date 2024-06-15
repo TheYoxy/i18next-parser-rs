@@ -17,7 +17,7 @@ lazy_static! {
 
 pub fn initialize_logging() -> Result<()> {
   let directory = get_data_dir();
-  std::fs::create_dir_all(directory.clone())?;
+  std::fs::create_dir_all(&directory)?;
   let log_path = directory.join(LOG_FILE.clone());
   let log_file = std::fs::File::create(log_path)?;
   std::env::set_var(

@@ -1,4 +1,4 @@
-use color_eyre::Report;
+use color_eyre::{eyre::eyre, Report};
 use std::{
   collections::HashMap,
   fs::File,
@@ -7,11 +7,11 @@ use std::{
   str::FromStr,
 };
 
-use log::{info, trace};
+use log::{debug, info, trace};
 use oxc_ast::Visit;
 use serde_json::Value;
 
-use crate::config::Config;
+use crate::{config::Config, printinfo};
 use crate::{
   catalog::get_catalog,
   helper::{merge_hashes, MergeResult},
@@ -84,23 +84,35 @@ pub fn parse_directory(path: &PathBuf, config: &crate::config::Config) -> color_
 
   let glob = builder.build()?;
 
-  let file_name = path.file_name().and_then(|s| s.to_str()).unwrap();
-  let entries = log_execution_time(format!("Directory {file_name}"), || {
-    ignore::WalkBuilder::new(path)
+  let directory_name = path.as_path().file_name().and_then(|s| s.to_str()).unwrap();
+  let entries = log_execution_time(format!("Reading directory {directory_name}"), || {
+    let filter = ignore::WalkBuilder::new(path)
       .standard_filters(true)
       .build()
       .filter_map(Result::ok)
       .filter(|f| glob.is_match(f.path()))
-      .filter_map(|entry| {
-        let entry_path = entry.path();
-        crate::printinfo!("Reading file: {:?}", entry_path);
-        parse_file(entry_path).ok()
-      })
-      .flatten()
-      .collect::<Vec<_>>()
+      .collect::<Vec<_>>();
+    printinfo!("Reading {} files", filter.len());
+
+    if filter.is_empty() {
+      None
+    } else {
+      let entries = filter
+        .iter()
+        .filter_map(|entry| {
+          let entry_path = entry.path();
+          if config.verbose {
+            crate::printread!("{}", entry_path.display());
+          }
+          parse_file(entry_path).ok()
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+      Some(entries)
+    }
   });
 
-  Ok(entries)
+  entries.ok_or(eyre!("No entries found in the directory"))
 }
 
 /// Write all entries to the specific file based on its namespace
@@ -125,7 +137,7 @@ pub fn prepare_to_write(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
     let locales = &config.locales;
     for locale in locales.iter() {
       let TransformEntriesResult { unique_count, unique_plurals_count, value } =
-        transform_entries(&entries, locale, &config);
+        transform_entries(&entries, locale, config);
 
       if let Value::Object(catalog) = value {
         for (namespace, catalog) in catalog {
@@ -146,9 +158,9 @@ fn write_files(
   config: &Config,
 ) -> Result<(), Report> {
   let new_catalog = &merged.new;
-  push_file(&path, new_catalog, config)?;
+  push_file(path, new_catalog, config)?;
   if config.create_old_catalogs && !old_catalog.is_empty() {
-    push_file(&backup, &old_catalog, config)?;
+    push_file(backup, old_catalog, config)?;
   }
   Ok(())
 }
@@ -169,8 +181,8 @@ pub fn merge_all_results(
   unique_plurals_count: &HashMap<String, usize>,
   config: &Config,
 ) -> MergeAllResults {
-  let output = &config.output;
-  let path = output.replace("$LOCALE", locale).replace("$NAMESPACE", &namespace);
+  let output = &config.get_output();
+  let path = output.replace("$LOCALE", locale).replace("$NAMESPACE", namespace);
   trace!("Path for output {output:?}: {path:?}");
   let path = PathBuf::from_str(&path).unwrap_or_else(|_| panic!("Unable to find path {path:?}"));
   // get backup file name
