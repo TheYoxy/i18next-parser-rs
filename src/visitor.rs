@@ -8,43 +8,35 @@ use oxc_ast::{
   Visit,
 };
 
-use crate::printwarn;
+use crate::printwarnln;
 
 #[derive(Debug, Default)]
-pub struct Entry {
-  pub key: String,
-  pub default_value: Option<String>,
-  pub namespace: Option<String>,
+pub(crate) struct Entry {
+  pub(crate) key: String,
+  pub(crate) default_value: Option<String>,
+  pub(crate) namespace: Option<String>,
   /// all i18next options found in the file
-  pub i18next_options: Option<HashMap<String, String>>,
-  pub count: Option<usize>,
+  pub(crate) i18next_options: Option<HashMap<String, String>>,
+  pub(crate) count: Option<usize>,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct VisitorOptions {
+  pub(crate) trans_keep_basic_html_nodes_for: Option<Vec<String>>,
 }
 
 #[derive(Debug)]
-pub struct VisitorOptions {
-  pub trans_keep_basic_html_nodes_for: Option<Vec<String>>,
-}
-
-impl Default for VisitorOptions {
-  fn default() -> Self {
-    Self {
-      trans_keep_basic_html_nodes_for: None, // vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]
-    }
-  }
-}
-
-#[derive(Debug)]
-pub struct I18NVisitor<'a> {
-  pub program: &'a Program<'a>,
-  pub entries: Vec<Entry>,
-  pub options: VisitorOptions,
+pub(crate) struct I18NVisitor<'a> {
+  pub(crate) program: &'a Program<'a>,
+  pub(crate) entries: Vec<Entry>,
+  pub(crate) options: VisitorOptions,
   /// the current namespace while parsing a file
   current_namespace: Option<String>,
 }
 
 impl<'a> I18NVisitor<'a> {
   /// Creates a new [`CountASTNodes`].
-  pub fn new(program: &'a Program<'a>) -> Self {
+  pub(crate) fn new(program: &'a Program<'a>) -> Self {
     I18NVisitor {
       program,
       entries: Default::default(),
@@ -123,7 +115,7 @@ impl<'a> I18NVisitor<'a> {
             }
           },
           ObjectPropertyKind::SpreadProperty(_) => {
-            printwarn!("Unsupported spread property");
+            printwarnln!("Unsupported spread property");
             None
           },
         })
@@ -310,6 +302,13 @@ enum NodeChild {
   Js(String),
 }
 
+struct NodeTag {
+  children: Option<Vec<NodeChild>>,
+  name: String,
+  is_basic: bool,
+  self_closing: bool,
+}
+
 impl NodeChild {
   fn is_empty(&self) -> bool {
     match self {
@@ -318,13 +317,6 @@ impl NodeChild {
       NodeChild::Js(js) => js.is_empty(),
     }
   }
-}
-
-struct NodeTag {
-  children: Option<Vec<NodeChild>>,
-  name: String,
-  is_basic: bool,
-  self_closing: bool,
 }
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
@@ -429,7 +421,13 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
 }
 
 fn clean_multi_line_code(text: &str) -> String {
-  text.replace(|c: char| c.is_whitespace(), " ").to_string()
+  let string = text.replace(|c: char| c.is_whitespace(), " ").trim_start().trim_end().to_string();
+
+  if text.ends_with(char::is_whitespace) {
+    format!("{} ", string)
+  } else {
+    string
+  }
 }
 
 #[cfg(test)]
@@ -473,7 +471,8 @@ mod tests {
     let program = ret.program;
 
     let mut visitor = I18NVisitor::new(&program);
-    visitor.options.trans_keep_basic_html_nodes_for = Some(vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]);
+    visitor.options.trans_keep_basic_html_nodes_for =
+      Some(vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]);
     visitor.visit_program(&program);
     visitor.entries
   }
@@ -660,7 +659,8 @@ mod tests {
 
   #[test]
   fn should_parse_jsx_with_count_identifier() {
-    let source_text = r#"const count = 2; const el = <Trans ns="ns" i18nKey="dialog.title" count={count}>Reset password</Trans>;"#;
+    let source_text =
+      r#"const count = 2; const el = <Trans ns="ns" i18nKey="dialog.title" count={count}>Reset password</Trans>;"#;
     let keys = parse(source_text);
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
@@ -705,7 +705,6 @@ mod tests {
     le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
     assert_eq!(le.count, Some(2));
   }
-
 
   #[test]
   fn should_parse_jsx_with_template_removed_when_unspecified() {

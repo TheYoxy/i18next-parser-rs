@@ -1,18 +1,17 @@
 #![cfg_attr(debug_assertions, allow(dead_code))]
-use clap::Parser;
 
 use std::collections::HashMap;
 
+use clap::Parser;
 use color_eyre::{eyre::Result, owo_colors::OwoColorize};
 use log::{debug, info};
 
-use helper::MergeResult;
-
-use crate::file::parse_directory;
-use crate::file::write_to_file;
 use crate::{
   cli::Cli,
   config::Config,
+  file::parse_directory,
+  file::write_to_file,
+  helper::merge_hashes::MergeResult,
   utils::{initialize_logging, initialize_panic_handler},
 };
 

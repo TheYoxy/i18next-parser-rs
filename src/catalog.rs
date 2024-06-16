@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use log::{trace, warn};
 use serde_json::Value;
 
-pub fn get_catalog(path: &PathBuf) -> Option<Value> {
+pub(crate) fn get_catalog(path: &PathBuf) -> Option<Value> {
   trace!("Reading file: {:?}", path);
   let file = File::open(path);
   if file.is_err() && path.file_name().and_then(|f| f.to_str()).is_some_and(|name| !name.to_string().contains("_old")) {

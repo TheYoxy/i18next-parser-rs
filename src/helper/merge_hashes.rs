@@ -1,11 +1,7 @@
-use std::fmt::Display;
-
-use log::{debug, info, trace};
+use crate::config::Config;
+use log::{debug, trace};
 use regex::Regex;
 use serde_json::{Map, Value};
-
-use crate::config::Config;
-use crate::visitor::Entry;
 
 const PLURAL_SUFFIXES: &[&str] = &["zero", "one", "two", "few", "many", "other"];
 
@@ -22,19 +18,19 @@ fn get_singular_form(key: &str, plural_separator: &str) -> String {
   plural_regex.replace(key, "").to_string()
 }
 
-pub struct MergeResult {
+pub(crate) struct MergeResult {
   /// The merged hash
-  pub new: Value,
+  pub(crate) new: Value,
   /// The old hash
-  pub old: Value,
-  pub reset: Value,
-  pub merge_count: usize,
-  pub pull_count: usize,
-  pub old_count: usize,
-  pub reset_count: usize,
+  pub(crate) old: Value,
+  pub(crate) reset: Value,
+  pub(crate) merge_count: usize,
+  pub(crate) pull_count: usize,
+  pub(crate) old_count: usize,
+  pub(crate) reset_count: usize,
 }
 
-pub fn merge_hashes(
+pub(crate) fn merge_hashes(
   source: Option<&Value>,
   existing: &Value,
   reset_values: Option<&Value>,
@@ -141,162 +137,8 @@ pub fn merge_hashes(
   }
 }
 
-#[derive(Debug)]
-pub struct DotPathToHashResult {
-  pub target: Value,
-  pub duplicate: bool,
-  pub conflict: Option<String>,
-}
-
-/// Converts an entry with a dot path to a hash.
-///
-/// # Panics
-///
-/// Panics if .
-///
-/// # Errors
-///
-/// This function will return an error if .
-pub fn dot_path_to_hash(entry: &Entry, target: &Value, suffix: Option<&str>, config: &Config) -> DotPathToHashResult {
-  let mut conflict: Option<String> = None;
-  let mut duplicate = false;
-  let mut target = target.clone();
-  let separator = config.key_separator.clone().unwrap_or(".".to_string());
-  let base_path =
-    entry.namespace.clone().or(Some("default".to_string())).map(|ns| ns + &separator + &entry.key).unwrap();
-  let mut path =
-    base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
-  if let Some(suffix) = suffix {
-    path += suffix;
-  }
-  trace!("Path: {:?}", path);
-
-  if path.ends_with(&separator) {
-    trace!("Removing trailing separator from path: {:?}", path);
-    path = path[..path.len() - separator.len()].to_string();
-    trace!("New path: {:?}", path);
-  }
-
-  let segments: Vec<&str> = path.split(&separator).collect();
-  trace!("Val {:?} {:?} {:?}", &target, entry.key, entry.default_value);
-
-  let mut inner = &mut target;
-  #[allow(clippy::needless_range_loop)]
-  for i in 0..segments.len() - 1 {
-    let segment = segments[i];
-    if !segment.is_empty() {
-      if inner[segment].is_string() {
-        conflict = Some("key".to_string());
-      }
-      if inner[segment].is_null() || conflict.is_some() {
-        inner[segment] = Value::Object(Map::new());
-      }
-      inner = &mut inner[segment];
-    }
-  }
-
-  let last_segment = segments[segments.len() - 1];
-  let old_value = inner[last_segment].as_str().map(|s| s.to_owned());
-  let new_value = entry
-    .default_value
-    .clone()
-    .map(|new_value| {
-      if let Some(old_value) = old_value {
-        trace!("Values {:?} -> {:?}", old_value, new_value);
-        if old_value != new_value && !old_value.is_empty() {
-          if new_value.is_empty() {
-            old_value
-          } else {
-            conflict = Some("value".to_string());
-            duplicate = true;
-            new_value
-          }
-        } else {
-          new_value
-        }
-      } else {
-        new_value
-      }
-    })
-    .unwrap_or_default();
-
-  #[allow(unused_variables)]
-  #[allow(unreachable_code)]
-  if let Some(custom_value_template) = &config.custom_value_template {
-    todo!("validate the behavior of custom_value_template");
-    inner[last_segment] = Value::Object(Map::new());
-    if let Value::Object(map) = custom_value_template {
-      for (key, value) in map {
-        if value == "${defaultValue}" {
-          inner[last_segment][key] = Value::String(new_value.clone());
-        } else {
-          let value_key = value.as_str().unwrap().replace("${", "").replace('}', "");
-          inner[last_segment][key] = Value::String(value_key);
-        }
-      }
-    }
-  } else {
-    debug!("Setting {path:?} -> {new_value:?}");
-    inner[last_segment] = Value::String(new_value);
-  }
-
-  DotPathToHashResult { target: target.clone(), duplicate, conflict }
-}
-
-pub fn log_execution_time<S, F, R>(message: S, func: F) -> R
-where
-  S: Display,
-  F: FnOnce() -> R,
-{
-  use std::time::Instant;
-  let start = Instant::now();
-  let result = func();
-  let duration = start.elapsed();
-  let duration_ms = duration.as_secs_f64() * 1000.0;
-  info!("{} - Execution time: {:.2} ms", message, duration_ms);
-  result
-}
-
 #[cfg(test)]
-mod dot_path_to_hash {
-
-  use serde_json::json;
-
-  use super::*;
-
-  #[test]
-  fn test_dot_path_to_hash() {
-    let entry = Entry {
-      namespace: Some("namespace".to_string()),
-      key: "key".to_string(),
-      default_value: Some("default_value".to_string()),
-      i18next_options: None,
-      count: None,
-    };
-    let target = json!({
-      "namespace": {
-        "key": "existing_value"
-      }
-    });
-    let config = Default::default();
-
-    let result = dot_path_to_hash(&entry, &target, None, &config);
-
-    assert_eq!(
-      result.target,
-      json!({
-        "namespace": {
-          "key": "default_value"
-        }
-      })
-    );
-    assert!(result.duplicate, "there is not duplicates");
-    assert_eq!(result.conflict, Some("value".to_string()));
-  }
-}
-
-#[cfg(test)]
-mod merge_hashes {
+mod tests {
 
   use serde_json::json;
 

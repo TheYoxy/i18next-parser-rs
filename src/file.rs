@@ -1,4 +1,3 @@
-use color_eyre::{eyre::eyre, Report};
 use std::{
   collections::HashMap,
   fs::File,
@@ -7,22 +6,23 @@ use std::{
   str::FromStr,
 };
 
+use color_eyre::{eyre::eyre, Report};
 use log::{info, trace};
 use oxc_ast::Visit;
 use serde_json::Value;
 
+use crate::transform::transfer_values::transfer_values;
+use crate::transform::transform_entries::{transform_entries, TransformEntriesResult};
 use crate::{
   catalog::get_catalog,
-  helper::{merge_hashes, MergeResult},
-  print_counts,
-  transform::{transfer_values, transform_entries, TransformEntriesResult},
-};
-use crate::{config::Config, printinfo};
-use crate::{
+  config::Config,
   config::LineEnding,
+  helper::log_execution_time::log_execution_time,
+  helper::merge_hashes::{merge_hashes, MergeResult},
+  is_empty::IsEmpty,
+  print_counts, printinfo,
   visitor::{Entry, I18NVisitor},
 };
-use crate::{helper::log_execution_time, is_empty::IsEmpty};
 
 ///
 ///
@@ -65,7 +65,7 @@ where
 }
 
 /// Parse a directory and return a list of entries.
-pub fn parse_directory(path: &PathBuf, config: &Config) -> color_eyre::Result<Vec<Entry>> {
+pub(crate) fn parse_directory(path: &PathBuf, config: &Config) -> color_eyre::Result<Vec<Entry>> {
   let inputs = &config.input;
   let mut builder = globset::GlobSetBuilder::new();
   for input in inputs {
@@ -108,7 +108,7 @@ pub fn parse_directory(path: &PathBuf, config: &Config) -> color_eyre::Result<Ve
 }
 
 /// Write all entries to the specific file based on its namespace
-pub fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<()> {
+pub(crate) fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<()> {
   log_execution_time("Writing files", || {
     for result in prepare_to_write(entries, config)? {
       let MergeAllResults { locale: _locale, path, backup, merged, old_catalog } = result;
@@ -119,7 +119,7 @@ pub fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre::Result
   })
 }
 
-pub fn prepare_to_write(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<Vec<MergeAllResults>> {
+pub(crate) fn prepare_to_write(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<Vec<MergeAllResults>> {
   let mut vec: Vec<MergeAllResults> = vec![];
   log_execution_time("Preparing entries to write", || {
     let locales = &config.locales;
@@ -153,15 +153,15 @@ fn write_files(
   Ok(())
 }
 
-pub struct MergeAllResults {
-  pub locale: String,
-  pub path: PathBuf,
-  pub backup: PathBuf,
-  pub merged: MergeResult,
-  pub old_catalog: Value,
+pub(crate) struct MergeAllResults {
+  pub(crate) locale: String,
+  pub(crate) path: PathBuf,
+  pub(crate) backup: PathBuf,
+  pub(crate) merged: MergeResult,
+  pub(crate) old_catalog: Value,
 }
 
-pub fn merge_all_results(
+pub(crate) fn merge_all_results(
   locale: &str,
   namespace: &str,
   catalog: &Value,
@@ -209,29 +209,32 @@ pub fn merge_all_results(
   MergeAllResults { locale: locale.to_string(), path, backup, merged, old_catalog }
 }
 
-fn push_file(path: &PathBuf, contents: &Value, config: &Config) -> std::io::Result<()> {
-  use std::fs::create_dir_all;
-  let mut text: String;
-  if path.ends_with("yml") {
-    text = serde_yaml::to_string(contents).unwrap();
-  } else {
-    text = serde_json::to_string_pretty(contents).unwrap();
-    text = text.replace("\r\n", "\n").replace('\r', "\n");
-  }
-
-  text = match config.line_ending {
+fn handle_line_ending(text: &str, line_ending: &LineEnding) -> String {
+  match line_ending {
     LineEnding::Crlf => text.replace('\n', "\r\n"),
     LineEnding::Cr => text.replace('\n', "\r"),
     _ => {
       // Do nothing, as Rust automatically uses the appropriate line endings
-      text
+      text.to_string()
     },
+  }
+}
+
+fn push_file(path: &PathBuf, contents: &Value, config: &Config) -> std::io::Result<()> {
+  let text = {
+    let text = if path.ends_with("yml") {
+      serde_yaml::to_string(contents).unwrap()
+    } else {
+      serde_json::to_string_pretty(contents).map(|t| t.replace("\r\n", "\n").replace('\r', "\n")).unwrap()
+    };
+
+    handle_line_ending(&text, &config.line_ending)
   };
 
   if let Some(parent) = path.parent() {
     if !parent.exists() {
       trace!("creating parent directory: {:?}", parent);
-      create_dir_all(parent)?;
+      std::fs::create_dir_all(parent)?;
     }
   }
   let mut file = File::create(Path::new(path))?;

@@ -1,9 +1,3 @@
-/// Similar to the `std::dbg!` macro, but generates `tracing` events rather
-/// than printing to stdout.
-///
-/// By default, the verbosity level for the generated events is `DEBUG`, but
-/// this can be customized.
-
 #[macro_export]
 macro_rules! printread {
     ($($arg:tt)*) => {{
@@ -24,6 +18,15 @@ macro_rules! printinfo {
 
 #[macro_export]
 macro_rules! printwarn {
+    ($($arg:tt)*) => {{
+        use color_eyre::owo_colors::OwoColorize;
+        let warn_prefix = " [warn] ".yellow();
+        print!("{}{}", warn_prefix, format!($($arg)*));
+    }};
+}
+
+#[macro_export]
+macro_rules! printwarnln {
     ($($arg:tt)*) => {{
         use color_eyre::owo_colors::OwoColorize;
         let warn_prefix = " [warn] ".yellow();

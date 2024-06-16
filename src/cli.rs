@@ -8,13 +8,13 @@ fn get_default_log_path() -> PathBuf {
 
 #[derive(Parser, Debug)]
 #[command(version, about, author)]
-pub struct Cli {
+pub(crate) struct Cli {
   #[arg(value_name = "PATH", default_value = get_default_log_path().into_os_string())]
-  pub path: PathBuf,
+  pub(crate) path: PathBuf,
 
   /// Should the output to be verbose
   #[arg(short, long, default_value = "false")]
-  pub verbose: bool,
+  pub(crate) verbose: bool,
 }
 
 #[cfg(test)]

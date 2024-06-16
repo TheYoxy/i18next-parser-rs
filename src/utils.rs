@@ -6,16 +6,16 @@ use tracing_error::ErrorLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
 lazy_static! {
-  pub static ref PROJECT_NAME: String = env!("CARGO_CRATE_NAME").to_uppercase().to_string();
-  pub static ref DATA_FOLDER: Option<PathBuf> =
+  pub(crate) static ref PROJECT_NAME: String = env!("CARGO_CRATE_NAME").to_uppercase().to_string();
+  pub(crate) static ref DATA_FOLDER: Option<PathBuf> =
     std::env::var(format!("{}_DATA", PROJECT_NAME.clone())).ok().map(PathBuf::from);
-  pub static ref CONFIG_FOLDER: Option<PathBuf> =
+  pub(crate) static ref CONFIG_FOLDER: Option<PathBuf> =
     std::env::var(format!("{}_CONFIG", PROJECT_NAME.clone())).ok().map(PathBuf::from);
-  pub static ref LOG_ENV: String = format!("{}_LOGLEVEL", PROJECT_NAME.clone());
-  pub static ref LOG_FILE: String = format!("{}.log", env!("CARGO_PKG_NAME"));
+  pub(crate) static ref LOG_ENV: String = format!("{}_LOGLEVEL", PROJECT_NAME.clone());
+  pub(crate) static ref LOG_FILE: String = format!("{}.log", env!("CARGO_PKG_NAME"));
 }
 
-pub fn initialize_logging() -> Result<()> {
+pub(crate) fn initialize_logging() -> Result<()> {
   let directory = get_data_dir();
   std::fs::create_dir_all(&directory)?;
   let log_path = directory.join(LOG_FILE.clone());
@@ -37,7 +37,7 @@ pub fn initialize_logging() -> Result<()> {
   Ok(())
 }
 
-pub fn initialize_panic_handler() -> Result<()> {
+pub(crate) fn initialize_panic_handler() -> Result<()> {
   let (panic_hook, eyre_hook) = color_eyre::config::HookBuilder::default()
     .panic_section(format!("This is a bug. Consider reporting it at {}", env!("CARGO_PKG_REPOSITORY")))
     .capture_span_trace_by_default(false)
@@ -80,7 +80,7 @@ fn project_directory() -> Option<ProjectDirs> {
   ProjectDirs::from("be", "endevops", env!("CARGO_PKG_NAME"))
 }
 
-pub fn get_data_dir() -> PathBuf {
+pub(crate) fn get_data_dir() -> PathBuf {
   let directory = if let Some(s) = DATA_FOLDER.clone() {
     s
   } else if let Some(proj_dirs) = project_directory() {

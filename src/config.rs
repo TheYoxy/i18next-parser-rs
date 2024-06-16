@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub enum LineEnding {
+pub(crate) enum LineEnding {
   #[default]
   Auto,
   Crlf,
@@ -58,26 +58,26 @@ mod tests {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Config {
-  pub working_dir: PathBuf,
-  pub locales: Vec<String>,
-  pub input: Vec<String>,
-  pub output: String,
-  pub context_separator: Option<String>,
-  pub create_old_catalogs: bool,
-  pub default_namespace: String,
-  pub default_value: Option<String>,
-  pub keep_removed: bool,
-  pub key_separator: Option<String>,
-  pub line_ending: LineEnding,
-  pub namespace_separator: Option<String>,
-  pub plural_separator: Option<String>,
-  pub sort: bool,
-  pub verbose: bool,
-  pub fail_on_warnings: Option<bool>,
-  pub fail_on_update: Option<bool>,
-  pub custom_value_template: Option<Value>,
-  pub reset_default_value_locale: Option<String>,
+pub(crate) struct Config {
+  pub(crate) working_dir: PathBuf,
+  pub(crate) locales: Vec<String>,
+  pub(crate) input: Vec<String>,
+  pub(crate) output: String,
+  pub(crate) context_separator: Option<String>,
+  pub(crate) create_old_catalogs: bool,
+  pub(crate) default_namespace: String,
+  pub(crate) default_value: Option<String>,
+  pub(crate) keep_removed: bool,
+  pub(crate) key_separator: Option<String>,
+  pub(crate) line_ending: LineEnding,
+  pub(crate) namespace_separator: Option<String>,
+  pub(crate) plural_separator: Option<String>,
+  pub(crate) sort: bool,
+  pub(crate) verbose: bool,
+  pub(crate) fail_on_warnings: Option<bool>,
+  pub(crate) fail_on_update: Option<bool>,
+  pub(crate) custom_value_template: Option<Value>,
+  pub(crate) reset_default_value_locale: Option<String>,
 }
 
 impl Default for Config {
@@ -91,24 +91,24 @@ impl Default for Config {
       context_separator: Some("_".to_string()),
       default_namespace: "translation".to_string(),
       default_value: Some("".to_string()),
-      keep_removed: false,
+      keep_removed: Default::default(),
       key_separator: Some(".".to_string()),
       line_ending: LineEnding::Auto,
       namespace_separator: Some(":".to_string()),
       plural_separator: Some("_".to_string()),
       sort: true,
-      verbose: false,
-      create_old_catalogs: false,
-      fail_on_warnings: None,
-      fail_on_update: None,
-      custom_value_template: None,
-      reset_default_value_locale: None,
+      verbose: Default::default(),
+      create_old_catalogs: Default::default(),
+      fail_on_warnings: Default::default(),
+      fail_on_update: Default::default(),
+      custom_value_template: Default::default(),
+      reset_default_value_locale: Default::default(),
     }
   }
 }
 
 impl Config {
-  pub fn new<T>(working_dir: T, verbose: bool) -> Result<Self, config::ConfigError>
+  pub(crate) fn new<T>(working_dir: T, verbose: bool) -> Result<Self, config::ConfigError>
   where
     T: Into<PathBuf>,
   {
@@ -164,7 +164,7 @@ impl Config {
     builder.build().and_then(|config| config.try_deserialize())
   }
 
-  pub fn get_output(&self) -> String {
+  pub(crate) fn get_output(&self) -> String {
     self.working_dir.join(&self.output).to_str().unwrap().to_string()
   }
 }

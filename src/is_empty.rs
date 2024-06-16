@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-pub trait IsEmpty {
+pub(crate) trait IsEmpty {
   fn is_empty(&self) -> bool;
 }
 
