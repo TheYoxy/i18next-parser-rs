@@ -1,10 +1,13 @@
-use crate::config::Config;
-use crate::helper::dot_path_to_hash::{dot_path_to_hash, Conflict};
-use crate::printwarnln;
-use crate::visitor::Entry;
+use std::collections::HashMap;
+
 use log::trace;
 use serde_json::Value;
-use std::collections::HashMap;
+
+use crate::{printwarn, printwarnln};
+use crate::config::Config;
+use crate::helper::dot_path_to_hash::{Conflict, dot_path_to_hash};
+use crate::helper::get_char_diff::get_char_diff;
+use crate::visitor::Entry;
 
 pub(crate) fn transform_entry(
   entry: &Entry,
@@ -28,13 +31,15 @@ pub(crate) fn transform_entry(
   if result.duplicate {
     match result.conflict {
       Some(Conflict::Key) => printwarnln!(
-        "Found translation key already mapped to a map or parent of new key already mapped to a string: {}",
-        entry.key
+        "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}",
+        key = entry.key
       ),
-      Some(Conflict::Value) => {
+      Some(Conflict::Value(old, new)) => {
         let separator = options.namespace_separator.as_deref();
         let separator = separator.unwrap_or(":");
-        printwarnln!("Found same keys with different values: {namespace}{separator}{key}", key = entry.key)
+        printwarn!("Found same keys with different values: {namespace}{separator}{key}: ", namespace = namespace.bright_yellow(), key = entry.key.blue());
+        let diff = get_char_diff(&old, &new);
+        println!("{diff}");
       },
       _ => (),
     }
@@ -59,7 +64,7 @@ mod tests {
     let entry = Entry {
       namespace: Some("default".to_string()),
       key: "key1".to_string(),
-      default_value: Some("value1".to_string()),
+      value: Some("value1".to_string()),
       count: None,
       i18next_options: None,
     };

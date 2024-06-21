@@ -1,73 +1,73 @@
 pub(crate) fn get_char_diff(old: &str, new: &str) -> String {
   use color_eyre::owo_colors::OwoColorize;
-  use itertools::Itertools;
-  old
-    .chars()
-    .zip_longest(new.chars())
-    .map(|pair| match pair {
-      itertools::EitherOrBoth::Both(c1, c2) if c1 == c2 => c1.to_string(),
-      itertools::EitherOrBoth::Both(c1, c2) => format!("{}{}", c1.to_string().red(), c2.to_string().green()),
-      itertools::EitherOrBoth::Left(c1) => c1.to_string().red().to_string(),
-      itertools::EitherOrBoth::Right(c2) => c2.to_string().green().to_string(),
+  use similar::{ChangeTag, TextDiff};
+
+  TextDiff::from_chars(old, new)
+    .iter_all_changes()
+    .map(|changes| {
+      let val = changes.value();
+      match changes.tag() {
+        ChangeTag::Equal => val.to_string(),
+        ChangeTag::Insert => val.on_bright_green().to_string(),
+        ChangeTag::Delete => val.on_bright_red().to_string(),
+      }
     })
-    .collect()
+    .collect::<Vec<_>>().concat()
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use color_eyre::owo_colors::OwoColorize;
 
   #[test]
-  fn test_print_diff_colored_same_strings() {
-    let s1 = "Hello, world!";
-    let s2 = "Hello, world!";
-    let string = get_char_diff(s1, s2);
-    println!("{string}");
-    assert_eq!(string, "Hello, world!".to_string());
+  fn get_char_diff_returns_empty_string_when_strings_are_identical() {
+    let old = "Hello, World!";
+    let new = "Hello, World!";
+    let result = get_char_diff(old, new);
+    assert_eq!(result, old);
   }
 
   #[test]
-  fn test_print_diff_colored_different_strings() {
-    let s1 = "Hello, world!";
-    let s2 = "Hello,  world!";
-    let string = get_char_diff(s1, s2);
-    println!("{string}");
-    assert_eq!(
-            string,
-            "Hello, \u{1b}[31mw\u{1b}[39m\u{1b}[32m \u{1b}[39m\u{1b}[31mo\u{1b}[39m\u{1b}[32mw\u{1b}[39m\u{1b}[31mr\u{1b}[39m\u{1b}[32mo\u{1b}[39m\u{1b}[31ml\u{1b}[39m\u{1b}[32mr\u{1b}[39m\u{1b}[31md\u{1b}[39m\u{1b}[32ml\u{1b}[39m\u{1b}[31m!\u{1b}[39m\u{1b}[32md\u{1b}[39m\u{1b}[32m!\u{1b}[39m".to_string()
-        );
+  fn get_char_diff_identifies_inserted_characters() {
+    let old = "word";
+    let new = "words";
+    let result = get_char_diff(old, new);
+
+    println!("{old} | {new} -> {result}");
+    let format = format!("{old}{}", "s".green());
+    println!("{result} == {format}");
+    assert_eq!(result, format); // ANSI code for green
   }
 
   #[test]
-  fn test_print_diff_colored_different_lengths() {
-    let s1 = "Hello, world!";
-    let s2 = "Hello!";
-    let string = get_char_diff(s1, s2);
-    println!("{string}");
-    assert_eq!(
-            string,
-            "Hello\u{1b}[31m,\u{1b}[39m\u{1b}[32m!\u{1b}[39m\u{1b}[31m \u{1b}[39m\u{1b}[31mw\u{1b}[39m\u{1b}[31mo\u{1b}[39m\u{1b}[31mr\u{1b}[39m\u{1b}[31ml\u{1b}[39m\u{1b}[31md\u{1b}[39m\u{1b}[31m!\u{1b}[39m".to_string()
-        );
+  fn get_char_diff_identifies_deleted_characters() {
+    let old = "words";
+    let new = "word";
+    let result = get_char_diff(old, new);
+
+    println!("{old} | {new} -> {result}");
+    let format = format!("word{}", "s".red());
+    println!("{result} == {format}");
+    assert_eq!(result, "word\x1b[31ms\x1b[39m"); // ANSI code for red
   }
 
   #[test]
-  fn test_print_diff_colored_empty_strings() {
-    let s1 = "";
-    let s2 = "";
-    let string = get_char_diff(s1, s2);
-    println!("{string}");
-    assert_eq!(string, "".to_string());
+  fn get_char_diff_identifies_multiple_changes() {
+    let old = "words";
+    let new = "sword";
+    let result = get_char_diff(old, new);
+
+    println!("{old} | {new} -> {result}");
+    let format = format!("{}word{}", "s".green(), "s".red());
+    println!("{result} == {format}");
+    assert_eq!(result, "\x1b[32ms\x1b[39mword\x1b[31ms\x1b[39m"); // ANSI codes for green and red
   }
 
   #[test]
-  fn test_print_diff_colored_one_empty_string() {
-    let s1 = "Hello, world!";
-    let s2 = "";
-    let string = get_char_diff(s1, s2);
-    println!("{string}");
-    assert_eq!(
-            string,
-            "\u{1b}[31mH\u{1b}[39m\u{1b}[31me\u{1b}[39m\u{1b}[31ml\u{1b}[39m\u{1b}[31ml\u{1b}[39m\u{1b}[31mo\u{1b}[39m\u{1b}[31m,\u{1b}[39m\u{1b}[31m \u{1b}[39m\u{1b}[31mw\u{1b}[39m\u{1b}[31mo\u{1b}[39m\u{1b}[31mr\u{1b}[39m\u{1b}[31ml\u{1b}[39m\u{1b}[31md\u{1b}[39m\u{1b}[31m!\u{1b}[39m".to_string()
-        );
+  fn get_char_diff_handles_empty_strings() {
+    let old = "";
+    let new = "";
+    assert_eq!(get_char_diff(old, new), "");
   }
 }

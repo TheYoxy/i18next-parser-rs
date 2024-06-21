@@ -7,20 +7,21 @@ use std::{
 };
 
 use color_eyre::{eyre::eyre, Report};
-use log::{info, trace};
+use log::trace;
 use oxc_ast::Visit;
 use serde_json::Value;
 
-use crate::transform::transfer_values::transfer_values;
-use crate::transform::transform_entries::{transform_entries, TransformEntriesResult};
 use crate::{
   catalog::get_catalog,
   config::Config,
   config::LineEnding,
-  helper::log_execution_time::log_execution_time,
   helper::merge_hashes::{merge_hashes, MergeResult},
   is_empty::IsEmpty,
-  print_counts, printinfo,
+  log_time,
+  print::print_count::print_counts,
+  printinfo,
+  transform::transfer_values::transfer_values,
+  transform::transform_entries::{transform_entries, TransformEntriesResult},
   visitor::{Entry, I18NVisitor},
 };
 
@@ -54,12 +55,12 @@ where
   let mut visitor = I18NVisitor::new(&parsed.program);
   visitor.visit_program(&parsed.program);
 
-  info!("Start parsing...");
+  trace!("Start parsing...");
   let file_name = path.as_ref().file_name().and_then(|s| s.to_str()).unwrap();
-  log_execution_time(format!("Parsing file {file_name}"), || {
+  log_time!(format!("Parsing file {file_name}"), || {
     visitor.visit_program(visitor.program);
   });
-  info!("Found {} entries", visitor.entries.len());
+  trace!("Found {} entries", visitor.entries.len());
 
   Ok(visitor.entries)
 }
@@ -77,7 +78,7 @@ pub(crate) fn parse_directory(path: &PathBuf, config: &Config) -> color_eyre::Re
   let glob = builder.build()?;
 
   let directory_name = path.as_path().file_name().and_then(|s| s.to_str()).unwrap();
-  let entries = log_execution_time(format!("Reading directory {directory_name}"), || {
+  let entries = log_time!(format!("Reading directory {directory_name}"), || {
     let filter = ignore::WalkBuilder::new(path)
       .standard_filters(true)
       .build()
@@ -104,13 +105,13 @@ pub(crate) fn parse_directory(path: &PathBuf, config: &Config) -> color_eyre::Re
     }
   });
 
-  entries.ok_or(eyre!("No entries found in the directory"))
+  entries.ok_or(eyre!("No entries found in the directory {directory_name}"))
 }
 
 /// Write all entries to the specific file based on its namespace
 pub(crate) fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<()> {
-  log_execution_time("Writing files", || {
-    for result in prepare_to_write(entries, config)? {
+  log_time!("Writing files", || {
+    for result in prepare_to_write(entries, config) {
       let MergeAllResults { locale: _locale, path, backup, merged, old_catalog } = result;
       write_files(&path, &backup, &merged, &old_catalog, config)?;
     }
@@ -119,22 +120,30 @@ pub(crate) fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre:
   })
 }
 
-pub(crate) fn prepare_to_write(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<Vec<MergeAllResults>> {
-  let mut vec: Vec<MergeAllResults> = vec![];
-  log_execution_time("Preparing entries to write", || {
+pub(crate) fn prepare_to_write(entries: Vec<Entry>, config: &Config) -> Vec<MergeAllResults> {
+  log_time!("Preparing entries to write", || {
     let locales = &config.locales;
-    for locale in locales.iter() {
-      let TransformEntriesResult { unique_count, unique_plurals_count, value } =
-        transform_entries(&entries, locale, config);
+    locales
+      .iter()
+      .filter_map(|locale| {
+        let TransformEntriesResult { unique_count, unique_plurals_count, value } =
+          transform_entries(&entries, locale, config);
 
-      if let Value::Object(catalog) = value {
-        for (namespace, catalog) in catalog {
-          let result = merge_all_results(locale, &namespace, &catalog, &unique_count, &unique_plurals_count, config);
-          vec.push(result);
+        if let Value::Object(catalog) = value {
+          Some(
+            catalog
+              .iter()
+              .map(|(namespace, catalog)| {
+                merge_all_results(locale, namespace, catalog, &unique_count, &unique_plurals_count, config)
+              })
+              .collect::<Vec<_>>(),
+          )
+        } else {
+          None
         }
-      }
-    }
-    Ok(vec)
+      })
+      .flatten()
+      .collect::<Vec<_>>()
   })
 }
 

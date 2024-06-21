@@ -1,16 +1,14 @@
-use log::{debug, trace};
+use log::{debug, trace, warn};
 use serde_json::{Map, Value};
 
 use crate::config::Config;
-use crate::helper::get_char_diff::get_char_diff;
-use crate::printwarn;
 use crate::visitor::Entry;
 
 /// Enum representing the type of conflict that can occur when converting a dot path to a hash.
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub(crate) enum Conflict {
   Key,
-  Value,
+  Value(String, String),
 }
 
 /// Struct representing the result of converting a dot path to a hash.
@@ -62,7 +60,7 @@ pub(crate) fn dot_path_to_hash(
   }
 
   let segments: Vec<&str> = path.split(&separator).collect();
-  trace!("Val {:?} {:?} {:?}", &target, entry.key, entry.default_value);
+  trace!("Val {:?} {:?} {:?}", &target, entry.key, entry.value);
 
   let mut inner = &mut target;
   let mut conflict: Option<Conflict> = None;
@@ -85,21 +83,22 @@ pub(crate) fn dot_path_to_hash(
   let old_value = inner[last_segment].as_str().map(|s| s.to_owned());
   let mut has_warn = false;
   let new_value = entry
-    .default_value
+    .value
     .clone()
     .map(|new_value| {
       if let Some(old_value) = old_value {
+        if old_value != new_value {
+          warn!("Values {:?} -> {:?}", old_value, new_value);
+        }
         trace!("Values {:?} -> {:?}", old_value, new_value);
         if old_value != new_value && !old_value.is_empty() {
           if new_value.is_empty() {
             old_value
           } else {
-            conflict = Some(Conflict::Value);
+            conflict = Some(Conflict::Value(old_value, new_value.clone()));
             duplicate = true;
             has_warn = true;
-            printwarn!("Duplicate key found: {path:?}:");
-            let diff = get_char_diff(&old_value, &new_value);
-            println!("{}", diff);
+
             new_value
           }
         } else {
@@ -146,7 +145,7 @@ mod tests {
     let entry = Entry {
       namespace: Some("namespace".to_string()),
       key: "key".to_string(),
-      default_value: Some("default_value".to_string()),
+      value: Some("default_value".to_string()),
       i18next_options: None,
       count: None,
     };
@@ -168,14 +167,15 @@ mod tests {
       })
     );
     assert!(result.duplicate, "there is not duplicates");
-    assert_eq!(result.conflict, Some(Conflict::Value));
+    assert_eq!(result.conflict, Some(Conflict::Value("existing_value".to_string(), "default_value".to_string())));
   }
+
   #[test]
   fn dot_path_to_hash_handles_empty_path() {
     let entry = Entry {
       namespace: Some("".to_string()),
       key: "".to_string(),
-      default_value: Some("default_value".to_string()),
+      value: Some("default_value".to_string()),
       i18next_options: None,
       count: None,
     };
@@ -194,7 +194,7 @@ mod tests {
     let entry = Entry {
       namespace: Some("nonexistent".to_string()),
       key: "key".to_string(),
-      default_value: Some("default_value".to_string()),
+      value: Some("default_value".to_string()),
       i18next_options: None,
       count: None,
     };
@@ -220,7 +220,7 @@ mod tests {
     let entry = Entry {
       namespace: Some("namespace".to_string()),
       key: "key".to_string(),
-      default_value: Some("default_value".to_string()),
+      value: Some("default_value".to_string()),
       i18next_options: None,
       count: None,
     };
@@ -242,7 +242,7 @@ mod tests {
       })
     );
     assert!(result.duplicate);
-    assert_eq!(result.conflict, Some(Conflict::Value));
+    assert_eq!(result.conflict, Some(Conflict::Value("existing_value".to_string(), "default_value".to_string())));
   }
 
   #[test]
@@ -250,7 +250,7 @@ mod tests {
     let entry = Entry {
       namespace: Some("namespace".to_string()),
       key: "key".to_string(),
-      default_value: Some("default_value".to_string()),
+      value: Some("default_value".to_string()),
       i18next_options: None,
       count: None,
     };
@@ -272,6 +272,6 @@ mod tests {
       })
     );
     assert!(result.duplicate);
-    assert_eq!(result.conflict, Some(Conflict::Value));
+    assert_eq!(result.conflict, Some(Conflict::Value("existing_value".to_string(), "default_value".to_string())));
   }
 }

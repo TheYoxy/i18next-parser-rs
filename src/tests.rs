@@ -35,7 +35,7 @@ fn should_parse_successfully() -> color_eyre::Result<()> {
 
   let entries = parse_directory(&PathBuf::from(working_path), config)?;
 
-  let entries = prepare_to_write(entries, config)?;
+  let entries = prepare_to_write(entries, config);
   for entry in entries {
     let MergeAllResults { locale: _locale, path: _path, backup: _backup, merged, old_catalog: _old_catalog } = entry;
 

@@ -1,22 +1,28 @@
 use std::collections::HashMap;
 
-use log::{trace, warn};
+use crate::helper::clean_multi_line_code::clean_multi_line_code;
+use log::{debug, error, trace, warn};
 use oxc_ast::ast::*;
 use oxc_ast::{
   ast::{Argument, CallExpression, Expression, IdentifierReference, ObjectPropertyKind, Program, Statement},
   visit::walk,
   Visit,
 };
+use oxc_span::GetSpan;
 
 use crate::printwarnln;
 
 #[derive(Debug, Default)]
 pub(crate) struct Entry {
+  /// the key of the entry
   pub(crate) key: String,
-  pub(crate) default_value: Option<String>,
+  /// the value found for the key
+  pub(crate) value: Option<String>,
+  /// the namespace found for the key
   pub(crate) namespace: Option<String>,
   /// all i18next options found in the file
   pub(crate) i18next_options: Option<HashMap<String, String>>,
+  /// the count found for the key (if plural)
   pub(crate) count: Option<usize>,
 }
 
@@ -94,37 +100,31 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
-  fn parse_i18next_option(&self, expr: Option<&Argument<'_>>) -> Option<HashMap<String, String>> {
-    if let Some(Argument::ObjectExpression(obj)) = expr {
-      let map = obj
-        .properties
-        .iter()
-        .filter_map(|prop| match prop {
-          ObjectPropertyKind::ObjectProperty(kv) => {
-            let value = self.parse_expression(&kv.value);
-            trace!(
-              "Key: {key:?}, Value: {value:?}, Parsed: {parsed_value:?}",
-              key = kv.key.name(),
-              value = kv.value,
-              parsed_value = value
-            );
-            if let Some(value) = value {
-              kv.key.name().map(|name| (name.to_string(), value))
-            } else {
-              None
-            }
-          },
-          ObjectPropertyKind::SpreadProperty(_) => {
-            printwarnln!("Unsupported spread property");
+  fn parse_i18next_option(&self, obj: &oxc_allocator::Box<ObjectExpression>) -> HashMap<String, String> {
+    obj
+      .properties
+      .iter()
+      .filter_map(|prop| match prop {
+        ObjectPropertyKind::ObjectProperty(kv) => {
+          let value = self.parse_expression(&kv.value);
+          trace!(
+            "Key: {key:?}, Value: {value:?}, Parsed: {parsed_value:?}",
+            key = kv.key.name(),
+            value = kv.value,
+            parsed_value = value
+          );
+          if let Some(value) = value {
+            kv.key.name().map(|name| (name.to_string(), value))
+          } else {
             None
-          },
-        })
-        .collect::<HashMap<_, _>>();
-
-      Some(map)
-    } else {
-      None
-    }
+          }
+        },
+        ObjectPropertyKind::SpreadProperty(_) => {
+          printwarnln!("Unsupported spread property");
+          None
+        },
+      })
+      .collect::<HashMap<_, _>>()
   }
 
   fn get_prop_value(&self, elem: &JSXElement<'_>, attribute_name: &str) -> Option<String> {
@@ -181,7 +181,7 @@ impl<'a> I18NVisitor<'a> {
             && self.options.trans_keep_basic_html_nodes_for.as_ref().is_some_and(|nodes| nodes.contains(tag_name));
           let element_name = if use_tag_name { tag_name } else { &format!("{}", index) };
           let children_string = tag.children.as_ref().map(|v| self.elem_to_string(v)).unwrap_or_default();
-          if !children_string.is_empty() || !(use_tag_name && tag.self_closing) {
+          if !(children_string.is_empty() && use_tag_name && tag.self_closing) {
             format!("<{element_name}>{children_string}</{element_name}>")
           } else {
             format!("<{element_name} />")
@@ -324,7 +324,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
     if let Some(name) = expr.callee_name() {
       self.extract_namespace(name, expr);
       if name == "t" {
-        let value = if expr.arguments.len() > 0 {
+        let key = if expr.arguments.len() > 0 {
           let arg = expr.arguments.first();
           match arg {
             Some(Argument::StringLiteral(str)) => {
@@ -347,40 +347,49 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
         } else {
           None
         };
-        trace!("Value: {:?}", value);
+        trace!("Key: {:?}", key);
 
         let arg = expr.arguments.get(1);
 
         let mut i18next_options = None;
-        let default_value = match arg {
+        let value = match arg {
           Some(Argument::StringLiteral(str)) => {
             trace!("t options: {str:?}");
             Some(str.value.to_string())
           },
-          _ => {
-            i18next_options = self.parse_i18next_option(arg);
+          Some(Argument::ObjectExpression(obj)) => {
+            i18next_options = Some(self.parse_i18next_option(obj));
             i18next_options
               .clone()
               .map(|options| options.get("defaultValue").map(|value| value.to_string()).unwrap_or_default())
           },
+          None => None,
+          _ => {
+            error!("Unknown argument type: {:?}", arg);
+            None
+          },
         };
-        trace!("Default value: {default_value:?}");
+        trace!("Value: {value:?}");
 
         // fill options if not already filled
         if i18next_options.is_none() {
-          i18next_options = self.parse_i18next_option(expr.arguments.get(2));
+          if let Some(Argument::ObjectExpression(obj)) = expr.arguments.get(2) {
+            i18next_options = Some(self.parse_i18next_option(obj));
+          }
         }
 
-        self.entries.push(Entry {
-          key: value.unwrap_or_default(),
-          default_value,
-          namespace: self
-            .current_namespace
-            .clone()
-            .or(i18next_options.as_ref().and_then(|o| o.get("namespace").map(|v| v.to_string()))),
-          count: i18next_options.as_ref().and_then(|opt| opt.get("count").and_then(|v| v.parse::<usize>().ok())),
-          i18next_options,
-        });
+        let key = key.unwrap_or_default();
+        let options = i18next_options.as_ref();
+        let namespace =
+          self.current_namespace.clone().or(options.and_then(|o| o.get("namespace").map(|v| v.to_string())));
+        let count = options.and_then(|opt| opt.get("count").and_then(|v| v.parse::<usize>().ok()));
+        for stmt in self.program.body.iter() {
+          if stmt.span() == expr.span {
+            debug!("Statement: {stmt:?}");
+          }
+        }
+
+        self.entries.push(Entry { key, value, namespace, count, i18next_options });
       };
     }
     walk::walk_call_expression(self, expr);
@@ -408,7 +417,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
         if let Some(key) = key {
           self.entries.push(Entry {
             key,
-            default_value: if default_value.is_empty() { None } else { Some(default_value) },
+            value: if default_value.is_empty() { None } else { Some(default_value) },
             namespace: ns,
             count: count.and_then(|v| v.parse::<usize>().ok()),
             i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
@@ -417,16 +426,6 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
       }
     }
     walk::walk_jsx_element(self, elem);
-  }
-}
-
-fn clean_multi_line_code(text: &str) -> String {
-  let string = text.replace(|c: char| c.is_whitespace(), " ").trim_start().trim_end().to_string();
-
-  if text.ends_with(char::is_whitespace) {
-    format!("{} ", string)
-  } else {
-    string
   }
 }
 
@@ -447,7 +446,7 @@ mod tests {
     {
       assert_eq!(self.key, key.as_ref(), "the key does not match");
       assert_eq!(self.namespace, namespace.into(), "the namespace does not match");
-      assert_eq!(self.default_value, default_value.into(), "the default value does not match");
+      assert_eq!(self.value, default_value.into(), "the default value does not match");
     }
   }
 
@@ -685,6 +684,16 @@ mod tests {
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
     le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password {{attempt}}".to_string()));
+  }
+
+
+  #[test]
+  fn should_parse_jsx_with_nested_template_object_and_text_after() {
+    let source_text = r#"const attempt = 0; const el = <Trans ns="ns" i18nKey="dialog.title">Attempt {{ attempt: attempt + 1 }} on 10</Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Attempt {{attempt}} on 10".to_string()));
   }
 
   #[test]

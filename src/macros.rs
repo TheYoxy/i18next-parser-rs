@@ -1,4 +1,18 @@
 #[macro_export]
+macro_rules! log_time {
+  ($message:expr, $func:expr) => {{
+    use log::trace;
+    use std::time::Instant;
+    let start = Instant::now();
+    let result = $func();
+    let duration = start.elapsed();
+    let duration_ms = duration.as_secs_f64() * 1000.0;
+    trace!("{} - Execution time: {:.2} ms", $message, duration_ms);
+    result
+  }};
+}
+
+#[macro_export]
 macro_rules! printread {
     ($($arg:tt)*) => {{
         use color_eyre::owo_colors::OwoColorize;
