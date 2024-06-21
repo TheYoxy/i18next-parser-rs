@@ -30,8 +30,54 @@ pub(crate) struct MergeResult {
   pub(crate) reset_count: usize,
 }
 
+/// Merges two JSON objects (hashes) together.
+///
+/// This function takes an existing JSON object and merges it with a source JSON object.
+/// If a key exists in both, the value from the source object is used.
+/// If a key exists only in the source object, it is added to the existing object.
+/// The function also handles nested JSON objects.
+///
+/// # Arguments
+///
+/// * `existing_values` - A JSON object that will be updated with the values from the source object.
+/// * `source` - An optional JSON object that contains the new values.
+/// * `reset_values` - An optional JSON object that contains values to be reset.
+/// * `full_key_prefix` - A string that is used as a prefix for the keys in the source object.
+/// * `reset_and_flag` - A boolean that indicates whether the values should be reset and flagged.
+/// * `config` - A reference to a Config object that contains configuration options.
+///
+/// # Returns
+///
+/// * `MergeResult` - A struct that contains the new JSON object, the old JSON object, the reset JSON object,
+///   and counts of merged, pulled, old, and reset keys.
+///
+/// # Example
+///
+/// ```
+/// let existing = json!({
+///   "key1": "value1",
+///   "key2": "value2"
+/// });
+/// let source = Some(json!({
+///   "key1": "new_value1",
+///   "key3": "value3"
+/// }));
+/// let config = Default::default();
+/// let reset_values = None;
+///
+/// let result = merge_hashes(&existing, source, reset_values, "", false, &config);
+///
+/// assert_eq!(
+///   result.new,
+///   json!({
+///     "key1": "new_value1",
+///     "key2": "value2",
+///   }),
+///   "the new hash is not as expected"
+/// );
+/// ```
 pub(crate) fn merge_hashes(
-  existing: &Value,
+  existing_values: &Value,
   source: Option<&Value>,
   reset_values: Option<&Value>,
   full_key_prefix: &str,
@@ -44,7 +90,7 @@ pub(crate) fn merge_hashes(
   let mut pull_count = 0;
   let mut old_count = 0;
   let mut reset_count = 0;
-  let mut existing = existing.as_object().map_or_else(Map::new, |v| v.clone());
+  let mut existing = existing_values.as_object().map_or_else(Map::new, |v| v.clone());
 
   if source.is_none() {
     debug!("No source provided, returning existing hash as is. {:?}", existing);

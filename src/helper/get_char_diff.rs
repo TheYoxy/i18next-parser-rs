@@ -12,7 +12,8 @@ pub(crate) fn get_char_diff(old: &str, new: &str) -> String {
         ChangeTag::Delete => val.on_bright_red().to_string(),
       }
     })
-    .collect::<Vec<_>>().concat()
+    .collect::<Vec<_>>()
+    .concat()
 }
 
 #[cfg(test)]

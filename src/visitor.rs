@@ -686,7 +686,6 @@ mod tests {
     le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password {{attempt}}".to_string()));
   }
 
-
   #[test]
   fn should_parse_jsx_with_nested_template_object_and_text_after() {
     let source_text = r#"const attempt = 0; const el = <Trans ns="ns" i18nKey="dialog.title">Attempt {{ attempt: attempt + 1 }} on 10</Trans>;"#;

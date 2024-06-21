@@ -6,8 +6,11 @@ use std::{
   str::FromStr,
 };
 
-use color_eyre::{eyre::eyre, Report};
-use log::trace;
+use color_eyre::{
+  eyre::{eyre, OptionExt},
+  Report,
+};
+use log::{info, trace};
 use oxc_ast::Visit;
 use serde_json::Value;
 
@@ -47,18 +50,18 @@ where
   use oxc_span::SourceType;
   use std::fs::read_to_string;
 
-  let source_text = read_to_string(&path)?;
+  let file_name = path.as_ref().file_name().and_then(|s| s.to_str()).unwrap();
+  let source_text = log_time!(format!("Reading file {file_name}"), || { read_to_string(&path) })?;
+
   let allocator = &Allocator::default();
   let source_type = SourceType::from_path(&path).unwrap();
   let parser = Parser::new(allocator, source_text.as_str(), source_type);
   let parsed = parser.parse();
   let mut visitor = I18NVisitor::new(&parsed.program);
-  visitor.visit_program(&parsed.program);
 
   trace!("Start parsing...");
-  let file_name = path.as_ref().file_name().and_then(|s| s.to_str()).unwrap();
   log_time!(format!("Parsing file {file_name}"), || {
-    visitor.visit_program(visitor.program);
+    visitor.visit_program(&parsed.program);
   });
   trace!("Found {} entries", visitor.entries.len());
 
@@ -77,41 +80,65 @@ pub(crate) fn parse_directory(path: &PathBuf, config: &Config) -> color_eyre::Re
 
   let glob = builder.build()?;
 
-  let directory_name = path.as_path().file_name().and_then(|s| s.to_str()).unwrap();
-  let entries = log_time!(format!("Reading directory {directory_name}"), || {
+  let directory_name =
+    path.as_path().file_name().and_then(|s| s.to_str()).ok_or_eyre("Unable to get filename of path {path:?}")?;
+
+  log_time!(format!("Reading directory {directory_name}"), || {
     let filter = ignore::WalkBuilder::new(path)
       .standard_filters(true)
       .build()
       .filter_map(Result::ok)
       .filter(|f| glob.is_match(f.path()))
       .collect::<Vec<_>>();
-    printinfo!("Reading {} files", filter.len());
 
     if filter.is_empty() {
-      None
+      Err(eyre!("No entries found in the directory {directory_name}"))
     } else {
-      let entries = filter
-        .iter()
-        .filter_map(|entry| {
-          let entry_path = entry.path();
-          if config.verbose {
-            crate::printread!("{}", entry_path.display());
-          }
-          parse_file(entry_path).ok()
-        })
-        .flatten()
-        .collect::<Vec<_>>();
-      Some(entries)
-    }
-  });
+      let parallelism = std::thread::available_parallelism().unwrap();
+      info!("Using {parallelism} threads to read the directory {directory_name}");
 
-  entries.ok_or(eyre!("No entries found in the directory {directory_name}"))
+      let len = filter.len();
+      let items_per_threads = len / parallelism;
+
+      let chunk_size = (len + items_per_threads - 1) / items_per_threads; // ceil(len / n)
+
+      let vectors = (0..items_per_threads)
+        .map(|i| filter.iter().skip(i * chunk_size).take(chunk_size).cloned().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+      printinfo!("Reading {len} files");
+      let is_verbose = config.verbose;
+      let entries = vectors
+        .iter()
+        .cloned()
+        .flat_map(move |filter| {
+          std::thread::spawn(move || {
+            filter
+              .iter()
+              .filter_map(move |entry| {
+                let entry_path = entry.path();
+                if is_verbose {
+                  crate::printread!("{}", entry_path.display());
+                }
+                parse_file(entry_path).ok()
+              })
+              .flatten()
+              .collect::<Vec<_>>()
+          })
+          .join()
+          .unwrap()
+        })
+        .collect::<Vec<_>>();
+
+      Ok(entries)
+    }
+  })
 }
 
 /// Write all entries to the specific file based on its namespace
 pub(crate) fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<()> {
+  let prepared_values = prepare_to_write(entries, config);
   log_time!("Writing files", || {
-    for result in prepare_to_write(entries, config) {
+    for result in prepared_values {
       let MergeAllResults { locale: _locale, path, backup, merged, old_catalog } = result;
       write_files(&path, &backup, &merged, &old_catalog, config)?;
     }
@@ -154,12 +181,14 @@ fn write_files(
   old_catalog: &Value,
   config: &Config,
 ) -> Result<(), Report> {
-  let new_catalog = &merged.new;
-  push_file(path, new_catalog, config)?;
-  if config.create_old_catalogs && !old_catalog.is_empty() {
-    push_file(backup, old_catalog, config)?;
-  }
-  Ok(())
+  log_time!(format!("Writing file {path:?}"), || {
+    let new_catalog = &merged.new;
+    push_file(path, new_catalog, config)?;
+    if config.create_old_catalogs && !old_catalog.is_empty() {
+      push_file(backup, old_catalog, config)?;
+    }
+    Ok(())
+  })
 }
 
 pub(crate) struct MergeAllResults {

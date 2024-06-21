@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use log::trace;
 use serde_json::Value;
 
-use crate::{printwarn, printwarnln};
 use crate::config::Config;
-use crate::helper::dot_path_to_hash::{Conflict, dot_path_to_hash};
+use crate::helper::dot_path_to_hash::{dot_path_to_hash, Conflict};
 use crate::helper::get_char_diff::get_char_diff;
 use crate::visitor::Entry;
+use crate::{printwarn, printwarnln};
 
 pub(crate) fn transform_entry(
   entry: &Entry,
@@ -37,7 +37,11 @@ pub(crate) fn transform_entry(
       Some(Conflict::Value(old, new)) => {
         let separator = options.namespace_separator.as_deref();
         let separator = separator.unwrap_or(":");
-        printwarn!("Found same keys with different values: {namespace}{separator}{key}: ", namespace = namespace.bright_yellow(), key = entry.key.blue());
+        printwarn!(
+          "Found same keys with different values: {namespace}{separator}{key}: ",
+          namespace = namespace.bright_yellow(),
+          key = entry.key.blue()
+        );
         let diff = get_char_diff(&old, &new);
         println!("{diff}");
       },
