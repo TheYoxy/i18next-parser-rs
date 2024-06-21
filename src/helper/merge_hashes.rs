@@ -31,8 +31,8 @@ pub(crate) struct MergeResult {
 }
 
 pub(crate) fn merge_hashes(
-  source: Option<&Value>,
   existing: &Value,
+  source: Option<&Value>,
   reset_values: Option<&Value>,
   full_key_prefix: &str,
   reset_and_flag: bool,
@@ -71,8 +71,8 @@ pub(crate) fn merge_hashes(
         Some(target_value) if target_value.is_object() && value.is_object() => {
           trace!("Merging nested key: {}", key);
           let nested_result = merge_hashes(
-            Some(value),
             target_value,
+            Some(value),
             reset_values_map.get(key),
             &format!("{}{}{}", full_key_prefix, key, key_separator),
             reset_and_flag,
@@ -153,7 +153,7 @@ mod tests {
     let config = Default::default();
     let reset_values = None;
 
-    let result = merge_hashes(None, &existing, reset_values, "", false, &config);
+    let result = merge_hashes(&existing, None, reset_values, "", false, &config);
 
     assert_eq!(result.new, existing);
     assert_eq!(result.old, json!({}));
@@ -178,7 +178,7 @@ mod tests {
     let config = Default::default();
     let reset_values = None;
 
-    let result = merge_hashes(source, &existing, reset_values, "", false, &config);
+    let result = merge_hashes(&existing, source, reset_values, "", false, &config);
 
     assert_eq!(
       result.new,
@@ -215,7 +215,7 @@ mod tests {
     let config = Config { keep_removed: true, ..Default::default() };
     let reset_values = None;
 
-    let result = merge_hashes(source, &existing, reset_values, "", false, &config);
+    let result = merge_hashes(&existing, source, reset_values, "", false, &config);
 
     assert_eq!(
       result.new,

@@ -201,10 +201,10 @@ pub(crate) fn merge_all_results(
 
   let ns_separator = config.key_separator.as_deref().unwrap_or("");
   let full_key_prefix = namespace.to_string() + ns_separator;
-  let merged: MergeResult = merge_hashes(value.as_ref(), catalog, old_value, &full_key_prefix, false, config);
+  let merged = merge_hashes(catalog, value.as_ref(), old_value, &full_key_prefix, false, config);
   let old_merged = merge_hashes(
-    old_value,
     &merged.new,
+    old_value,
     None,
     &full_key_prefix,
     false,

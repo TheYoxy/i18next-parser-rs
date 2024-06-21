@@ -1,4 +1,4 @@
-use log::{debug, trace, warn};
+use log::{trace, warn};
 use serde_json::{Map, Value};
 
 use crate::config::Config;
@@ -127,7 +127,7 @@ pub(crate) fn dot_path_to_hash(
       }
     }
   } else {
-    debug!("Setting {path:?} -> {new_value:?}");
+    trace!("Setting {path:?} -> {new_value:?}");
     inner[last_segment] = Value::String(new_value);
   }
 

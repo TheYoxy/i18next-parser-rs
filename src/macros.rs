@@ -1,13 +1,13 @@
 #[macro_export]
 macro_rules! log_time {
   ($message:expr, $func:expr) => {{
-    use log::trace;
+    use log::debug;
     use std::time::Instant;
     let start = Instant::now();
     let result = $func();
     let duration = start.elapsed();
     let duration_ms = duration.as_secs_f64() * 1000.0;
-    trace!("{} - Execution time: {:.2} ms", $message, duration_ms);
+    debug!("{} - Execution time: {:.2} ms", $message, duration_ms);
     result
   }};
 }
