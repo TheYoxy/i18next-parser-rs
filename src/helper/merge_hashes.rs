@@ -105,8 +105,8 @@ pub(crate) fn merge_hashes(
     };
   }
 
-  let key_separator = config.key_separator.as_deref().unwrap_or("");
-  let plural_separator = config.plural_separator.as_deref().unwrap_or("_");
+  let key_separator = &config.key_separator;
+  let plural_separator = &config.plural_separator;
 
   let reset_values_map = reset_values.and_then(|v| v.as_object()).map_or_else(Map::new, |v| v.clone());
 
@@ -120,7 +120,7 @@ pub(crate) fn merge_hashes(
             target_value,
             Some(value),
             reset_values_map.get(key),
-            &format!("{}{}{}", full_key_prefix, key, key_separator),
+            &format!("{full_key_prefix}{key}{key_separator}"),
             reset_and_flag,
             config,
           );

@@ -6,12 +6,13 @@ use clap::Parser;
 use color_eyre::eyre::Result;
 use log::{debug, info};
 
+use crate::merger::merge_all_values::merge_all_values;
+use crate::parser::parse_directory::parse_directory;
 use crate::print::print_app::print_app;
 use crate::print::print_config::print_config;
 use crate::{
   cli::Cli,
   config::Config,
-  file::parse_directory,
   file::write_to_file,
   utils::{initialize_logging, initialize_panic_handler},
 };
@@ -20,9 +21,12 @@ mod catalog;
 mod cli;
 mod config;
 mod file;
+mod generate_types;
 mod helper;
 mod is_empty;
 mod macros;
+mod merger;
+mod parser;
 mod plural;
 mod print;
 mod tests;
@@ -46,10 +50,16 @@ fn main() -> Result<()> {
 
   let now = Instant::now();
 
-  parse_directory(path, config).and_then(|entries| write_to_file(entries, config))?;
+  let entries = parse_directory(path, config)?;
+  let merged = merge_all_values(entries, config);
+  write_to_file(&merged, config)?;
 
   let elapsed = now.elapsed();
+  let path = path.file_name().unwrap();
   printinfo!("Directory {path:?} parsed in {:.2}ms", elapsed.as_millis());
+  if cli.generate_types {
+    generate_types::generate_types(&merged, config)?;
+  }
 
   Ok(())
 }

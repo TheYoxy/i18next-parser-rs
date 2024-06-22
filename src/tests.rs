@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use std::path::PathBuf;
+use std::path::{PathBuf, MAIN_SEPARATOR_STR};
 use std::{io::Write, path::Path};
 
 use flatten_json_object::Flattener;
@@ -10,21 +10,21 @@ use serde_json::{json, Value};
 use tempdir::TempDir;
 
 use crate::config::Config;
-use crate::file::{parse_directory, prepare_to_write, write_to_file};
+use crate::file::write_to_file;
+use crate::merger::merge_all_values::merge_all_values;
+use crate::parser::parse_directory::parse_directory;
 use crate::utils::initialize_logging;
-use crate::{file::MergeAllResults, is_empty::IsEmpty};
+use crate::{file::MergeResults, is_empty::IsEmpty};
 
 fn setup_test(path: Option<&str>) -> color_eyre::Result<(&str, Config)> {
   let _ = initialize_logging();
 
   let working_path = path.unwrap_or("assets");
-  let locales = vec!["en".to_string(), "fr".to_string()];
 
   let mut config = Config::new(working_path, false)?;
-  config.locales = locales;
-  config.output =
-    PathBuf::from(working_path).join("locales/$LOCALE/$NAMESPACE.json").to_str().map(|s| s.to_string()).unwrap();
-  config.input = vec!["**/*.{ts,tsx}".to_string()];
+  config.locales = vec!["en".into(), "fr".into()];
+  config.output = [working_path, "locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR);
+  config.input = vec!["**/*.{ts,tsx}".into()];
 
   Ok((working_path, config))
 }
@@ -35,9 +35,16 @@ fn should_parse_successfully() -> color_eyre::Result<()> {
 
   let entries = parse_directory(&PathBuf::from(working_path), config)?;
 
-  let entries = prepare_to_write(entries, config);
+  let entries = merge_all_values(entries, config);
   for entry in entries {
-    let MergeAllResults { locale: _locale, path: _path, backup: _backup, merged, old_catalog: _old_catalog } = entry;
+    let MergeResults {
+      namespace: _namespace,
+      locale: _locale,
+      path: _path,
+      backup: _backup,
+      merged,
+      old_catalog: _old_catalog,
+    } = entry;
 
     assert_eq!(merged.old_count, 0, "there isn't any values yet");
     assert_eq!(merged.merge_count, 0, "there is 0 values to merge");
@@ -101,10 +108,10 @@ fn should_not_override_current_values() -> color_eyre::Result<()> {
 
   let path = dir.path().to_str().unwrap();
   let (working_path, config) = &setup_test(Some(path))?;
-  let config = &Config { locales: vec!["en".to_string(), "fr".to_string()], ..config.clone() };
+  let config = &Config { locales: vec!["en".into(), "fr".into()], ..config.clone() };
   let entries = parse_directory(&PathBuf::from(working_path), config)?;
-
-  write_to_file(entries, config)?;
+  let merged = merge_all_values(entries, config);
+  write_to_file(&merged, config)?;
 
   let en = dir.path().join("locales/en/ns.json");
   let en = std::fs::read_to_string(en)?;

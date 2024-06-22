@@ -63,15 +63,15 @@ pub(crate) struct Config {
   pub(crate) locales: Vec<String>,
   pub(crate) input: Vec<String>,
   pub(crate) output: String,
-  pub(crate) context_separator: Option<String>,
+  pub(crate) context_separator: String,
   pub(crate) create_old_catalogs: bool,
   pub(crate) default_namespace: String,
-  pub(crate) default_value: Option<String>,
+  pub(crate) default_value: String,
   pub(crate) keep_removed: bool,
-  pub(crate) key_separator: Option<String>,
+  pub(crate) key_separator: String,
   pub(crate) line_ending: LineEnding,
-  pub(crate) namespace_separator: Option<String>,
-  pub(crate) plural_separator: Option<String>,
+  pub(crate) namespace_separator: String,
+  pub(crate) plural_separator: String,
   pub(crate) sort: bool,
   pub(crate) verbose: bool,
   pub(crate) fail_on_warnings: Option<bool>,
@@ -80,22 +80,28 @@ pub(crate) struct Config {
   pub(crate) reset_default_value_locale: Option<String>,
 }
 
+impl AsRef<Config> for Config {
+  fn as_ref(&self) -> &Config {
+    self
+  }
+}
+
 impl Default for Config {
   #[inline]
   fn default() -> Self {
     Self {
       working_dir: PathBuf::from("."),
-      locales: vec!["en".to_string()],
-      output: "locales/$LOCALE/$NAMESPACE.json".to_string(),
-      input: vec!["src/**/*.{ts,tsx}".to_string()],
-      context_separator: Some("_".to_string()),
-      default_namespace: "translation".to_string(),
-      default_value: Some("".to_string()),
+      locales: vec!["en".into()],
+      output: "locales/$LOCALE/$NAMESPACE.json".into(),
+      input: vec!["src/**/*.{ts,tsx}".into()],
+      context_separator: "_".into(),
+      default_namespace: "translation".into(),
+      default_value: "".into(),
       keep_removed: Default::default(),
-      key_separator: Some(".".to_string()),
+      key_separator: ".".into(),
       line_ending: LineEnding::Auto,
-      namespace_separator: Some(":".to_string()),
-      plural_separator: Some("_".to_string()),
+      namespace_separator: ":".into(),
+      plural_separator: "_".into(),
       sort: true,
       verbose: Default::default(),
       create_old_catalogs: Default::default(),

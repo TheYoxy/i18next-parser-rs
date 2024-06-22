@@ -8,8 +8,8 @@ pub(crate) fn get_char_diff(old: &str, new: &str) -> String {
       let val = changes.value();
       match changes.tag() {
         ChangeTag::Equal => val.to_string(),
-        ChangeTag::Insert => val.on_bright_green().to_string(),
-        ChangeTag::Delete => val.on_bright_red().to_string(),
+        ChangeTag::Insert => val.on_green().to_string(),
+        ChangeTag::Delete => val.on_red().to_string(),
       }
     })
     .collect::<Vec<_>>()
@@ -36,7 +36,7 @@ mod tests {
     let result = get_char_diff(old, new);
 
     println!("{old} | {new} -> {result}");
-    let format = format!("{old}{}", "s".green());
+    let format = format!("{old}{}", "s".on_green());
     println!("{result} == {format}");
     assert_eq!(result, format); // ANSI code for green
   }
@@ -48,9 +48,9 @@ mod tests {
     let result = get_char_diff(old, new);
 
     println!("{old} | {new} -> {result}");
-    let format = format!("word{}", "s".red());
+    let format = format!("word{}", "s".on_red());
     println!("{result} == {format}");
-    assert_eq!(result, "word\x1b[31ms\x1b[39m"); // ANSI code for red
+    assert_eq!(result, format); // ANSI code for red
   }
 
   #[test]
@@ -60,9 +60,9 @@ mod tests {
     let result = get_char_diff(old, new);
 
     println!("{old} | {new} -> {result}");
-    let format = format!("{}word{}", "s".green(), "s".red());
+    let format = format!("{}word{}", "s".on_green(), "s".on_red());
     println!("{result} == {format}");
-    assert_eq!(result, "\x1b[32ms\x1b[39mword\x1b[31ms\x1b[39m"); // ANSI codes for green and red
+    assert_eq!(result, format); // ANSI codes for green and red
   }
 
   #[test]

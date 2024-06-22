@@ -19,7 +19,7 @@ pub(crate) fn transform_entries(entries: &Vec<Entry>, locale: &str, config: &Con
   let mut value = Value::Object(Default::default());
 
   for entry in entries {
-    value = if config.plural_separator.is_some() && entry.count.is_some() {
+    value = if entry.count.is_some() {
       let resolver = plural::PluralResolver::default();
 
       for suffix in resolver.get_suffixes(locale) {

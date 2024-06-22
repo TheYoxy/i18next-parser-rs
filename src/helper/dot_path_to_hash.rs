@@ -38,14 +38,14 @@ pub(crate) fn dot_path_to_hash(
   config: &Config,
 ) -> DotPathToHashResult {
   let mut target = target.clone();
-  let separator = config.key_separator.clone().unwrap_or(".".to_string());
+  let separator = &config.key_separator;
 
   if entry.key.is_empty() {
     return DotPathToHashResult { target, duplicate: false, conflict: None };
   }
 
   let base_path =
-    entry.namespace.clone().or(Some("default".to_string())).map(|ns| ns + &separator + &entry.key).unwrap();
+    entry.namespace.clone().or(Some("default".to_string())).map(|ns| ns + separator + &entry.key).unwrap();
   let mut path =
     base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
   if let Some(suffix) = suffix {
@@ -53,13 +53,13 @@ pub(crate) fn dot_path_to_hash(
   }
   trace!("Path: {:?}", path);
 
-  if path.ends_with(&separator) {
+  if path.ends_with(separator) {
     trace!("Removing trailing separator from path: {:?}", path);
     path = path[..path.len() - separator.len()].to_string();
     trace!("New path: {:?}", path);
   }
 
-  let segments: Vec<&str> = path.split(&separator).collect();
+  let segments: Vec<&str> = path.split(separator).collect();
   trace!("Val {:?} {:?} {:?}", &target, entry.key, entry.value);
 
   let mut inner = &mut target;

@@ -35,8 +35,7 @@ pub(crate) fn transform_entry(
         key = entry.key
       ),
       Some(Conflict::Value(old, new)) => {
-        let separator = options.namespace_separator.as_deref();
-        let separator = separator.unwrap_or(":");
+        let separator: &str = options.namespace_separator.as_ref();
         printwarn!(
           "Found same keys with different values: {namespace}{separator}{key}: ",
           namespace = namespace.bright_yellow(),

@@ -9,12 +9,16 @@ fn get_default_log_path() -> PathBuf {
 #[derive(Parser, Debug)]
 #[command(version, about, author)]
 pub(crate) struct Cli {
+  /// The path to extract the translations from
   #[arg(value_name = "PATH", default_value = get_default_log_path().into_os_string())]
   pub(crate) path: PathBuf,
 
   /// Should the output to be verbose
   #[arg(short, long, default_value = "false")]
   pub(crate) verbose: bool,
+  /// Should generate types
+  #[arg(short, long)]
+  pub(crate) generate_types: bool,
 }
 
 #[cfg(test)]

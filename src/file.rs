@@ -6,12 +6,8 @@ use std::{
   str::FromStr,
 };
 
-use color_eyre::{
-  eyre::{eyre, OptionExt},
-  Report,
-};
-use log::{info, trace};
-use oxc_ast::Visit;
+use color_eyre::Report;
+use log::trace;
 use serde_json::Value;
 
 use crate::{
@@ -22,165 +18,30 @@ use crate::{
   is_empty::IsEmpty,
   log_time,
   print::print_count::print_counts,
-  printinfo,
   transform::transfer_values::transfer_values,
-  transform::transform_entries::{transform_entries, TransformEntriesResult},
-  visitor::{Entry, I18NVisitor},
 };
 
-///
-///
-/// # Arguments
-///
-/// * `path`:
-///
-/// returns: Result<Vec<Entry, Global>, Report>
-///
-/// # Examples
-///
-/// ```
-///
-/// ```
-fn parse_file<P>(path: P) -> color_eyre::Result<Vec<Entry>>
-where
-  P: AsRef<Path>,
-{
-  use oxc_allocator::Allocator;
-  use oxc_parser::Parser;
-  use oxc_span::SourceType;
-  use std::fs::read_to_string;
-
-  let file_name = path.as_ref().file_name().and_then(|s| s.to_str()).unwrap();
-  let source_text = log_time!(format!("Reading file {file_name}"), || { read_to_string(&path) })?;
-
-  let allocator = &Allocator::default();
-  let source_type = SourceType::from_path(&path).unwrap();
-  let parser = Parser::new(allocator, source_text.as_str(), source_type);
-  let parsed = parser.parse();
-  let mut visitor = I18NVisitor::new(&parsed.program);
-
-  trace!("Start parsing...");
-  log_time!(format!("Parsing file {file_name}"), || {
-    visitor.visit_program(&parsed.program);
-  });
-  trace!("Found {} entries", visitor.entries.len());
-
-  Ok(visitor.entries)
-}
-
-/// Parse a directory and return a list of entries.
-pub(crate) fn parse_directory(path: &PathBuf, config: &Config) -> color_eyre::Result<Vec<Entry>> {
-  let inputs = &config.input;
-  let mut builder = globset::GlobSetBuilder::new();
-  for input in inputs {
-    let join = path.join(input);
-    let glob = join.to_str().unwrap();
-    builder.add(globset::Glob::new(glob)?);
-  }
-
-  let glob = builder.build()?;
-
-  let directory_name =
-    path.as_path().file_name().and_then(|s| s.to_str()).ok_or_eyre("Unable to get filename of path {path:?}")?;
-
-  log_time!(format!("Reading directory {directory_name}"), || {
-    let filter = ignore::WalkBuilder::new(path)
-      .standard_filters(true)
-      .build()
-      .filter_map(Result::ok)
-      .filter(|f| glob.is_match(f.path()))
-      .collect::<Vec<_>>();
-
-    if filter.is_empty() {
-      Err(eyre!("No entries found in the directory {directory_name}"))
-    } else {
-      let parallelism = std::thread::available_parallelism().unwrap();
-      info!("Using {parallelism} threads to read the directory {directory_name}");
-
-      let len = filter.len();
-      let items_per_threads = len / parallelism;
-
-      let chunk_size = (len + items_per_threads - 1) / items_per_threads; // ceil(len / n)
-
-      let vectors = (0..items_per_threads)
-        .map(|i| filter.iter().skip(i * chunk_size).take(chunk_size).cloned().collect::<Vec<_>>())
-        .collect::<Vec<_>>();
-      printinfo!("Reading {len} files");
-      let is_verbose = config.verbose;
-      let entries = vectors
-        .iter()
-        .cloned()
-        .flat_map(move |filter| {
-          std::thread::spawn(move || {
-            filter
-              .iter()
-              .filter_map(move |entry| {
-                let entry_path = entry.path();
-                if is_verbose {
-                  crate::printread!("{}", entry_path.display());
-                }
-                parse_file(entry_path).ok()
-              })
-              .flatten()
-              .collect::<Vec<_>>()
-          })
-          .join()
-          .unwrap()
-        })
-        .collect::<Vec<_>>();
-
-      Ok(entries)
-    }
-  })
-}
-
 /// Write all entries to the specific file based on its namespace
-pub(crate) fn write_to_file(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<()> {
-  let prepared_values = prepare_to_write(entries, config);
+pub(crate) fn write_to_file<T: AsRef<Config>>(values: &[MergeResults], config: T) -> color_eyre::Result<()> {
+  let config = config.as_ref();
   log_time!("Writing files", || {
-    for result in prepared_values {
-      let MergeAllResults { locale: _locale, path, backup, merged, old_catalog } = result;
-      write_files(&path, &backup, &merged, &old_catalog, config)?;
+    for value in values {
+      let MergeResults { namespace: _namespace, locale: _locale, path, backup, merged, old_catalog } = value;
+      write_files(path, backup, merged, old_catalog, config)?;
     }
 
     Ok(())
   })
 }
 
-pub(crate) fn prepare_to_write(entries: Vec<Entry>, config: &Config) -> Vec<MergeAllResults> {
-  log_time!("Preparing entries to write", || {
-    let locales = &config.locales;
-    locales
-      .iter()
-      .filter_map(|locale| {
-        let TransformEntriesResult { unique_count, unique_plurals_count, value } =
-          transform_entries(&entries, locale, config);
-
-        if let Value::Object(catalog) = value {
-          Some(
-            catalog
-              .iter()
-              .map(|(namespace, catalog)| {
-                merge_all_results(locale, namespace, catalog, &unique_count, &unique_plurals_count, config)
-              })
-              .collect::<Vec<_>>(),
-          )
-        } else {
-          None
-        }
-      })
-      .flatten()
-      .collect::<Vec<_>>()
-  })
-}
-
-fn write_files(
+fn write_files<T: AsRef<Config>>(
   path: &PathBuf,
   backup: &PathBuf,
   merged: &MergeResult,
   old_catalog: &Value,
-  config: &Config,
+  config: T,
 ) -> Result<(), Report> {
+  let config = config.as_ref();
   log_time!(format!("Writing file {path:?}"), || {
     let new_catalog = &merged.new;
     push_file(path, new_catalog, config)?;
@@ -191,7 +52,8 @@ fn write_files(
   })
 }
 
-pub(crate) struct MergeAllResults {
+pub(crate) struct MergeResults {
+  pub(crate) namespace: String,
   pub(crate) locale: String,
   pub(crate) path: PathBuf,
   pub(crate) backup: PathBuf,
@@ -199,15 +61,16 @@ pub(crate) struct MergeAllResults {
   pub(crate) old_catalog: Value,
 }
 
-pub(crate) fn merge_all_results(
+pub(crate) fn merge_results<C: AsRef<Config>>(
   locale: &str,
   namespace: &str,
   catalog: &Value,
   unique_count: &HashMap<String, usize>,
   unique_plurals_count: &HashMap<String, usize>,
-  config: &Config,
-) -> MergeAllResults {
-  let output = &config.get_output();
+  config: C,
+) -> MergeResults {
+  let config = config.as_ref();
+  let output = config.get_output();
   let path = output.replace("$LOCALE", locale).replace("$NAMESPACE", namespace);
   trace!("Path for output {output:?}: {path:?}");
   let path = PathBuf::from_str(&path).unwrap_or_else(|_| panic!("Unable to find path {path:?}"));
@@ -228,7 +91,7 @@ pub(crate) fn merge_all_results(
 
   trace!("Value: {value:?} -> {old_value:?}");
 
-  let ns_separator = config.key_separator.as_deref().unwrap_or("");
+  let ns_separator = &config.key_separator;
   let full_key_prefix = namespace.to_string() + ns_separator;
   let merged = merge_hashes(catalog, value.as_ref(), old_value, &full_key_prefix, false, config);
   let old_merged = merge_hashes(
@@ -244,7 +107,7 @@ pub(crate) fn merge_all_results(
     print_counts(locale, namespace, unique_count, unique_plurals_count, &merged, &old_merged, config);
   }
 
-  MergeAllResults { locale: locale.to_string(), path, backup, merged, old_catalog }
+  MergeResults { namespace: namespace.to_string(), locale: locale.to_string(), path, backup, merged, old_catalog }
 }
 
 fn handle_line_ending(text: &str, line_ending: &LineEnding) -> String {
@@ -258,7 +121,7 @@ fn handle_line_ending(text: &str, line_ending: &LineEnding) -> String {
   }
 }
 
-fn push_file(path: &PathBuf, contents: &Value, config: &Config) -> std::io::Result<()> {
+fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> std::io::Result<()> {
   let text = {
     let text = if path.ends_with("yml") {
       serde_yaml::to_string(contents).unwrap()
@@ -266,7 +129,7 @@ fn push_file(path: &PathBuf, contents: &Value, config: &Config) -> std::io::Resu
       serde_json::to_string_pretty(contents).map(|t| t.replace("\r\n", "\n").replace('\r', "\n")).unwrap()
     };
 
-    handle_line_ending(&text, &config.line_ending)
+    handle_line_ending(&text, &config.as_ref().line_ending)
   };
 
   if let Some(parent) = path.parent() {
