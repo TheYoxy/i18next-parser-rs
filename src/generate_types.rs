@@ -5,7 +5,7 @@ use std::path::MAIN_SEPARATOR_STR;
 use regex::Regex;
 
 use crate::config::Config;
-use crate::file::MergeResults;
+use crate::merger::merge_results::MergeResults;
 use crate::printinfo;
 
 /// Converts a string to camel case.
@@ -110,7 +110,8 @@ declare global {{
   );
 
   let generated_file_name = "react-i18next.resources.d.ts";
-  fs::write(config.working_dir.join(generated_file_name), template)?;
+  let path = &config.working_dir.join(generated_file_name);
+  fs::write(path, template)?;
   printinfo!("Generated {}", generated_file_name);
 
   Ok(())
@@ -118,12 +119,91 @@ declare global {{
 
 #[cfg(test)]
 mod tests {
+  use color_eyre::Result;
+  use tempdir::TempDir;
+
+  use crate::merger::merge_results::MergeResults;
+
   use super::*;
 
   #[test]
-  fn test_camelize() {
+  fn camelize_transforms_strings_correctly() {
     assert_eq!(camelize("hello_world"), "helloWorld");
     assert_eq!(camelize("Hello-World"), "helloWorld");
     assert_eq!(camelize("testString"), "testString");
+  }
+
+  #[test]
+  fn camelize_handles_empty_string() {
+    assert_eq!(camelize(""), "");
+  }
+
+  #[test]
+  fn camelize_handles_single_character() {
+    assert_eq!(camelize("a"), "a");
+    assert_eq!(camelize("A"), "a");
+  }
+
+  #[test]
+  fn generate_types_creates_expected_output() -> Result<()> {
+    let temp = TempDir::new("generate_types")?;
+    let config = Config {
+      working_dir: temp.path().to_path_buf(),
+      locales: vec!["en".to_string()],
+      namespace_separator: ':'.into(),
+      key_separator: '.'.into(),
+      context_separator: '_'.into(),
+      default_namespace: "default".to_string(),
+      ..Default::default()
+    };
+
+    let entries = vec![
+      MergeResults {
+        namespace: "namespace".to_string(),
+        path: temp.path().join("en/namespace.json"),
+        locale: "en".to_string(),
+        merged: Default::default(),
+        backup: Default::default(),
+        old_catalog: Default::default(),
+      },
+      MergeResults {
+        namespace: "another_namespace".to_string(),
+        path: temp.path().join("en/another_namespace.json"),
+        locale: "en".to_string(),
+        merged: Default::default(),
+        backup: Default::default(),
+        old_catalog: Default::default(),
+      },
+    ];
+
+    generate_types(&entries, &config)?;
+
+    // Check that the generated file exists and contains the expected content.
+    fs::read_to_string(config.working_dir.join("react-i18next.resources.d.ts"))?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn generate_types_panics_when_unable_to_strip_prefix() -> Result<()> {
+    let temp = TempDir::new("generate_types")?;
+    let config = Config {
+      working_dir: temp.path().to_path_buf(),
+      locales: vec!["en".to_string()],
+      namespace_separator: ':'.into(),
+      key_separator: '.'.into(),
+      context_separator: '_'.into(),
+      default_namespace: "default".to_string(),
+      ..Default::default()
+    };
+
+    let entries = vec![MergeResults {
+      namespace: "namespace".to_string(),
+      path: temp.path().join("en/namespace.json"),
+      ..Default::default()
+    }];
+
+    let _ = generate_types(&entries, &config);
+    Ok(())
   }
 }

@@ -11,10 +11,11 @@ use tempdir::TempDir;
 
 use crate::config::Config;
 use crate::file::write_to_file;
+use crate::is_empty::IsEmpty;
 use crate::merger::merge_all_values::merge_all_values;
+use crate::merger::merge_results::MergeResults;
 use crate::parser::parse_directory::parse_directory;
 use crate::utils::initialize_logging;
-use crate::{file::MergeResults, is_empty::IsEmpty};
 
 fn setup_test(path: Option<&str>) -> color_eyre::Result<(&str, Config)> {
   let _ = initialize_logging();

@@ -1,10 +1,12 @@
 use serde_json::Value;
 
-use crate::config::Config;
-use crate::file::{merge_results, MergeResults};
-use crate::log_time;
-use crate::transform::transform_entries::{transform_entries, TransformEntriesResult};
-use crate::visitor::Entry;
+use crate::{
+  config::Config,
+  log_time,
+  merger::merge_results::{merge_results, MergeResults},
+  transform::transform_entries::{transform_entries, TransformEntriesResult},
+  visitor::Entry,
+};
 
 pub(crate) fn merge_all_values(entries: Vec<Entry>, config: &Config) -> Vec<MergeResults> {
   log_time!("Preparing entries to write", || {
