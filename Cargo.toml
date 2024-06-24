@@ -7,6 +7,11 @@ license = "MIT"
 description = "A simple i18next parser"
 repository = "https://github.com/TheYoxy/i18next-parser-rs"
 
+[[bin]]
+bench = false
+path = "crates/core/main.rs"
+name = "i18next-parser"
+
 [dependencies]
 better-panic = "0.3"
 clap = { version = "4", features = ["unicode", "string", "derive"] }
@@ -43,3 +48,10 @@ tracing-subscriber = { version = "0.3", features = [
   "time",
 ] }
 unic-langid = "0.9.5"
+
+[workspace]
+members = [
+  "crates/cldr_pluralrules_parser",
+  "crates/make_pluralrules",
+  "crates/intl_pluralrules",
+]
