@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use intl_pluralrules::{PluralRules, PluralRuleType};
 
 /// Cleans the provided code by replacing underscores with hyphens.
 ///
@@ -34,8 +35,8 @@ struct PluralSet {
 /// # Arguments
 ///
 /// * `sets` - A vector of PluralSet.
-/// * `rules` - A mutable reference to a Rules hashmap.
-fn create_rules(sets: Vec<PluralSet>, rules: &mut Rules) {
+fn create_rules(sets: Vec<PluralSet>) -> HashMap<&'static str, RuleValue> {
+  let mut rules = Rules::new();
   let plural_funcs: Vec<fn(u32) -> u32> = vec![
     |n| (n > 1) as u32,  // 1
     |n| (n != 1) as u32, // 2
@@ -203,6 +204,8 @@ fn create_rules(sets: Vec<PluralSet>, rules: &mut Rules) {
       rules.insert(lng, (set.nr.clone(), func));
     }
   }
+
+  rules
 }
 
 /// A type alias for a tuple containing a vector of unsigned 32-bit integers and a function that takes an unsigned 32-bit integer and returns an unsigned 32-bit integer.
@@ -220,11 +223,12 @@ type Rules = HashMap<&'static str, RuleValue>;
 pub(crate) struct PluralResolver {
   rules: Rules,
   simplify_plural_suffix: bool,
+  prepend: Option<String>,
 }
 
 impl Default for PluralResolver {
   fn default() -> Self {
-    Self::new(true)
+    Self::new(false, Some("_".to_string()))
   }
 }
 
@@ -234,8 +238,8 @@ impl PluralResolver {
   /// # Arguments
   ///
   /// * `simplify_plural_suffix` - A boolean indicating whether to simplify the plural suffix.
-  pub(crate) fn new(simplify_plural_suffix: bool) -> Self {
-    let mut rules = HashMap::new();
+  /// * `prepend` - An optional string slice that holds the value to prepend.
+  pub(crate) fn new(simplify_plural_suffix: bool, prepend: Option<String>) -> Self {
     let sets = vec![
       PluralSet {
         lngs: vec![
@@ -284,9 +288,10 @@ impl PluralResolver {
       PluralSet { lngs: vec!["sl"], nr: vec![5, 1, 2, 3], fc: 21 },
       PluralSet { lngs: vec!["he", "iw"], nr: vec![1, 2, 20, 21], fc: 22 },
     ];
-    create_rules(sets, &mut rules);
 
-    Self { rules, simplify_plural_suffix }
+    let rules = create_rules(sets);
+
+    Self { rules, simplify_plural_suffix, prepend }
   }
 
   /// Returns the plural rule for the provided code.
@@ -313,10 +318,14 @@ impl PluralResolver {
   ///
   /// * A vector of Strings representing the suffixes.
   pub(crate) fn get_suffixes(&self, code: &str) -> Vec<String> {
-    match self.get_rule(code) {
-      Some((numbers, _)) => numbers.iter().map(|&n| self.get_suffix(code, n)).collect(),
-      None => vec![],
-    }
+    todo!("Implement get_suffixes");
+
+    vec![]
+    // v3 support
+    // match self.get_rule(code) {
+    //   Some((numbers, _)) => numbers.iter().map(|&n| self.get_suffix(code, n)).collect(),
+    //   None => vec![],
+    // }
   }
 
   /// Returns a string representing the suffix for the provided code and count.
@@ -331,7 +340,7 @@ impl PluralResolver {
   /// * A String representing the suffix.
   fn get_suffix(&self, code: &str, count: u32) -> String {
     match self.get_rule(code) {
-      Some((_, plural_func)) => {
+      Some((rules, plural_func)) => {
         let idx = plural_func(count);
         if self.simplify_plural_suffix {
           match idx {
@@ -340,56 +349,94 @@ impl PluralResolver {
             _ => idx.to_string(),
           }
         } else {
-          idx.to_string()
+          let rule = rules.get(idx as usize);
+          fn return_suffix(prepend: Option<String>, suffix: Option<&u32>) -> String {
+            match (prepend, suffix) {
+              (Some(prepend), Some(suffix)) => format!("{prepend}{suffix}"),
+              (None, Some(suffix)) => suffix.to_string(),
+              _ => String::new(),
+            }
+          }
+
+          return_suffix(self.prepend.clone(), rule)
         }
       },
       None => String::new(),
     }
   }
 }
+
 #[cfg(test)]
 mod tests {
   use super::*;
 
-  #[test]
-  fn cleaned_code_replaces_underscores_with_hyphens() {
-    assert_eq!(get_cleaned_code("hello_world"), "hello-world");
-    assert_eq!(get_cleaned_code("no_underscore"), "no-underscore");
+  mod cleaned_code {
+    use super::*;
+
+    #[test]
+    fn replaces_underscores_with_hyphens() {
+      assert_eq!(get_cleaned_code("hello_world"), "hello-world");
+      assert_eq!(get_cleaned_code("no_underscore"), "no-underscore");
+    }
+
+    #[test]
+    fn returns_same_string_when_no_underscores() {
+      assert_eq!(get_cleaned_code("helloworld"), "helloworld");
+      assert_eq!(get_cleaned_code("nounderscore"), "nounderscore");
+    }
   }
 
-  #[test]
-  fn cleaned_code_returns_same_string_when_no_underscores() {
-    assert_eq!(get_cleaned_code("helloworld"), "helloworld");
-    assert_eq!(get_cleaned_code("nounderscore"), "nounderscore");
-  }
+  mod plural_resolver {
+    use super::*;
 
-  #[test]
-  fn plural_resolver_default_creates_new_with_simplified_suffix() {
-    let resolver = PluralResolver::default();
-    assert!(resolver.simplify_plural_suffix);
-  }
+    #[test]
+    fn plural_resolver_default_creates_new_with_simplified_suffix() {
+      let resolver = PluralResolver::default();
+      assert!(!resolver.simplify_plural_suffix);
+    }
 
-  #[test]
-  fn plural_resolver_new_creates_new_with_given_simplify_suffix() {
-    let resolver = PluralResolver::new(false);
-    assert!(!resolver.simplify_plural_suffix);
-  }
+    #[test]
+    fn plural_resolver_new_creates_new_with_given_simplify_suffix() {
+      let resolver = PluralResolver::new(false, None);
+      assert!(!resolver.simplify_plural_suffix);
+    }
 
-  #[test]
-  fn get_rule_returns_none_for_non_existent_code() {
-    let resolver = PluralResolver::default();
-    assert!(resolver.get_rule("nonexistent").is_none());
-  }
+    #[test]
+    fn get_rule_returns_none_for_non_existent_code() {
+      let resolver = PluralResolver::default();
+      assert!(resolver.get_rule("nonexistent").is_none());
+    }
 
-  #[test]
-  fn get_suffixes_returns_empty_vector_for_non_existent_code() {
-    let resolver = PluralResolver::default();
-    assert_eq!(resolver.get_suffixes("nonexistent").len(), 0);
-  }
+    #[test]
+    fn get_suffixes_return_elements_for_en() {
+      let resolver = PluralResolver::default();
+      let suffixes = resolver.get_suffixes("en");
 
-  #[test]
-  fn get_suffix_returns_empty_string_for_non_existent_code() {
-    let resolver = PluralResolver::default();
-    assert_eq!(resolver.get_suffix("nonexistent", 1), "");
+      println!("{suffixes:?}");
+      assert_eq!(suffixes.len(), 2);
+      assert_eq!(suffixes, vec!["_one", "_other"]);
+    }
+
+    #[test]
+    fn get_suffixes_return_elements_for_fr() {
+      let resolver = PluralResolver::default();
+      let suffixes = resolver.get_suffixes("fr");
+
+      println!("{suffixes:?}");
+      assert_eq!(suffixes.len(), 3);
+      assert_eq!(suffixes, vec!["_one", "_many", "_other"]);
+    }
+
+    #[test]
+    fn get_suffixes_returns_empty_vector_for_non_existent_code() {
+      let resolver = PluralResolver::default();
+      assert_eq!(resolver.get_suffixes("nonexistent").len(), 0);
+    }
+
+    #[test]
+    fn get_suffix_returns_empty_string_for_non_existent_code() {
+      let resolver = PluralResolver::default();
+      assert_eq!(resolver.get_suffix("nonexistent", 1), "");
+    }
   }
 }

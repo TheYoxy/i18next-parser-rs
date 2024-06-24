@@ -34,8 +34,9 @@ pub(crate) fn transform_entries(entries: &Vec<Entry>, locale: &str, config: &Con
 }
 
 #[cfg(test)]
-mod transform_entries {
+mod tests {
   use super::*;
+  use serde_json::json;
 
   #[test]
   fn test_transform_entries() {
@@ -74,5 +75,32 @@ mod transform_entries {
     assert_eq!(result.value.get("default").and_then(|v| v.get("key1")), Some(&Value::String("value1".to_string())));
     assert_eq!(result.value.get("default").and_then(|v| v.get("key2")), Some(&Value::String("value2".to_string())));
     assert_eq!(result.value.get("custom").and_then(|v| v.get("key3")), Some(&Value::String("value3".to_string())));
+  }
+
+  #[test]
+  fn test_transform_entries_with_count() {
+    let entries = vec![Entry {
+      namespace: Some("default".to_string()),
+      key: "key".to_string(),
+      count: Some(3),
+      value: Some("value".to_string()),
+      i18next_options: None,
+    }];
+    let locale = "en";
+    let config = Default::default();
+
+    let result = transform_entries(&entries, locale, &config);
+
+    assert_eq!(result.unique_count.get("default"), Some(&2));
+    assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
+    println!("{:?}", result.value);
+    assert_eq!(
+      result.value,
+      json!({
+      "default": {
+          "key": "value",
+        }
+      })
+    );
   }
 }
