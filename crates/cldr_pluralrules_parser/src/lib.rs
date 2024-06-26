@@ -77,17 +77,17 @@ mod parser;
 /// )
 /// ```
 pub fn parse_plural_rule<S: AsRef<str>>(source: S) -> Result<ast::Rule, String> {
-    match parser::parse_rule(source.as_ref()) {
-        Ok(("", rule)) => Ok(rule),
-        //Ok((_, rule)) => Ok(rule),
-        Ok((left, _)) => Err(format!("Left string: {}", left)),
-        _ => Err("Parser failed".to_string()),
-    }
+  match parser::parse_rule(source.as_ref()) {
+    Ok(("", rule)) => Ok(rule),
+    //Ok((_, rule)) => Ok(rule),
+    Ok((left, _)) => Err(format!("Left string: {}", left)),
+    _ => Err("Parser failed".to_string()),
+  }
 }
 
 pub fn parse_plural_condition<S: AsRef<str>>(source: S) -> Result<ast::Condition, String> {
-    match parser::parse_condition(source.as_ref()) {
-        Ok((_, rule)) => Ok(rule),
-        _ => Err("Parser failed".to_string()),
-    }
+  match parser::parse_condition(source.as_ref()) {
+    Ok((_, rule)) => Ok(rule),
+    _ => Err("Parser failed".to_string()),
+  }
 }

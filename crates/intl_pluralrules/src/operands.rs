@@ -56,69 +56,63 @@ use std::str::FromStr;
 /// A full plural operands representation of a number. See [CLDR Plural Rules](https://unicode.org/reports/tr35/tr35-numbers.html#Language_Plural_Rules) for complete operands description.
 #[derive(Debug, PartialEq)]
 pub struct PluralOperands {
-    /// Absolute value of input
-    pub n: f64,
-    /// Integer value of input
-    pub i: u64,
-    /// Number of visible fraction digits with trailing zeros
-    pub v: usize,
-    /// Number of visible fraction digits without trailing zeros
-    pub w: usize,
-    /// Visible fraction digits with trailing zeros
-    pub f: u64,
-    /// Visible fraction digits without trailing zeros
-    pub t: u64,
+  /// Absolute value of input
+  pub n: f64,
+  /// Integer value of input
+  pub i: u64,
+  /// Number of visible fraction digits with trailing zeros
+  pub v: usize,
+  /// Number of visible fraction digits without trailing zeros
+  pub w: usize,
+  /// Visible fraction digits with trailing zeros
+  pub f: u64,
+  /// Visible fraction digits without trailing zeros
+  pub t: u64,
 }
 
 impl<'a> TryFrom<&'a str> for PluralOperands {
-    type Error = &'static str;
+  type Error = &'static str;
 
-    fn try_from(input: &'a str) -> Result<Self, Self::Error> {
-        let abs_str = if input.starts_with('-') {
-            &input[1..]
-        } else {
-            &input
-        };
+  fn try_from(input: &'a str) -> Result<Self, Self::Error> {
+    let abs_str = if input.starts_with('-') { &input[1..] } else { &input };
 
-        let absolute_value = f64::from_str(&abs_str).map_err(|_| "Incorrect number passed!")?;
+    let absolute_value = f64::from_str(&abs_str).map_err(|_| "Incorrect number passed!")?;
 
-        let integer_digits;
-        let num_fraction_digits0;
-        let num_fraction_digits;
-        let fraction_digits0;
-        let fraction_digits;
+    let integer_digits;
+    let num_fraction_digits0;
+    let num_fraction_digits;
+    let fraction_digits0;
+    let fraction_digits;
 
-        if let Some(dec_pos) = abs_str.find('.') {
-            let int_str = &abs_str[..dec_pos];
-            let dec_str = &abs_str[(dec_pos + 1)..];
+    if let Some(dec_pos) = abs_str.find('.') {
+      let int_str = &abs_str[..dec_pos];
+      let dec_str = &abs_str[(dec_pos + 1)..];
 
-            integer_digits =
-                u64::from_str(&int_str).map_err(|_| "Could not convert string to integer!")?;
+      integer_digits = u64::from_str(&int_str).map_err(|_| "Could not convert string to integer!")?;
 
-            let backtrace = dec_str.trim_end_matches('0');
+      let backtrace = dec_str.trim_end_matches('0');
 
-            num_fraction_digits0 = dec_str.len() as usize;
-            num_fraction_digits = backtrace.len() as usize;
-            fraction_digits0 =
-                u64::from_str(dec_str).map_err(|_| "Could not convert string to integer!")?;
-            fraction_digits = u64::from_str(backtrace).unwrap_or(0);
-        } else {
-            integer_digits = absolute_value as u64;
-            num_fraction_digits0 = 0;
-            num_fraction_digits = 0;
-            fraction_digits0 = 0;
-            fraction_digits = 0;
-        }
-
-        Ok(PluralOperands {
-            n: absolute_value,
-            i: integer_digits,
-            v: num_fraction_digits0,
-            w: num_fraction_digits,
-            f: fraction_digits0,
-            t: fraction_digits,
-        })
+      num_fraction_digits0 = dec_str.len() as usize;
+      num_fraction_digits = backtrace.len() as usize;
+      fraction_digits0 = u64::from_str(dec_str).map_err(|_| "Could not convert string to integer!")?;
+      fraction_digits = u64::from_str(backtrace).unwrap_or(0);
+    } else {
+      integer_digits = absolute_value as u64;
+      num_fraction_digits0 = 0;
+      num_fraction_digits = 0;
+      fraction_digits0 = 0;
+      fraction_digits = 0;
     }
+
+    Ok(PluralOperands {
+      n: absolute_value,
+      i: integer_digits,
+      v: num_fraction_digits0,
+      w: num_fraction_digits,
+      f: fraction_digits0,
+      t: fraction_digits,
+    })
+  }
 }
 
 macro_rules! impl_integer_type {

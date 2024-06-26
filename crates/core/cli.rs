@@ -17,7 +17,7 @@ pub(crate) struct Cli {
   #[arg(short, long, default_value = "false")]
   pub(crate) verbose: bool,
   /// Should generate types
-  #[arg(short, long)]
+  #[arg(short, long, default_value = "false")]
   pub(crate) generate_types: bool,
 }
 

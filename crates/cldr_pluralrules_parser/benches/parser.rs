@@ -13,21 +13,21 @@ const STRINGS: &[&str] = &[
 ];
 
 fn cldr_parse_plural_rule(c: &mut Criterion) {
-    c.bench_function("parse_plural_condition", |b| {
-        b.iter(|| {
-            for s in STRINGS {
-                let _ = parse_plural_condition(black_box(s)).expect("Parsing succeeded");
-            }
-        })
-    });
+  c.bench_function("parse_plural_condition", |b| {
+    b.iter(|| {
+      for s in STRINGS {
+        let _ = parse_plural_condition(black_box(s)).expect("Parsing succeeded");
+      }
+    })
+  });
 
-    c.bench_function("parse_plural_rule", |b| {
-        b.iter(|| {
-            for s in STRINGS {
-                let _ = parse_plural_rule(black_box(s)).expect("Parsing succeeded");
-            }
-        })
-    });
+  c.bench_function("parse_plural_rule", |b| {
+    b.iter(|| {
+      for s in STRINGS {
+        let _ = parse_plural_rule(black_box(s)).expect("Parsing succeeded");
+      }
+    })
+  });
 }
 
 criterion_group!(benches, cldr_parse_plural_rule,);

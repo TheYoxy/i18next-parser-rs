@@ -1,0 +1,4 @@
+[alias]
+regenerate-data = "run -p make_pluralrules -- -i ./cldr_data/cldr_pluralrules_cardinals.json -i ./cldr_data/cldr_pluralrules_ordinals.json -o ./crates/intl_pluralrules/src/rules.rs"
+regenerate_fixtures = "run -- -i ./tests/fixtures/cldr_pluralrules_cardinals_33.json -i ./tests/fixtures/cldr_pluralrules_ordinals_33.json -o ./tests/fixtures/cldr_pluralrules_33.rs -u"
+regenerate_fixtures_within = "run -- -i ./tests/fixtures/cldr_pluralrules_within_test.json -o ./tests/fixtures/cldr_pluralrules_within_test.rs -u"

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use serde_json::Value;
 
 use crate::config::Config;
-use crate::plural;
 use crate::transform::transform_entry::transform_entry;
 use crate::visitor::Entry;
+use crate::{plural, printerror};
 
 pub(crate) struct TransformEntriesResult {
   pub(crate) unique_count: HashMap<String, usize>,
@@ -21,15 +21,24 @@ pub(crate) fn transform_entries(entries: &Vec<Entry>, locale: &str, config: &Con
   for entry in entries {
     value = if entry.count.is_some() {
       let resolver = plural::PluralResolver::default();
-
-      for suffix in resolver.get_suffixes(locale) {
-        value = transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(&suffix))
+      let suffixes = resolver.get_suffixes(locale);
+      let mut value = Value::Object(Default::default());
+      match suffixes {
+        Ok(suffixes) => {
+          for suffix in suffixes {
+            value = transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(&suffix))
+          }
+        },
+        Err(e) => {
+          printerror!("Error getting suffixes: {}", e)
+        },
       }
       value
     } else {
       transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, None)
     };
   }
+ value.as_object_mut().unwrap();
   TransformEntriesResult { unique_count, unique_plurals_count, value }
 }
 
@@ -78,7 +87,7 @@ mod tests {
   }
 
   #[test]
-  fn test_transform_entries_with_count() {
+  fn test_transform_entries_with_count_en() {
     let entries = vec![Entry {
       namespace: Some("default".to_string()),
       key: "key".to_string(),
@@ -98,7 +107,66 @@ mod tests {
       result.value,
       json!({
       "default": {
-          "key": "value",
+          "key_one": "value",
+          "key_other": "value",
+        }
+      })
+    );
+  }
+
+  #[test]
+  fn test_transform_entries_with_count_fr() {
+    let entries = vec![Entry {
+      namespace: Some("default".to_string()),
+      key: "key".to_string(),
+      count: Some(3),
+      value: Some("value".to_string()),
+      i18next_options: None,
+    }];
+    let locale = "fr";
+    let config = Default::default();
+
+    let result = transform_entries(&entries, locale, &config);
+
+    assert_eq!(result.unique_count.get("default"), Some(&2));
+    assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
+    println!("{:?}", result.value);
+    assert_eq!(
+      result.value,
+      json!({
+      "default": {
+          "key_one": "value",
+          "key_many": "value",
+          "key_other": "value",
+        }
+      })
+    );
+  }
+
+
+  #[test]
+  fn test_transform_entries_with_count_nl() {
+    let entries = vec![Entry {
+      namespace: Some("default".to_string()),
+      key: "key".to_string(),
+      count: Some(3),
+      value: Some("value".to_string()),
+      i18next_options: None,
+    }];
+    let locale = "nl";
+    let config = Default::default();
+
+    let result = transform_entries(&entries, locale, &config);
+
+    assert_eq!(result.unique_count.get("default"), Some(&2));
+    assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
+    println!("{:?}", result.value);
+    assert_eq!(
+      result.value,
+      json!({
+      "default": {
+          "key_one": "value",
+          "key_other": "value",
         }
       })
     );

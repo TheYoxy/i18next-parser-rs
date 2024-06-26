@@ -1,5 +1,7 @@
+use color_eyre::eyre::eyre;
+use color_eyre::Result;
+use intl_pluralrules::{PluralRuleType, PluralRules};
 use std::collections::HashMap;
-use intl_pluralrules::{PluralRules, PluralRuleType};
 
 /// Cleans the provided code by replacing underscores with hyphens.
 ///
@@ -317,10 +319,14 @@ impl PluralResolver {
   /// # Returns
   ///
   /// * A vector of Strings representing the suffixes.
-  pub(crate) fn get_suffixes(&self, code: &str) -> Vec<String> {
-    todo!("Implement get_suffixes");
+  pub(crate) fn get_suffixes(&self, code: &str) -> Result<Vec<String>> {
+    let lang: unic_langid::LanguageIdentifier = code.parse()?;
+    let plural_rules = PluralRules::create(lang, PluralRuleType::CARDINAL).map_err(|e| eyre!(e))?;
+    let result = plural_rules.resolved_options();
+    let prepend = self.prepend.clone().unwrap_or_default();
 
-    vec![]
+    Ok(result.iter().map(|n| format!("{prepend}{n}")).collect::<Vec<String>>())
+
     // v3 support
     // match self.get_rule(code) {
     //   Some((numbers, _)) => numbers.iter().map(|&n| self.get_suffix(code, n)).collect(),
@@ -412,6 +418,9 @@ mod tests {
       let resolver = PluralResolver::default();
       let suffixes = resolver.get_suffixes("en");
 
+      assert!(suffixes.is_ok());
+      let suffixes = suffixes.unwrap();
+
       println!("{suffixes:?}");
       assert_eq!(suffixes.len(), 2);
       assert_eq!(suffixes, vec!["_one", "_other"]);
@@ -422,15 +431,32 @@ mod tests {
       let resolver = PluralResolver::default();
       let suffixes = resolver.get_suffixes("fr");
 
+      assert!(suffixes.is_ok());
+      let suffixes = suffixes.unwrap();
+
       println!("{suffixes:?}");
       assert_eq!(suffixes.len(), 3);
       assert_eq!(suffixes, vec!["_one", "_many", "_other"]);
     }
 
     #[test]
+    fn get_suffixes_return_elements_for_nl() {
+      let resolver = PluralResolver::default();
+      let suffixes = resolver.get_suffixes("nl");
+
+      assert!(suffixes.is_ok());
+      let suffixes = suffixes.unwrap();
+
+      println!("{suffixes:?}");
+      assert_eq!(suffixes.len(), 2);
+      assert_eq!(suffixes, vec!["_one", "_other"]);
+    }
+
+    #[test]
     fn get_suffixes_returns_empty_vector_for_non_existent_code() {
       let resolver = PluralResolver::default();
-      assert_eq!(resolver.get_suffixes("nonexistent").len(), 0);
+      let suffixes = resolver.get_suffixes("nonexistent");
+      assert!(suffixes.is_err());
     }
 
     #[test]

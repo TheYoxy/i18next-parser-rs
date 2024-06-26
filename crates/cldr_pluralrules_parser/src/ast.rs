@@ -1,31 +1,31 @@
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rule {
-    pub condition: Condition,
-    pub samples: Option<Samples>,
+  pub condition: Condition,
+  pub samples: Option<Samples>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Samples {
-    pub integer: Option<SampleList>,
-    pub decimal: Option<SampleList>,
+  pub integer: Option<SampleList>,
+  pub decimal: Option<SampleList>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SampleList {
-    pub sample_ranges: Vec<SampleRange>,
-    pub ellipsis: bool,
+  pub sample_ranges: Vec<SampleRange>,
+  pub ellipsis: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SampleRange {
-    pub lower_val: DecimalValue,
-    pub upper_val: Option<DecimalValue>,
+  pub lower_val: DecimalValue,
+  pub upper_val: Option<DecimalValue>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DecimalValue {
-    pub integer: Value,
-    pub decimal: Option<Value>,
+  pub integer: Value,
+  pub decimal: Option<Value>,
 }
 
 /// A complete (and the only complete) AST representation of a plural rule. Comprises a vector of AndConditions.
@@ -153,9 +153,9 @@ pub struct AndCondition(pub Vec<Relation>);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Relation {
-    pub expression: Expression,
-    pub operator: Operator,
-    pub range_list: RangeList,
+  pub expression: Expression,
+  pub operator: Operator,
+  pub range_list: RangeList,
 }
 
 /// An enum of Relation operators for plural rules.
@@ -175,14 +175,14 @@ pub struct Relation {
 ///
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operator {
-    In,
-    NotIn,
-    Within,
-    NotWithin,
-    Is,
-    IsNot,
-    EQ,
-    NotEQ,
+  In,
+  NotIn,
+  Within,
+  NotWithin,
+  Is,
+  IsNot,
+  EQ,
+  NotEQ,
 }
 
 /// An incomplete AST representation of a plural rule. Comprises an Operand and an optional Modulo.
@@ -208,8 +208,8 @@ pub enum Operator {
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expression {
-    pub operand: Operand,
-    pub modulus: Option<Modulo>,
+  pub operand: Operand,
+  pub modulus: Option<Modulo>,
 }
 
 /// An incomplete AST representation of a plural rule. Comprises a Value but is later expressed as `% usize`.
@@ -251,12 +251,12 @@ pub struct Modulo(pub Value);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operand {
-    N, // Absolute value of input
-    I, // Integer value of input
-    V, // Number of visible fraction digits with trailing zeros
-    W, // Number of visible fraction digits without trailing zeros
-    F, // Visible fraction digits with trailing zeros
-    T, // Visible fraction digits without trailing zeros
+  N, // Absolute value of input
+  I, // Integer value of input
+  V, // Number of visible fraction digits with trailing zeros
+  W, // Number of visible fraction digits without trailing zeros
+  F, // Visible fraction digits with trailing zeros
+  T, // Visible fraction digits without trailing zeros
 }
 
 /// An incomplete AST representation of a plural rule. Comprises a vector of RangeListItems.
@@ -289,8 +289,8 @@ pub struct RangeList(pub Vec<RangeListItem>);
 ///
 #[derive(Debug, Clone, PartialEq)]
 pub enum RangeListItem {
-    Range(Range),
-    Value(Value),
+  Range(Range),
+  Value(Value),
 }
 
 /// An incomplete AST representation of a plural rule. Comprises two Values: an inclusive lower and upper limit.
@@ -315,8 +315,8 @@ pub enum RangeListItem {
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Range {
-    pub lower_val: Value,
-    pub upper_val: Value,
+  pub lower_val: Value,
+  pub upper_val: Value,
 }
 
 /// An incomplete AST representation of a plural rule, representing one integer.

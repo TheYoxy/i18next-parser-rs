@@ -32,6 +32,16 @@
     in {
       formatter = pkgs.alejandra;
 
+      devShells = {
+        default = with pkgs; mkShell {
+          buildInputs = [
+            libiconv
+            pkg-config
+            rustToolchain
+          ];
+        };
+      };
+
       packages = let
         lib = pkgs.lib;
         package = (lib.importTOML ./Cargo.toml).package;

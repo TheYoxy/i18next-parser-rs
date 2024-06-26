@@ -9,8 +9,8 @@ use log::trace;
 use serde_json::Value;
 
 use crate::{
-  config::Config, config::LineEnding, helper::merge_hashes::MergeResult,
-  is_empty::IsEmpty, log_time, merger::merge_results::MergeResults,
+  config::Config, config::LineEnding, helper::merge_hashes::MergeResult, is_empty::IsEmpty, log_time,
+  merger::merge_results::MergeResults,
 };
 
 /// Write all entries to the specific file based on its namespace

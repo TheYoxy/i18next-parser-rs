@@ -1,12 +1,23 @@
-//! Plural rule categories in compliance with [Unicode](https://unicode.org/reports/tr35/tr35-numbers.html#Language_Plural_Rules)
-
 /// An enum for all plural rule categories.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Ord, PartialOrd, Eq)]
 pub enum PluralCategory {
-    ZERO,
-    ONE,
-    TWO,
-    FEW,
-    MANY,
-    OTHER,
+    Zero,
+    One,
+    Two,
+    Few,
+    Many,
+    Other,
+}
+
+impl From<&str> for PluralCategory {
+    fn from(s: &str) -> Self {
+        match s {
+            "zero" => PluralCategory::Zero,
+            "one" => PluralCategory::One,
+            "two" => PluralCategory::Two,
+            "few" => PluralCategory::Few,
+            "many" => PluralCategory::Many,
+            _ => PluralCategory::Other,
+        }
+    }
 }
