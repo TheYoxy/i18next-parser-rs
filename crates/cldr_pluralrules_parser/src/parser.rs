@@ -1,17 +1,34 @@
-use super::ast::*;
+use std::convert::TryFrom;
+
 use nom::{
   branch::alt,
-  //error::context,
   bytes::complete::tag,
-  character::complete::{digit1, one_of, space0, space1},
+  character::complete::alphanumeric1,
+  character::complete::{one_of, space0, space1},
   combinator::{map, map_res, opt},
   multi::{separated_list, separated_nonempty_list},
   sequence::{preceded, separated_pair, tuple},
   IResult,
 };
 
+use super::ast::*;
+
 fn value(i: &str) -> IResult<&str, Value> {
-  map_res(digit1, |s: &str| s.parse::<usize>().map(Value))(i)
+  map_res(alphanumeric1, |s: &str| {
+    if s.contains('c') {
+      let vec = s.split('c').map(|s| s.parse::<usize>().unwrap()).collect::<Vec<_>>();
+      if vec.len() != 2 {
+        panic!("Invalid value: {}", s);
+      }
+      let base = vec.first().ok_or("unable to get base").unwrap();
+      let exponent = vec.last().ok_or("unable to get exponent").unwrap();
+      let exponent = u32::try_from(*exponent).unwrap();
+
+      Ok(Value(base.pow(exponent)))
+    } else {
+      s.parse::<usize>().map(Value)
+    }
+  })(i)
 }
 
 fn range(i: &str) -> IResult<&str, Range> {
@@ -27,7 +44,8 @@ fn range_list(i: &str) -> IResult<&str, RangeList> {
 }
 
 fn operand(i: &str) -> IResult<&str, Operand> {
-  map(one_of("nivwft"), |c| match c {
+  map(one_of("enivwft"), |c| match c {
+    'e' => Operand::E,
     'n' => Operand::N,
     'i' => Operand::I,
     'v' => Operand::V,
@@ -127,11 +145,12 @@ pub fn parse_rule(i: &str) -> IResult<&str, Rule> {
 pub fn parse_condition(i: &str) -> IResult<&str, Condition> {
   // We need to handle empty input and/or input that is empty until sample.
   if i.trim().is_empty() {
-    return IResult::Ok(("", Condition(vec![])));
+    return Ok(("", Condition(vec![])));
   }
 
-  if i.trim().starts_with("@") {
-    return IResult::Ok(("", Condition(vec![])));
+  if i.trim().starts_with('@') {
+    return Ok(("", Condition(vec![])));
   }
+
   map(separated_nonempty_list(tuple((space1, tag("or"), space1)), and_condition), Condition)(i)
 }

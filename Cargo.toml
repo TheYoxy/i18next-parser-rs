@@ -14,7 +14,6 @@ path = "crates/core/main.rs"
 name = "i18next-parser"
 
 [dependencies]
-better-panic = "0.3"
 clap = { version = "4", features = ["unicode", "string", "derive"] }
 color-eyre = "0.6"
 config = "0.14"
@@ -49,6 +48,7 @@ tracing-subscriber = { version = "0.3", features = [
   "time",
 ] }
 unic-langid = "0.9.5"
+better-panic = "0.3"
 
 [workspace]
 members = [

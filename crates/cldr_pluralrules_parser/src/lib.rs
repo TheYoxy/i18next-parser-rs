@@ -76,18 +76,22 @@ mod parser;
 ///         .condition
 /// )
 /// ```
-pub fn parse_plural_rule<S: AsRef<str>>(source: S) -> Result<ast::Rule, String> {
-  match parser::parse_rule(source.as_ref()) {
+pub fn parse_plural_rule<S: AsRef<str>>(source: S) -> color_eyre::Result<ast::Rule> {
+  let source = source.as_ref();
+  match parser::parse_rule(source) {
     Ok(("", rule)) => Ok(rule),
-    //Ok((_, rule)) => Ok(rule),
-    Ok((left, _)) => Err(format!("Left string: {}", left)),
-    _ => Err("Parser failed".to_string()),
+    Ok((left, _)) => {
+      Err(color_eyre::eyre::eyre!("Left string: {left}"))
+    },
+    Err(e) => {
+      Err(color_eyre::eyre::eyre!("Parser failed: {e}"))
+    },
   }
 }
 
-pub fn parse_plural_condition<S: AsRef<str>>(source: S) -> Result<ast::Condition, String> {
+pub fn parse_plural_condition<S: AsRef<str>>(source: S) -> color_eyre::Result<ast::Condition> {
   match parser::parse_condition(source.as_ref()) {
     Ok((_, rule)) => Ok(rule),
-    _ => Err("Parser failed".to_string()),
+    Err(e) => Err(color_eyre::eyre::eyre!("Parser failed: {e}")),
   }
 }

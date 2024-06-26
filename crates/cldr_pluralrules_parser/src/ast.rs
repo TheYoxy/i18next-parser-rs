@@ -251,12 +251,28 @@ pub struct Modulo(pub Value);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operand {
+  C, // compact decimal exponent value: exponent of the power of 10 used in compact decimal formatting
+  E, // deprecated synonym of C
   N, // Absolute value of input
   I, // Integer value of input
   V, // Number of visible fraction digits with trailing zeros
   W, // Number of visible fraction digits without trailing zeros
   F, // Visible fraction digits with trailing zeros
   T, // Visible fraction digits without trailing zeros
+}
+impl From<Operand> for &str {
+  fn from(value: Operand) -> Self {
+    match value {
+      Operand::C => "c",
+      Operand::E => "e",
+      Operand::N => "n",
+      Operand::I => "i",
+      Operand::V => "v",
+      Operand::T => "t",
+      Operand::W => "w",
+      Operand::F => "f",
+    }
+  }
 }
 
 /// An incomplete AST representation of a plural rule. Comprises a vector of RangeListItems.

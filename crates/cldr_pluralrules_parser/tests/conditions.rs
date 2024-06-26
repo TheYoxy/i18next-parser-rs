@@ -1,3 +1,5 @@
+use pretty_assertions::assert_eq;
+
 use cldr_pluralrules_parser::ast::*;
 use cldr_pluralrules_parser::*;
 
@@ -112,6 +114,24 @@ fn or_condition() {
 }
 
 #[test]
+fn integer_with_exponent_rule() {
+  let test = "n % 100 = 11..99 @integer 1c6, …";
+  let result = parse_plural_rule(test);
+
+  println!("{:?}", result);
+  assert!(result.is_ok());
+
+  assert_eq!(
+    Condition(vec![AndCondition(vec![Relation {
+      expression: Expression { operand: Operand::N, modulus: Some(Modulo(Value(100))) },
+      operator: Operator::EQ,
+      range_list: RangeList(vec![RangeListItem::Range(Range { lower_val: Value(11), upper_val: Value(99) })]),
+    }])]),
+    result.unwrap().condition
+  );
+}
+
+#[test]
 fn ars_many_rule() {
   let test = "n % 100 = 11..99 @integer 11~26, 111, 1011, … @decimal 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 111.0, 1011.0, …";
 
@@ -187,5 +207,47 @@ fn be_many_rule() {
       }]),
     ]),
     parse_plural_rule(test).expect("Parsing succeeded").condition
+  );
+}
+
+#[test]
+fn be_other_rule() {
+  let test = "e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5 @integer 1000000, 1c6, 2c6, 3c6, 4c6, 5c6, 6c6, … @decimal 1.0000001c6, 1.1c6, 2.0000001c6, 2.1c6, 3.0000001c6, 3.1c6, …";
+  let result = parse_plural_rule(test);
+
+  println!("{:?}", result);
+  assert!(result.is_ok());
+
+  assert_eq!(
+    Condition(vec![
+      AndCondition(vec![
+        Relation {
+          expression: Expression { operand: Operand::E, modulus: None },
+          operator: Operator::EQ,
+          range_list: RangeList(vec![RangeListItem::Value(Value(0))]),
+        },
+        Relation {
+          expression: Expression { operand: Operand::I, modulus: None },
+          operator: Operator::NotEQ,
+          range_list: RangeList(vec![RangeListItem::Value(Value(0))]),
+        },
+        Relation {
+          expression: Expression { operand: Operand::I, modulus: Some(Modulo(Value(1000000))) },
+          operator: Operator::EQ,
+          range_list: RangeList(vec![RangeListItem::Value(Value(0))]),
+        },
+        Relation {
+          expression: Expression { operand: Operand::V, modulus: None },
+          operator: Operator::EQ,
+          range_list: RangeList(vec![RangeListItem::Value(Value(0))]),
+        }
+      ]),
+      AndCondition(vec![Relation {
+        expression: Expression { operand: Operand::E, modulus: None },
+        operator: Operator::NotEQ,
+        range_list: RangeList(vec![RangeListItem::Range(Range { lower_val: Value(0), upper_val: Value(5) })]),
+      }]),
+    ]),
+    result.unwrap().condition
   );
 }
