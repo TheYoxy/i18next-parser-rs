@@ -27,28 +27,28 @@ impl From<LineEnding> for config::Value {
 mod tests {
   use super::*;
 
-  #[test]
+  #[test_log::test]
   fn test_line_ending_auto() {
     let line_ending = LineEnding::Auto;
     let value: config::Value = line_ending.into();
     assert_eq!(value, "auto".into());
   }
 
-  #[test]
+  #[test_log::test]
   fn test_line_ending_crlf() {
     let line_ending = LineEnding::Crlf;
     let value: config::Value = line_ending.into();
     assert_eq!(value, "crlf".into());
   }
 
-  #[test]
+  #[test_log::test]
   fn test_line_ending_cr() {
     let line_ending = LineEnding::Cr;
     let value: config::Value = line_ending.into();
     assert_eq!(value, "cr".into());
   }
 
-  #[test]
+  #[test_log::test]
   fn test_line_ending_lf() {
     let line_ending = LineEnding::Lf;
     let value: config::Value = line_ending.into();

@@ -392,13 +392,13 @@ mod tests {
   mod cleaned_code {
     use super::*;
 
-    #[test]
+    #[test_log::test]
     fn replaces_underscores_with_hyphens() {
       assert_eq!(get_cleaned_code("hello_world"), "hello-world");
       assert_eq!(get_cleaned_code("no_underscore"), "no-underscore");
     }
 
-    #[test]
+    #[test_log::test]
     fn returns_same_string_when_no_underscores() {
       assert_eq!(get_cleaned_code("helloworld"), "helloworld");
       assert_eq!(get_cleaned_code("nounderscore"), "nounderscore");
@@ -408,25 +408,25 @@ mod tests {
   mod plural_resolver {
     use super::*;
 
-    #[test]
+    #[test_log::test]
     fn plural_resolver_default_creates_new_with_simplified_suffix() {
       let resolver = PluralResolver::default();
       assert!(!resolver.simplify_plural_suffix);
     }
 
-    #[test]
+    #[test_log::test]
     fn plural_resolver_new_creates_new_with_given_simplify_suffix() {
       let resolver = PluralResolver::new(false, None, Default::default());
       assert!(!resolver.simplify_plural_suffix);
     }
 
-    #[test]
+    #[test_log::test]
     fn get_rule_returns_none_for_non_existent_code() {
       let resolver = PluralResolver::default();
       assert!(resolver.get_rule("nonexistent").is_none());
     }
 
-    #[test]
+    #[test_log::test]
     fn get_suffixes_return_elements_for_en() {
       let resolver = PluralResolver::default();
       let suffixes = resolver.get_suffixes("en");
@@ -439,7 +439,7 @@ mod tests {
       assert_eq!(suffixes, vec!["_one", "_other"]);
     }
 
-    #[test]
+    #[test_log::test]
     fn get_suffixes_return_elements_for_fr() {
       let resolver = PluralResolver::default();
       let suffixes = resolver.get_suffixes("fr");
@@ -452,7 +452,7 @@ mod tests {
       assert_eq!(suffixes, vec!["_one", "_many", "_other"]);
     }
 
-    #[test]
+    #[test_log::test]
     fn get_suffixes_return_elements_for_nl() {
       let resolver = PluralResolver::default();
       let suffixes = resolver.get_suffixes("nl");
@@ -465,14 +465,14 @@ mod tests {
       assert_eq!(suffixes, vec!["_one", "_other"]);
     }
 
-    #[test]
+    #[test_log::test]
     fn get_suffixes_returns_empty_vector_for_non_existent_code() {
       let resolver = PluralResolver::default();
       let suffixes = resolver.get_suffixes("nonexistent");
       assert!(suffixes.is_err());
     }
 
-    #[test]
+    #[test_log::test]
     fn get_suffix_returns_empty_string_for_non_existent_code() {
       let resolver = PluralResolver::default();
       assert_eq!(resolver.get_suffix("nonexistent", 1), "");

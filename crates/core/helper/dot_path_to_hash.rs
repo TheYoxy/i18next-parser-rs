@@ -182,7 +182,7 @@ mod tests {
       key: "key".into(),
       value: Some("default_value".into()),
       i18next_options: None,
-      count: None,
+      has_count: true,
     };
     let target = json!({
       "namespace": {
@@ -212,7 +212,7 @@ mod tests {
       key: "".into(),
       value: Some("default_value".into()),
       i18next_options: None,
-      count: None,
+      has_count: true,
     };
     let target = json!({});
     let config = Default::default();
@@ -230,7 +230,7 @@ mod tests {
       key: "key".into(),
       value: Some("default_value".into()),
       i18next_options: None,
-      count: None,
+      has_count: true,
     };
     let target = json!({});
     let config = Default::default();
@@ -255,7 +255,7 @@ mod tests {
       key: "key".into(),
       value: Some("default_value".into()),
       i18next_options: None,
-      count: None,
+      has_count: true,
     };
     let target = json!({
         "namespace": {
@@ -284,7 +284,7 @@ mod tests {
       key: "key2".into(),
       value: Some("default_value".into()),
       i18next_options: None,
-      count: None,
+      has_count: true,
     };
     let target = json!({
         "namespace": {
@@ -314,7 +314,7 @@ mod tests {
       key: "key".into(),
       value: Some("default_value".into()),
       i18next_options: None,
-      count: None,
+      has_count: true,
     };
     let target = json!({
         "namespace": {

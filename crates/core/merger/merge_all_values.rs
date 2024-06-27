@@ -53,7 +53,7 @@ mod tests {
     let entries = vec![Entry {
       namespace: Some("default".into()),
       key: "key".into(),
-      count: None,
+      has_count: false,
       value: Some("value".into()),
       i18next_options: None,
     }];
@@ -88,21 +88,21 @@ mod tests {
       Entry {
         namespace: Some("default".into()),
         key: "key1".into(),
-        count: None,
+        has_count: false,
         value: Some("value1".into()),
         i18next_options: None,
       },
       Entry {
         namespace: Some("default".into()),
         key: "key2".into(),
-        count: Some(3),
+        has_count: true,
         value: Some("value2".into()),
         i18next_options: None,
       },
       Entry {
         namespace: Some("custom".into()),
         key: "key3".into(),
-        count: None,
+        has_count: false,
         value: Some("value3".into()),
         i18next_options: None,
       },

@@ -123,25 +123,25 @@ mod tests {
   use super::*;
   use crate::merger::merge_results::MergeResults;
 
-  #[test]
+  #[test_log::test]
   fn camelize_transforms_strings_correctly() {
     assert_eq!(camelize("hello_world"), "helloWorld");
     assert_eq!(camelize("Hello-World"), "helloWorld");
     assert_eq!(camelize("testString"), "testString");
   }
 
-  #[test]
+  #[test_log::test]
   fn camelize_handles_empty_string() {
     assert_eq!(camelize(""), "");
   }
 
-  #[test]
+  #[test_log::test]
   fn camelize_handles_single_character() {
     assert_eq!(camelize("a"), "a");
     assert_eq!(camelize("A"), "a");
   }
 
-  #[test]
+  #[test_log::test]
   fn generate_types_creates_expected_output() -> Result<()> {
     let temp = TempDir::new("generate_types")?;
     let config = Config {
@@ -181,7 +181,7 @@ mod tests {
     Ok(())
   }
 
-  #[test]
+  #[test_log::test]
   fn generate_types_panics_when_unable_to_strip_prefix() -> Result<()> {
     let temp = TempDir::new("generate_types")?;
     let config = Config {

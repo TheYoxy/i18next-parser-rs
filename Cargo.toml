@@ -52,6 +52,7 @@ better-panic = "0.3"
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
+test-log = "0.2"
 
 [workspace]
 members = [

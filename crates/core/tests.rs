@@ -33,7 +33,7 @@ fn setup_test(path: Option<&str>) -> color_eyre::Result<(&str, Config)> {
   Ok((working_path, config))
 }
 
-#[test]
+#[test_log::test]
 fn should_parse_successfully() -> color_eyre::Result<()> {
   let (working_path, config) = &setup_test(None)?;
 
@@ -96,7 +96,7 @@ fn create_file<P: AsRef<Path>, V: ?Sized + Serialize>(path: P, value: &V) -> col
   Ok(())
 }
 
-#[test]
+#[test_log::test]
 fn should_not_override_current_values() -> color_eyre::Result<()> {
   let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password</Trans>;"#;
   let dir = TempDir::new("translations")?;

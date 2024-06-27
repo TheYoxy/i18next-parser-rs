@@ -25,7 +25,7 @@ pub(crate) struct Cli {
 mod tests {
   use super::*;
 
-  #[test]
+  #[test_log::test]
   fn should_parse_cli() {
     let cli = Cli::parse();
     assert_eq!(cli.path, get_default_log_path());

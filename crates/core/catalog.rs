@@ -26,7 +26,7 @@ mod tests {
 
   const BASE_PATH: &str = "assets/locales/";
 
-  #[test]
+  #[test_log::test]
   fn test_get_catalog_with_existing_json_file() {
     let path = PathBuf::from(BASE_PATH.to_owned() + "en/default.json");
     let catalog = get_catalog(&path);
@@ -36,7 +36,7 @@ mod tests {
     assert_eq!(catalog_value["key2"], "value2");
   }
 
-  #[test]
+  #[test_log::test]
   fn test_get_catalog_with_existing_yaml_file() {
     let path = PathBuf::from(BASE_PATH.to_owned() + "en/default.yml");
     let catalog = get_catalog(&path);
@@ -46,7 +46,7 @@ mod tests {
     assert_eq!(catalog_value["key4"], "value4");
   }
 
-  #[test]
+  #[test_log::test]
   fn test_get_catalog_with_non_existing_file() {
     let path = PathBuf::from(BASE_PATH.to_owned() + "en/non_existing.json");
     let catalog = get_catalog(&path);

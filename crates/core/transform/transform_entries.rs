@@ -20,7 +20,7 @@ pub(crate) fn transform_entries(
   let mut unique_plurals_count = HashMap::new();
 
   let value = entries.iter().try_fold(Value::Object(Default::default()), |value, entry| {
-    return if entry.count.is_some() {
+    return if entry.has_count {
       let resolver = plural::PluralResolver::default();
       let suffixes = resolver.get_suffixes(locale);
       match suffixes {
@@ -55,21 +55,21 @@ mod tests {
       Entry {
         namespace: Some("default".to_string()),
         key: "key1".to_string(),
-        count: None,
+        has_count: false,
         value: Some("value1".to_string()),
         i18next_options: None,
       },
       Entry {
         namespace: Some("default".to_string()),
         key: "key2".to_string(),
-        count: Some(3),
+        has_count: true,
         value: Some("value2".to_string()),
         i18next_options: None,
       },
       Entry {
         namespace: Some("custom".to_string()),
         key: "key3".to_string(),
-        count: None,
+        has_count: false,
         value: Some("value3".to_string()),
         i18next_options: None,
       },
@@ -97,7 +97,7 @@ mod tests {
     let entries = vec![Entry {
       namespace: Some("default".to_string()),
       key: "key".to_string(),
-      count: Some(3),
+      has_count: true,
       value: Some("value".to_string()),
       i18next_options: None,
     }];
@@ -128,7 +128,7 @@ mod tests {
     let entries = vec![Entry {
       namespace: Some("default".to_string()),
       key: "key".to_string(),
-      count: Some(3),
+      has_count: true,
       value: Some("value".to_string()),
       i18next_options: None,
     }];
@@ -160,7 +160,7 @@ mod tests {
     let entries = vec![Entry {
       namespace: Some("default".to_string()),
       key: "key".to_string(),
-      count: Some(3),
+      has_count: true,
       value: Some("value".to_string()),
       i18next_options: None,
     }];

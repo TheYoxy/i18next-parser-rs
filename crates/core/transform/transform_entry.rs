@@ -77,7 +77,7 @@ mod tests {
       namespace: Some("default".to_string()),
       key: "key1".to_string(),
       value: Some("value1".to_string()),
-      count: None,
+      has_count: false,
       i18next_options: None,
     };
     let mut unique_count = HashMap::new();
