@@ -22,6 +22,7 @@ unic-langid = "0.9"
 [dev-dependencies]
 criterion = "0.3"
 unic-langid = { version = "0.9", features = ["macros"] }
+pretty_assertions = "1.4.0"
 
 [[bench]]
 name = "pluralrules"

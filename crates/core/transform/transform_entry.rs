@@ -1,14 +1,18 @@
-use color_eyre::eyre::eyre;
 use std::collections::HashMap;
 
+use color_eyre::eyre::eyre;
 use log::trace;
 use serde_json::Value;
 
-use crate::config::Config;
-use crate::helper::dot_path_to_hash::{dot_path_to_hash, Conflict};
-use crate::helper::get_char_diff::get_char_diff;
-use crate::visitor::Entry;
-use crate::{printwarn, printwarnln};
+use crate::{
+  config::Config,
+  helper::{
+    dot_path_to_hash::{dot_path_to_hash, Conflict},
+    get_char_diff::get_char_diff,
+  },
+  printwarn, printwarnln,
+  visitor::Entry,
+};
 
 pub(crate) fn transform_entry(
   entry: &Entry,

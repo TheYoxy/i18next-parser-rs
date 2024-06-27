@@ -1,7 +1,7 @@
-use color_eyre::eyre::eyre;
-use color_eyre::Result;
-use intl_pluralrules::{PluralRuleType, PluralRules};
 use std::collections::HashMap;
+
+use color_eyre::{eyre::eyre, Result};
+use intl_pluralrules::{PluralRuleType, PluralRules};
 
 /// Cleans the provided code by replacing underscores with hyphens.
 ///

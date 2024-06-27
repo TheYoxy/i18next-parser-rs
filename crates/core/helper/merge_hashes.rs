@@ -1,7 +1,8 @@
-use crate::config::Config;
 use log::{debug, trace};
 use regex::Regex;
 use serde_json::{Map, Value};
+
+use crate::config::Config;
 
 const PLURAL_SUFFIXES: &[&str] = &["zero", "one", "two", "few", "many", "other"];
 

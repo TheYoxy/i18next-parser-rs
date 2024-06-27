@@ -44,45 +44,33 @@ pub struct DecimalValue {
 /// use cldr_pluralrules_parser::ast::*;
 ///
 /// Condition(vec![AndCondition(vec![Relation {
-///        expression: Expression {
-///            operand: Operand::I,
-///            modulus: None,
-///        },
-///        operator: Operator::EQ,
-///        range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
-///    }])]);
+///   expression: Expression { operand: Operand::I, modulus: None },
+///   operator: Operator::EQ,
+///   range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
+/// }])]);
 /// ```
 ///
 /// Because they care complete representations, hand-written Conditions can be verified with the assert macro. No other AST nodes can be verified.
 ///
 /// ```
-/// use cldr_pluralrules_parser::ast::*;
-/// use cldr_pluralrules_parser::parse_plural_rule;
+/// use cldr_pluralrules_parser::{ast::*, parse_plural_rule};
 ///
 /// let condition = Condition(vec![
-///     AndCondition(vec![Relation {
-///         expression: Expression {
-///             operand: Operand::I,
-///             modulus: None,
-///         },
-///         operator: Operator::Is,
-///         range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
-///     }]),
-///     AndCondition(vec![Relation {
-///         expression: Expression {
-///             operand: Operand::V,
-///             modulus: None,
-///         },
-///         operator: Operator::Within,
-///         range_list: RangeList(vec![RangeListItem::Value(Value(2))]),
-///     }]),
+///   AndCondition(vec![Relation {
+///     expression: Expression { operand: Operand::I, modulus: None },
+///     operator: Operator::Is,
+///     range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
+///   }]),
+///   AndCondition(vec![Relation {
+///     expression: Expression { operand: Operand::V, modulus: None },
+///     operator: Operator::Within,
+///     range_list: RangeList(vec![RangeListItem::Value(Value(2))]),
+///   }]),
 /// ]);
 ///
 /// assert_eq!(
-///     condition,
-///     parse_plural_rule("i is 5 or v within 2")
-///          .expect("Parsing succeeded")
-///          .condition
+///   condition,
+///   parse_plural_rule("i is 5 or v within 2").expect("Parsing succeeded").condition
 /// )
 /// ```
 #[derive(Debug, Clone, PartialEq)]
@@ -104,24 +92,17 @@ pub struct Condition(pub Vec<AndCondition>);
 /// use cldr_pluralrules_parser::ast::*;
 ///
 /// AndCondition(vec![
-///     Relation {
-///         expression: Expression {
-///             operand: Operand::I,
-///             modulus: None,
-///         },
-///         operator: Operator::In,
-///         range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
-///     },
-///     Relation {
-///         expression: Expression {
-///             operand: Operand::V,
-///             modulus: None,
-///         },
-///         operator: Operator::NotIn,
-///         range_list: RangeList(vec![RangeListItem::Value(Value(2))]),
-///     },
+///   Relation {
+///     expression: Expression { operand: Operand::I, modulus: None },
+///     operator: Operator::In,
+///     range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
+///   },
+///   Relation {
+///     expression: Expression { operand: Operand::V, modulus: None },
+///     operator: Operator::NotIn,
+///     range_list: RangeList(vec![RangeListItem::Value(Value(2))]),
+///   },
 /// ]);
-///
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct AndCondition(pub Vec<Relation>);
@@ -142,14 +123,10 @@ pub struct AndCondition(pub Vec<Relation>);
 /// use cldr_pluralrules_parser::ast::*;
 ///
 /// Relation {
-///     expression: Expression {
-///         operand: Operand::I,
-///         modulus: None,
-///     },
-///     operator: Operator::Is,
-///     range_list: RangeList(vec![RangeListItem::Value(Value(3))]),
+///   expression: Expression { operand: Operand::I, modulus: None },
+///   operator: Operator::Is,
+///   range_list: RangeList(vec![RangeListItem::Value(Value(3))]),
 /// };
-///
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Relation {
@@ -172,7 +149,6 @@ pub struct Relation {
 /// | IsNot | "is not" |
 /// | EQ | "=" |
 /// | NotEq | "!=" |
-///
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operator {
   In,
@@ -200,11 +176,7 @@ pub enum Operator {
 /// ```
 /// use cldr_pluralrules_parser::ast::*;
 ///
-/// Expression {
-///     operand: Operand::I,
-///     modulus: Some(Modulo(Value(100))),
-/// };
-///
+/// Expression { operand: Operand::I, modulus: Some(Modulo(Value(100))) };
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expression {
@@ -291,9 +263,9 @@ impl From<Operand> for &str {
 /// use cldr_pluralrules_parser::ast::*;
 ///
 /// RangeList(vec![
-///     RangeListItem::Value(Value(5)),
-///     RangeListItem::Value(Value(7)),
-///     RangeListItem::Value(Value(9)),
+///   RangeListItem::Value(Value(5)),
+///   RangeListItem::Value(Value(7)),
+///   RangeListItem::Value(Value(9)),
 /// ]);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
@@ -302,7 +274,6 @@ pub struct RangeList(pub Vec<RangeListItem>);
 /// An enum of items that appear in a RangeList: Range or a Value.
 ///
 /// See Range and Value for additional details.
-///
 #[derive(Debug, Clone, PartialEq)]
 pub enum RangeListItem {
   Range(Range),
@@ -324,10 +295,7 @@ pub enum RangeListItem {
 /// ```
 /// use cldr_pluralrules_parser::ast::*;
 ///
-/// RangeListItem::Range(Range {
-///     lower_val: Value(11),
-///     upper_val: Value(15),
-/// });
+/// RangeListItem::Range(Range { lower_val: Value(11), upper_val: Value(15) });
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Range {

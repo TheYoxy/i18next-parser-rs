@@ -1,8 +1,4 @@
-use criterion::criterion_group;
-use criterion::criterion_main;
-use criterion::BenchmarkId;
-use criterion::Criterion;
-
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use intl_pluralrules::{PluralRuleType, PluralRules};
 use unic_langid::{langid, LanguageIdentifier};
 

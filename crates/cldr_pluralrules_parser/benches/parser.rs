@@ -1,9 +1,5 @@
-use criterion::black_box;
-use criterion::criterion_group;
-use criterion::criterion_main;
-use criterion::Criterion;
-
 use cldr_pluralrules_parser::{parse_plural_condition, parse_plural_rule};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 const STRINGS: &[&str] = &[
     "n % 10 = 0 or n % 10 = 5..9 or n % 100 = 11..14 @integer 0, 5~19, 100, 1000, 10000, 100000, 1000000, … @decimal 0.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0, …",

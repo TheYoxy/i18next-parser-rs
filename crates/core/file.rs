@@ -9,7 +9,10 @@ use log::trace;
 use serde_json::Value;
 
 use crate::{
-  config::Config, config::LineEnding, helper::merge_hashes::MergeResult, is_empty::IsEmpty, log_time,
+  config::{Config, LineEnding},
+  helper::merge_hashes::MergeResult,
+  is_empty::IsEmpty,
+  log_time,
   merger::merge_results::MergeResults,
 };
 

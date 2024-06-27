@@ -1,11 +1,7 @@
-use std::fs;
-use std::io::Write;
-use std::path::PathBuf;
-use std::process::Command;
+use std::{fs, io::Write, path::PathBuf, process::Command};
 
 use clap::Parser;
 use color_eyre::Result;
-
 use make_pluralrules::generate_rs;
 
 pub(crate) fn initialize_panic_handler() -> Result<()> {

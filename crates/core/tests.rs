@@ -1,7 +1,9 @@
 #![cfg(test)]
 
-use std::path::{PathBuf, MAIN_SEPARATOR_STR};
-use std::{io::Write, path::Path};
+use std::{
+  io::Write,
+  path::{Path, PathBuf, MAIN_SEPARATOR_STR},
+};
 
 use flatten_json_object::Flattener;
 use pretty_assertions::assert_eq;
@@ -9,13 +11,14 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use tempdir::TempDir;
 
-use crate::config::Config;
-use crate::file::write_to_file;
-use crate::is_empty::IsEmpty;
-use crate::merger::merge_all_values::merge_all_values;
-use crate::merger::merge_results::MergeResults;
-use crate::parser::parse_directory::parse_directory;
-use crate::utils::initialize_logging;
+use crate::{
+  config::Config,
+  file::write_to_file,
+  is_empty::IsEmpty,
+  merger::{merge_all_values::merge_all_values, merge_results::MergeResults},
+  parser::parse_directory::parse_directory,
+  utils::initialize_logging,
+};
 
 fn setup_test(path: Option<&str>) -> color_eyre::Result<(&str, Config)> {
   let _ = initialize_logging();

@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::config::Config;
-use crate::transform::transform_entry::transform_entry;
-use crate::visitor::Entry;
-use crate::{plural, printerror};
+use crate::{config::Config, plural, printerror, transform::transform_entry::transform_entry, visitor::Entry};
 
 pub(crate) struct TransformEntriesResult {
   pub(crate) unique_count: HashMap<String, usize>,
@@ -27,9 +24,11 @@ pub(crate) fn transform_entries(
       let resolver = plural::PluralResolver::default();
       let suffixes = resolver.get_suffixes(locale);
       match suffixes {
-        Ok(suffixes) => suffixes.iter().try_fold(value, |value, suffix| {
-          transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(suffix))
-        }),
+        Ok(suffixes) => {
+          suffixes.iter().try_fold(value, |value, suffix| {
+            transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(suffix))
+          })
+        },
         Err(e) => {
           printerror!("Error getting suffixes: {}", e);
           Ok(value)
@@ -45,9 +44,10 @@ pub(crate) fn transform_entries(
 
 #[cfg(test)]
 mod tests {
-  use super::*;
   use pretty_assertions::assert_eq;
   use serde_json::json;
+
+  use super::*;
 
   #[test]
   fn test_transform_entries() {

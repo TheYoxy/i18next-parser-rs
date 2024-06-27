@@ -1,6 +1,4 @@
-use std::fs::File;
-use std::io::BufReader;
-use std::path::PathBuf;
+use std::{fs::File, io::BufReader, path::PathBuf};
 
 use log::{trace, warn};
 use serde_json::Value;

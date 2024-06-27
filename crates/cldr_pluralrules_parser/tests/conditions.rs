@@ -1,7 +1,5 @@
+use cldr_pluralrules_parser::{ast::*, *};
 use pretty_assertions::assert_eq;
-
-use cldr_pluralrules_parser::ast::*;
-use cldr_pluralrules_parser::*;
 
 #[test]
 fn simple_empty() {

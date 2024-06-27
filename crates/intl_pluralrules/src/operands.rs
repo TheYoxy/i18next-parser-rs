@@ -8,56 +8,39 @@
 //!
 //! ```
 //! use std::convert::TryFrom;
+//!
 //! use intl_pluralrules::operands::*;
-//! assert_eq!(Ok(PluralOperands {
-//!    e: 0,
-//!    c: 0,
-//!    n: 2_f64,
-//!    i: 2,
-//!    v: 0,
-//!    w: 0,
-//!    f: 0,
-//!    t: 0,
-//! }), PluralOperands::try_from(2))
+//! assert_eq!(
+//!   Ok(PluralOperands { e: 0, c: 0, n: 2_f64, i: 2, v: 0, w: 0, f: 0, t: 0 }),
+//!   PluralOperands::try_from(2)
+//! )
 //! ```
 //!
 //! From float
 //!
 //! ```
 //! use std::convert::TryFrom;
+//!
 //! use intl_pluralrules::operands::*;
-//! assert_eq!(Ok(PluralOperands {
-//!    e: 0,
-//!    c: 0,
-//!    n: 1234.567_f64,
-//!    i: 1234,
-//!    v: 3,
-//!    w: 3,
-//!    f: 567,
-//!    t: 567,
-//! }), PluralOperands::try_from("-1234.567"))
+//! assert_eq!(
+//!   Ok(PluralOperands { e: 0, c: 0, n: 1234.567_f64, i: 1234, v: 3, w: 3, f: 567, t: 567 }),
+//!   PluralOperands::try_from("-1234.567")
+//! )
 //! ```
 //!
 //! From &str
 //!
 //! ```
 //! use std::convert::TryFrom;
+//!
 //! use intl_pluralrules::operands::*;
-//! assert_eq!(Ok(PluralOperands {
-//!    e: 0,
-//!    c: 0,
-//!    n: 123.45_f64,
-//!    i: 123,
-//!    v: 2,
-//!    w: 2,
-//!    f: 45,
-//!    t: 45,
-//! }), PluralOperands::try_from(123.45))
+//! assert_eq!(
+//!   Ok(PluralOperands { e: 0, c: 0, n: 123.45_f64, i: 123, v: 2, w: 2, f: 45, t: 45 }),
+//!   PluralOperands::try_from(123.45)
+//! )
 //! ```
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::cast_lossless))]
-use std::convert::TryFrom;
-use std::isize;
-use std::str::FromStr;
+use std::{convert::TryFrom, isize, str::FromStr};
 
 /// A full plural operands representation of a number. See [CLDR Plural Rules](https://unicode.org/reports/tr35/tr35-numbers.html#Language_Plural_Rules) for complete operands description.
 #[derive(Debug, PartialEq)]

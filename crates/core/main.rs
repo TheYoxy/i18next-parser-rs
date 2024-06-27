@@ -6,14 +6,13 @@ use clap::Parser;
 use color_eyre::eyre::Result;
 use log::{debug, info};
 
-use crate::merger::merge_all_values::merge_all_values;
-use crate::parser::parse_directory::parse_directory;
-use crate::print::print_app::print_app;
-use crate::print::print_config::print_config;
 use crate::{
   cli::Cli,
   config::Config,
   file::write_to_file,
+  merger::merge_all_values::merge_all_values,
+  parser::parse_directory::parse_directory,
+  print::{print_app::print_app, print_config::print_config},
   utils::{initialize_logging, initialize_panic_handler},
 };
 

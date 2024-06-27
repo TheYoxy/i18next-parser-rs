@@ -21,9 +21,7 @@
     overlays = [
       rust-overlay.overlays.default
       (final: prev: {
-        rustToolchain = final.rust-bin.stable.latest.default.override {
-          extensions = ["rust-src"];
-        };
+        rustToolchain = final.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
       })
     ];
   in
@@ -45,9 +43,8 @@
       packages = let
         lib = pkgs.lib;
         package = (lib.importTOML ./Cargo.toml).package;
-      in {
-        default =
-          (pkgs.makeRustPlatform {
+      in rec {
+        i18next-parser = (pkgs.makeRustPlatform {
             cargo = pkgs.rustToolchain;
             rustc = pkgs.rustToolchain;
           })
@@ -70,6 +67,7 @@
               ];
             };
           };
+        default = i18next-parser;
       };
     });
 }

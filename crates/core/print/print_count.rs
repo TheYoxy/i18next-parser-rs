@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use crate::config::Config;
-use crate::helper::merge_hashes::MergeResult;
+use crate::{config::Config, helper::merge_hashes::MergeResult};
 
 pub(crate) fn print_counts(
   locale: &str,

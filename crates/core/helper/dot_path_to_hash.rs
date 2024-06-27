@@ -1,8 +1,7 @@
 use log::{trace, warn};
 use serde_json::{Map, Value};
 
-use crate::config::Config;
-use crate::visitor::Entry;
+use crate::{config::Config, visitor::Entry};
 
 /// Enum representing the type of conflict that can occur when converting a dot path to a hash.
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -101,6 +100,7 @@ use std::iter::Peekable;
 struct SkipLastIterator<I: Iterator>(Peekable<I>);
 impl<I: Iterator> Iterator for SkipLastIterator<I> {
   type Item = I::Item;
+
   fn next(&mut self) -> Option<Self::Item> {
     let item = self.0.next();
     self.0.peek().map(|_| item.unwrap())
@@ -111,7 +111,8 @@ trait SkipLast: Iterator + Sized {
     SkipLastIterator(self.peekable())
   }
 }
-impl<I: Iterator> SkipLast for I {}
+impl<I: Iterator> SkipLast for I {
+}
 
 /// Lookup a value in a JSON object by key.
 ///
@@ -149,10 +150,10 @@ fn lookup_by_key<'a>(
 
 #[cfg(test)]
 mod tests {
+  use pretty_assertions::assert_eq;
   use serde_json::json;
 
   use super::*;
-  use pretty_assertions::assert_eq;
 
   #[test]
   fn test_lookup_by_key() {

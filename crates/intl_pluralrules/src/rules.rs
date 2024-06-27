@@ -2,10 +2,9 @@
 #![cfg_attr(feature = "clippy", allow(clippy::float_cmp))]
 #![cfg_attr(feature = "clippy", allow(clippy::unreadable_literal))]
 #![cfg_attr(feature = "clippy", allow(clippy::nonminimal_bool))]
-use super::operands::PluralOperands;
-use super::PluralCategory;
-use unic_langid::subtags;
-use unic_langid::LanguageIdentifier;
+use unic_langid::{subtags, LanguageIdentifier};
+
+use super::{operands::PluralOperands, PluralCategory};
 pub type PluralRule = fn(&PluralOperands) -> PluralCategory;
 pub static CLDR_VERSION: usize = 45;
 macro_rules! langid {
@@ -237,11 +236,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ZERO, PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28002u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28002u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(28258u64), None, None),
     |po| {
@@ -253,11 +250,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28514u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28514u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29282u64), None, None),
     |po| {
@@ -476,11 +471,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(31332u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(31332u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(25957u64), None, None),
     |po| {
@@ -794,11 +787,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6975080u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(6975080u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29288u64), None, None),
     |po| {
@@ -862,21 +853,15 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(25705u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26473u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26985u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(25705u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26473u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26985u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(28521u64), None, None),
     |po| {
@@ -925,16 +910,12 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(24938u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(7299690u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(24938u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(7299690u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(7300970u64), None, None),
     |po| {
@@ -957,16 +938,12 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(30314u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(30570u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(30314u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(30570u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(24939u64), None, None),
     |po| {
@@ -1011,16 +988,12 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6644843u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6382955u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(6644843u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(6382955u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(27499u64), None, None),
     |po| {
@@ -1054,11 +1027,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28011u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28011u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(28267u64), None, None),
     |po| {
@@ -1070,11 +1041,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28523u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28523u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29547u64), None, None),
     |po| {
@@ -1213,11 +1182,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(7629676u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(7629676u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(28268u64), None, None),
     |po| {
@@ -1229,11 +1196,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28524u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28524u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29804u64), None, None),
     |po| {
@@ -1355,11 +1320,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29549u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(29549u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29805u64), None, None),
     |po| {
@@ -1377,11 +1340,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(31085u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(31085u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(6840686u64), None, None),
     |po| {
@@ -1483,11 +1444,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(7303534u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(7303534u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29294u64), None, None),
     |po| {
@@ -1565,11 +1524,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6386543u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(6386543u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(24944u64), None, None),
     |po| {
@@ -1738,11 +1695,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6840691u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(6840691u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(7430515u64), None, None),
     |po| {
@@ -1835,16 +1790,12 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(7562611u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26483u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(7562611u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26483u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(26739u64), None, None),
     |po| {
@@ -2060,11 +2011,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(30067u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(30067u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(30323u64), None, None),
     |po| {
@@ -2131,11 +2080,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26740u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(26740u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(26996u64), None, None),
     |po| {
@@ -2194,16 +2141,12 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28532u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6910068u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28532u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(6910068u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29300u64), None, None),
     |po| {
@@ -2312,11 +2255,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26998u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(26998u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(28534u64), None, None),
     |po| {
@@ -2361,11 +2302,9 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28535u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28535u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(26744u64), None, None),
     |po| {
@@ -2399,21 +2338,15 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28537u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6649209u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26746u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28537u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(6649209u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26746u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(30074u64), None, None),
     |po| {
@@ -2427,26 +2360,18 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   ),
 ];
 pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = &[
-  (
-    langid!(subtags::Language::from_raw_unchecked(26209u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28001u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28257u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29281u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(26209u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(28001u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(28257u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(29281u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29537u64), None, None),
     |po| {
@@ -2464,11 +2389,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(7631713u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(7631713u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(31329u64), None, None),
     |po| {
@@ -2518,11 +2441,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::FEW, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26466u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(26466u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(7302242u64), None, None),
     |po| {
@@ -2555,11 +2476,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29538u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(29538u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(24931u64), None, None),
     |po| {
@@ -2575,16 +2494,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(25955u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29539u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(25955u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(29539u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(31075u64), None, None),
     |po| {
@@ -2611,26 +2526,18 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
       PluralCategory::OTHER,
     ],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(24932u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(25956u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6452068u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(27749u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(24932u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(25956u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(6452068u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(27749u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(28261u64), None, None),
     |po| {
@@ -2646,31 +2553,21 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29541u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29797u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(30053u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(24934u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26982u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(29541u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(29797u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(30053u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(24934u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26982u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(7104870u64), None, None),
     |po| {
@@ -2693,11 +2590,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(31078u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(31078u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(24935u64), None, None),
     |po| {
@@ -2724,16 +2619,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(27751u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(7828327u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(27751u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(7828327u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(30055u64), None, None),
     |po| {
@@ -2751,11 +2642,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(25960u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(25960u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(26984u64), None, None),
     |po| {
@@ -2773,16 +2662,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29288u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6452072u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(29288u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(6452072u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(30056u64), None, None),
     |po| {
@@ -2805,21 +2690,15 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(24937u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(25705u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29545u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(24937u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(25705u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(29545u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29801u64), None, None),
     |po| {
@@ -2831,11 +2710,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(24938u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(24938u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(24939u64), None, None),
     |po| {
@@ -2860,21 +2737,15 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28011u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28267u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28523u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(28011u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(28267u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(28523u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(30571u64), None, None),
     |po| {
@@ -2894,11 +2765,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(31083u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(31083u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(6973804u64), None, None),
     |po| {
@@ -2925,16 +2794,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29804u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(30316u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(29804u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(30316u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(27501u64), None, None),
     |po| {
@@ -2950,16 +2815,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(27757u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28269u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(27757u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(28269u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(28525u64), None, None),
     |po| {
@@ -2997,16 +2858,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(31085u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(25198u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(31085u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(25198u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(25966u64), None, None),
     |po| {
@@ -3018,16 +2875,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(27758u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(28526u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(27758u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(28526u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29295u64), None, None),
     |po| {
@@ -3045,31 +2898,21 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::TWO, PluralCategory::FEW, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(24944u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(27760u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6779504u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29552u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29808u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(24944u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(27760u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(6779504u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(29552u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(29808u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(28530u64), None, None),
     |po| {
@@ -3081,11 +2924,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(30066u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(30066u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(25459u64), None, None),
     |po| {
@@ -3108,31 +2949,21 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(25715u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26739u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26995u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(27507u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(27763u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(25715u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26739u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26995u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(27507u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(27763u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(29043u64), None, None),
     |po| {
@@ -3146,11 +2977,9 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::MANY, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29299u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(29299u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(30323u64), None, None),
     |po| {
@@ -3162,26 +2991,18 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(30579u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(24948u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(25972u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26740u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(30579u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(24948u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(25972u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26740u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(27508u64), None, None),
     |po| {
@@ -3204,16 +3025,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6910068u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29300u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(6910068u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(29300u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(27509u64), None, None),
     |po| {
@@ -3225,16 +3042,12 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::FEW, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(29301u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(31349u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(29301u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(31349u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
   (
     langid!(subtags::Language::from_raw_unchecked(6514038u64), None, None),
     |po| {
@@ -3257,19 +3070,13 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(6649209u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(26746u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
-  (
-    langid!(subtags::Language::from_raw_unchecked(30074u64), None, None),
-    |po| PluralCategory::OTHER,
-    &[PluralCategory::OTHER],
-  ),
+  (langid!(subtags::Language::from_raw_unchecked(6649209u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(26746u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
+  (langid!(subtags::Language::from_raw_unchecked(30074u64), None, None), |po| PluralCategory::OTHER, &[
+    PluralCategory::OTHER,
+  ]),
 ];

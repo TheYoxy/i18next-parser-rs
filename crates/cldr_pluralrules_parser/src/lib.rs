@@ -7,33 +7,24 @@
 //! # Examples
 //!
 //! ```
-//! use cldr_pluralrules_parser::parse_plural_rule;
-//! use cldr_pluralrules_parser::ast::*;
+//! use cldr_pluralrules_parser::{ast::*, parse_plural_rule};
 //!
 //! let condition = Condition(vec![
-//!     AndCondition(vec![Relation {
-//!         expression: Expression {
-//!             operand: Operand::I,
-//!             modulus: None,
-//!         },
-//!         operator: Operator::Is,
-//!         range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
-//!     }]),
-//!     AndCondition(vec![Relation {
-//!         expression: Expression {
-//!             operand: Operand::V,
-//!             modulus: None,
-//!         },
-//!         operator: Operator::Within,
-//!         range_list: RangeList(vec![RangeListItem::Value(Value(2))]),
-//!     }]),
+//!   AndCondition(vec![Relation {
+//!     expression: Expression { operand: Operand::I, modulus: None },
+//!     operator: Operator::Is,
+//!     range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
+//!   }]),
+//!   AndCondition(vec![Relation {
+//!     expression: Expression { operand: Operand::V, modulus: None },
+//!     operator: Operator::Within,
+//!     range_list: RangeList(vec![RangeListItem::Value(Value(2))]),
+//!   }]),
 //! ]);
 //!
 //! assert_eq!(
-//!     condition,
-//!     parse_plural_rule("i is 5 or v within 2")
-//!         .expect("Parsing succeeded")
-//!         .condition
+//!   condition,
+//!   parse_plural_rule("i is 5 or v within 2").expect("Parsing succeeded").condition
 //! )
 //! ```
 
@@ -47,33 +38,24 @@ mod parser;
 /// # Examples
 ///
 /// ```
-/// use cldr_pluralrules_parser::parse_plural_rule;
-/// use cldr_pluralrules_parser::ast::*;
+/// use cldr_pluralrules_parser::{ast::*, parse_plural_rule};
 ///
 /// let condition = Condition(vec![
-///     AndCondition(vec![Relation {
-///         expression: Expression {
-///             operand: Operand::I,
-///             modulus: None,
-///         },
-///         operator: Operator::Is,
-///         range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
-///     }]),
-///     AndCondition(vec![Relation {
-///         expression: Expression {
-///             operand: Operand::V,
-///             modulus: None,
-///         },
-///         operator: Operator::Within,
-///         range_list: RangeList(vec![RangeListItem::Value(Value(2))]),
-///     }]),
+///   AndCondition(vec![Relation {
+///     expression: Expression { operand: Operand::I, modulus: None },
+///     operator: Operator::Is,
+///     range_list: RangeList(vec![RangeListItem::Value(Value(5))]),
+///   }]),
+///   AndCondition(vec![Relation {
+///     expression: Expression { operand: Operand::V, modulus: None },
+///     operator: Operator::Within,
+///     range_list: RangeList(vec![RangeListItem::Value(Value(2))]),
+///   }]),
 /// ]);
 ///
 /// assert_eq!(
-///     condition,
-///     parse_plural_rule("i is 5 or v within 2")
-///         .expect("Parsing succeeded")
-///         .condition
+///   condition,
+///   parse_plural_rule("i is 5 or v within 2").expect("Parsing succeeded").condition
 /// )
 /// ```
 pub fn parse_plural_rule<S: AsRef<str>>(source: S) -> color_eyre::Result<ast::Rule> {

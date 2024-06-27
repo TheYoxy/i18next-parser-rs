@@ -1,6 +1,5 @@
 //! gen_rs is a Rust code generator for expression representations of CLDR plural rules.
-use std::collections::BTreeMap;
-use std::str;
+use std::{collections::BTreeMap, str};
 
 use color_eyre::{eyre::eyre, owo_colors::OwoColorize};
 use proc_macro2::{Literal, TokenStream};

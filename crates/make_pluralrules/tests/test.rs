@@ -1,8 +1,8 @@
-use make_pluralrules::generate_rs;
+use std::{fs::File, io, io::Read};
 
-use std::fs::File;
-use std::io;
-use std::io::Read;
+use color_eyre::Result;
+use make_pluralrules::generate_rs;
+use pretty_assertions::assert_eq;
 
 fn read_file(path: &str) -> Result<String, io::Error> {
   let mut f = File::open(path)?;
@@ -12,39 +12,40 @@ fn read_file(path: &str) -> Result<String, io::Error> {
 }
 
 #[test]
-fn full_cldr_test_v45() {
-  let cardinal_json =
-    read_file("./tests/fixtures/cldr_pluralrules_cardinals_45.json").expect("Could not read input json");
-  let ordinal_json =
-    read_file("./tests/fixtures/cldr_pluralrules_ordinals_45.json").expect("Could not read input json");
-  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_45.rs").expect("Could not read output rs");
+fn full_cldr_test_v45() -> Result<()> {
+  let cardinal_json = read_file("./tests/fixtures/cldr_pluralrules_cardinals_45.json")?;
+  let ordinal_json = read_file("./tests/fixtures/cldr_pluralrules_ordinals_45.json")?;
+  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_45.rs")?;
 
-  let output = generate_rs(&[cardinal_json, ordinal_json]).unwrap();
+  let output = generate_rs(&[cardinal_json, ordinal_json])?;
 
   assert_eq!(output_rs, output);
+  Ok(())
 }
 
 #[test]
-fn full_cldr_test_v33() {
-  let cardinal_json =
-    read_file("./tests/fixtures/cldr_pluralrules_cardinals_33.json").expect("Could not read input json");
-  let ordinal_json =
-    read_file("./tests/fixtures/cldr_pluralrules_ordinals_33.json").expect("Could not read input json");
-  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_33.rs").expect("Could not read output rs");
+fn full_cldr_test_v33() -> Result<()> {
+  let cardinal_json = read_file("./tests/fixtures/cldr_pluralrules_cardinals_33.json")?;
+  let ordinal_json = read_file("./tests/fixtures/cldr_pluralrules_ordinals_33.json")?;
+  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_33.rs")?;
 
-  let output = generate_rs(&[cardinal_json, ordinal_json]).unwrap();
+  let output = generate_rs(&[cardinal_json, ordinal_json])?;
 
   assert_eq!(output_rs, output);
+
+  Ok(())
 }
 
 #[test]
-fn within_test() {
-  let input_json = read_file("./tests/fixtures/cldr_pluralrules_within_test.json").expect("Could not read input json");
-  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_within_test.rs").expect("Could not read output rs");
+fn within_test() -> Result<()> {
+  let input_json = read_file("./tests/fixtures/cldr_pluralrules_within_test.json")?;
+  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_within_test.rs")?;
 
-  let output = generate_rs(&[input_json]).unwrap();
+  let output = generate_rs(&[input_json])?;
 
   assert_eq!(output_rs, output);
+
+  Ok(())
 }
 
 #[test]

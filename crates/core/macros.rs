@@ -1,8 +1,9 @@
 #[macro_export]
 macro_rules! log_time {
   ($message:expr, $func:expr) => {{
-    use log::debug;
     use std::time::Instant;
+
+    use log::debug;
     let start = Instant::now();
     let result = $func();
     let duration = start.elapsed();

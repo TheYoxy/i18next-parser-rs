@@ -795,6 +795,7 @@ name = "intl_pluralrules"
 version = "7.0.2"
 dependencies = [
  "criterion",
+ "pretty_assertions",
  "unic-langid",
 ]
 

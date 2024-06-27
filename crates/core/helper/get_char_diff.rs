@@ -18,8 +18,9 @@ pub(crate) fn get_char_diff(old: &str, new: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
   use color_eyre::owo_colors::OwoColorize;
+
+  use super::*;
 
   #[test]
   fn get_char_diff_returns_empty_string_when_strings_are_identical() {

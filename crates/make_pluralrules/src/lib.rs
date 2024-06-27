@@ -9,12 +9,13 @@
 
 mod parser;
 
-use crate::parser::plural_category::PluralCategory;
-use crate::parser::resource::*;
+use std::collections::BTreeMap;
+
 use color_eyre::eyre::{eyre, OptionExt};
 use proc_macro2::TokenStream;
-use std::collections::BTreeMap;
 use unic_langid::LanguageIdentifier;
+
+use crate::parser::{plural_category::PluralCategory, resource::*};
 
 /// Takes a string representation of a CLDR JSON file and produces a string representation of the generated Rust code for the plural rules.
 ///

@@ -1,12 +1,10 @@
-use crate::config::Config;
-use crate::parser::parse_file::parse_file;
-use crate::visitor::Entry;
-use crate::{log_time, printinfo};
+use std::{num::NonZero, path::PathBuf};
+
 use color_eyre::eyre::{eyre, OptionExt};
 use ignore::DirEntry;
 use log::info;
-use std::num::NonZero;
-use std::path::PathBuf;
+
+use crate::{config::Config, log_time, parser::parse_file::parse_file, printinfo, visitor::Entry};
 
 fn parse_directory_mono_thread(filter: &[DirEntry], is_verbose: bool) -> Vec<Entry> {
   filter

@@ -9,7 +9,7 @@
 //! Plural rules example for Polish
 //!
 //! ```
-//! use intl_pluralrules::{PluralRules, PluralRuleType, PluralCategory};
+//! use intl_pluralrules::{PluralCategory, PluralRuleType, PluralRules};
 //! use unic_langid::LanguageIdentifier;
 //!
 //! let langid: LanguageIdentifier = "pl".parse().expect("Parsing failed.");
@@ -25,16 +25,17 @@
 //! assert_eq!(pr.get_locale(), &langid);
 //! ```
 
-use std::convert::TryInto;
-use std::fmt::{Display, Formatter};
+use std::{
+  convert::TryInto,
+  fmt::{Display, Formatter},
+};
 
 use unic_langid::LanguageIdentifier;
 
-use crate::operands::PluralOperands;
-use crate::rules::*;
 // pub use rules::PluralRuleType;
 /// CLDR_VERSION is the version of CLDR extracted from the file used to generate rules.rs.
 pub use crate::rules::CLDR_VERSION;
+use crate::{operands::PluralOperands, rules::*};
 
 /// A public AST module for plural rule representations.
 pub mod operands;
@@ -81,7 +82,7 @@ pub enum PluralRuleType {
 /// # Examples
 ///
 /// ```
-/// use intl_pluralrules::{PluralRules, PluralRuleType, PluralCategory};
+/// use intl_pluralrules::{PluralCategory, PluralRuleType, PluralRules};
 /// use unic_langid::LanguageIdentifier;
 ///
 /// let langid: LanguageIdentifier = "naq".parse().expect("Parsing failed.");
@@ -102,7 +103,7 @@ impl<'a> PluralRules<'a> {
   ///
   /// # Examples
   /// ```
-  /// use intl_pluralrules::{PluralRules, PluralRuleType, PluralCategory};
+  /// use intl_pluralrules::{PluralCategory, PluralRuleType, PluralRules};
   /// use unic_langid::LanguageIdentifier;
   ///
   /// let langid: LanguageIdentifier = "naq".parse().expect("Parsing failed.");
@@ -143,7 +144,7 @@ impl<'a> PluralRules<'a> {
   ///
   /// # Examples
   /// ```
-  /// use intl_pluralrules::{PluralRules, PluralRuleType, PluralCategory};
+  /// use intl_pluralrules::{PluralCategory, PluralRuleType, PluralRules};
   /// use unic_langid::LanguageIdentifier;
   ///
   /// let langid: LanguageIdentifier = "naq".parse().expect("Parsing failed.");
@@ -165,12 +166,9 @@ impl<'a> PluralRules<'a> {
   ///
   /// # Examples
   /// ```
-  /// use intl_pluralrules::{PluralRules, PluralRuleType};
+  /// use intl_pluralrules::{PluralRuleType, PluralRules};
   ///
-  /// assert_eq!(
-  ///     PluralRules::get_locales(PluralRuleType::CARDINAL).is_empty(),
-  ///     false
-  /// );
+  /// assert_eq!(PluralRules::get_locales(PluralRuleType::CARDINAL).is_empty(), false);
   /// ```
   pub fn get_locales(prt: PluralRuleType) -> Vec<LanguageIdentifier> {
     let prs = match prt {
@@ -184,7 +182,7 @@ impl<'a> PluralRules<'a> {
   ///
   /// # Examples
   /// ```
-  /// use intl_pluralrules::{PluralRules, PluralRuleType};
+  /// use intl_pluralrules::{PluralRuleType, PluralRules};
   /// use unic_langid::LanguageIdentifier;
   ///
   /// let langid: LanguageIdentifier = "naq".parse().expect("Parsing failed.");
@@ -198,6 +196,7 @@ impl<'a> PluralRules<'a> {
 
 #[cfg(test)]
 mod tests {
+  use pretty_assertions::assert_eq;
   use unic_langid::LanguageIdentifier;
 
   use super::{PluralCategory, PluralRuleType, PluralRules, CLDR_VERSION};
@@ -225,7 +224,7 @@ mod tests {
 
   #[test]
   fn version_test() {
-    assert_eq!(CLDR_VERSION, 37);
+    assert_eq!(CLDR_VERSION, 45);
   }
 
   #[test]
