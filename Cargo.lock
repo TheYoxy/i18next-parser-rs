@@ -755,7 +755,7 @@ dependencies = [
  "tracing",
  "tracing-error",
  "tracing-subscriber",
- "unic-langid 0.9.5",
+ "unic-langid",
 ]
 
 [[package]]
@@ -795,7 +795,7 @@ name = "intl_pluralrules"
 version = "7.0.2"
 dependencies = [
  "criterion",
- "unic-langid 0.9.5",
+ "unic-langid",
 ]
 
 [[package]]
@@ -906,12 +906,13 @@ dependencies = [
  "color-eyre",
  "human-panic",
  "libc",
+ "pretty_assertions",
  "proc-macro2",
  "quote",
  "serde",
  "serde_json",
  "strip-ansi-escapes",
- "unic-langid 0.8.0",
+ "unic-langid",
 ]
 
 [[package]]
@@ -1865,12 +1866,6 @@ dependencies = [
 
 [[package]]
 name = "tinystr"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29738eedb4388d9ea620eeab9384884fc3f06f586a2eddb56bedc5885126c7c1"
-
-[[package]]
-name = "tinystr"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9117f5d4db391c1cf6927e7bea3db74b9a1c1add8f7eda9ffd5364f40f57b82f"
@@ -2009,30 +2004,12 @@ checksum = "ed646292ffc8188ef8ea4d1e0e0150fb15a5c2e12ad9b8fc191ae7a8a7f3c4b9"
 
 [[package]]
 name = "unic-langid"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24d81136159f779c35b10655f45210c71cd5ca5a45aadfe9840a61c7071735ed"
-dependencies = [
- "unic-langid-impl 0.8.0",
-]
-
-[[package]]
-name = "unic-langid"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23dd9d1e72a73b25e07123a80776aae3e7b0ec461ef94f9151eed6ec88005a44"
 dependencies = [
- "unic-langid-impl 0.9.5",
+ "unic-langid-impl",
  "unic-langid-macros",
-]
-
-[[package]]
-name = "unic-langid-impl"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c43c61e94492eb67f20facc7b025778a904de83d953d8fcb60dd9adfd6e2d0ea"
-dependencies = [
- "tinystr 0.3.4",
 ]
 
 [[package]]
@@ -2041,7 +2018,7 @@ version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a5422c1f65949306c99240b81de9f3f15929f5a8bfe05bb44b034cc8bf593e5"
 dependencies = [
- "tinystr 0.7.6",
+ "tinystr",
 ]
 
 [[package]]
@@ -2051,8 +2028,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0da1cd2c042d3c7569a1008806b02039e7a4a2bdf8f8e96bd3c792434a0e275e"
 dependencies = [
  "proc-macro-hack",
- "tinystr 0.7.6",
- "unic-langid-impl 0.9.5",
+ "tinystr",
+ "unic-langid-impl",
  "unic-langid-macros-impl",
 ]
 
@@ -2065,7 +2042,7 @@ dependencies = [
  "proc-macro-hack",
  "quote",
  "syn",
- "unic-langid-impl 0.9.5",
+ "unic-langid-impl",
 ]
 
 [[package]]

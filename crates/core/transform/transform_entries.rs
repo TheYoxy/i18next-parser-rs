@@ -11,40 +11,42 @@ pub(crate) struct TransformEntriesResult {
   pub(crate) unique_count: HashMap<String, usize>,
   pub(crate) unique_plurals_count: HashMap<String, usize>,
   pub(crate) value: Value,
+  pub(crate) locale: String,
 }
 
-pub(crate) fn transform_entries(entries: &Vec<Entry>, locale: &str, config: &Config) -> TransformEntriesResult {
+pub(crate) fn transform_entries(
+  entries: &[Entry],
+  locale: &str,
+  config: &Config,
+) -> color_eyre::Result<TransformEntriesResult> {
   let mut unique_count = HashMap::new();
   let mut unique_plurals_count = HashMap::new();
-  let mut value = Value::Object(Default::default());
 
-  for entry in entries {
-    value = if entry.count.is_some() {
+  let value = entries.iter().try_fold(Value::Object(Default::default()), |value, entry| {
+    return if entry.count.is_some() {
       let resolver = plural::PluralResolver::default();
       let suffixes = resolver.get_suffixes(locale);
-      let mut value = Value::Object(Default::default());
       match suffixes {
-        Ok(suffixes) => {
-          for suffix in suffixes {
-            value = transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(&suffix))
-          }
-        },
+        Ok(suffixes) => suffixes.iter().try_fold(value, |value, suffix| {
+          transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(suffix))
+        }),
         Err(e) => {
-          printerror!("Error getting suffixes: {}", e)
+          printerror!("Error getting suffixes: {}", e);
+          Ok(value)
         },
       }
-      value
     } else {
       transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, None)
     };
-  }
- value.as_object_mut().unwrap();
-  TransformEntriesResult { unique_count, unique_plurals_count, value }
+  })?;
+
+  Ok(TransformEntriesResult { unique_count, unique_plurals_count, value, locale: locale.to_string() })
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use pretty_assertions::assert_eq;
   use serde_json::json;
 
   #[test]
@@ -77,13 +79,17 @@ mod tests {
 
     let result = transform_entries(&entries, locale, &config);
 
+    assert!(result.is_ok());
+    let result = result.unwrap();
+
     assert_eq!(result.unique_count.get("default"), Some(&3));
     assert_eq!(result.unique_count.get("custom"), Some(&1));
     assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
     assert_eq!(result.unique_plurals_count.get("custom"), Some(&0));
-    assert_eq!(result.value.get("default").and_then(|v| v.get("key1")), Some(&Value::String("value1".to_string())));
-    assert_eq!(result.value.get("default").and_then(|v| v.get("key2")), Some(&Value::String("value2".to_string())));
-    assert_eq!(result.value.get("custom").and_then(|v| v.get("key3")), Some(&Value::String("value3".to_string())));
+    assert_eq!(
+      result.value,
+      json!({"default": {"key1": "value1","key2_one": "value2","key2_other": "value2",},"custom": {"key3": "value3",}})
+    );
   }
 
   #[test]
@@ -99,6 +105,9 @@ mod tests {
     let config = Default::default();
 
     let result = transform_entries(&entries, locale, &config);
+
+    assert!(result.is_ok());
+    let result = result.unwrap();
 
     assert_eq!(result.unique_count.get("default"), Some(&2));
     assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
@@ -128,8 +137,11 @@ mod tests {
 
     let result = transform_entries(&entries, locale, &config);
 
-    assert_eq!(result.unique_count.get("default"), Some(&2));
-    assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
+    assert!(result.is_ok());
+    let result = result.unwrap();
+
+    assert_eq!(result.unique_count.get("default"), Some(&3));
+    assert_eq!(result.unique_plurals_count.get("default"), Some(&3));
     println!("{:?}", result.value);
     assert_eq!(
       result.value,
@@ -142,7 +154,6 @@ mod tests {
       })
     );
   }
-
 
   #[test]
   fn test_transform_entries_with_count_nl() {
@@ -157,6 +168,9 @@ mod tests {
     let config = Default::default();
 
     let result = transform_entries(&entries, locale, &config);
+
+    assert!(result.is_ok());
+    let result = result.unwrap();
 
     assert_eq!(result.unique_count.get("default"), Some(&2));
     assert_eq!(result.unique_plurals_count.get("default"), Some(&2));

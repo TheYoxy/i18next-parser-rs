@@ -11,6 +11,7 @@ mod parser;
 
 use crate::parser::plural_category::PluralCategory;
 use crate::parser::resource::*;
+use color_eyre::eyre::{eyre, OptionExt};
 use proc_macro2::TokenStream;
 use std::collections::BTreeMap;
 use unic_langid::LanguageIdentifier;
@@ -18,58 +19,59 @@ use unic_langid::LanguageIdentifier;
 /// Takes a string representation of a CLDR JSON file and produces a string representation of the generated Rust code for the plural rules.
 ///
 /// The string representation of the Rust code is written to a specified Rust file and can be used to get the plural category for numerical input.
-pub fn generate_rs(cldr_jsons: &[String]) -> String {
+pub fn generate_rs(cldr_jsons: &[String]) -> color_eyre::Result<String> {
   let mut cldr_version = None;
   let mut tokens = BTreeMap::new();
 
   for cldr_json in cldr_jsons {
     // resource_items is a struct representation of the raw CLDR rules.
-    let resource_items = parse_plurals_resource_from_string(cldr_json).unwrap();
+    let resource_items = parse_plurals_resource_from_string(cldr_json)?;
 
     let res_cldr_version = resource_items.supplemental.version.cldr_version;
 
     if cldr_version.is_none() {
       cldr_version = Some(res_cldr_version);
     } else if cldr_version != Some(res_cldr_version) {
-      panic!("All input resources must use the same CLDR version!");
+      return Err(eyre!("All input resources must use the same CLDR version!"));
     }
 
     if let Some(data) = resource_items.supplemental.plurals_type_cardinal {
-      let rule_tokens = gen_type_rs(data);
+      let rule_tokens = gen_type_rs(data)?;
       if tokens.contains_key("cardinal") {
-        panic!("Cannot provide two inputs with the same data!");
+        return Err(eyre!("Cannot provide two inputs with the same data!"));
       }
       tokens.insert("cardinal".to_owned(), rule_tokens);
     }
 
     if let Some(data) = resource_items.supplemental.plurals_type_ordinal {
-      let rule_tokens = gen_type_rs(data);
+      let rule_tokens = gen_type_rs(data)?;
       if tokens.contains_key("ordinal") {
-        panic!("Cannot provide two inputs with the same data!");
+        return Err(eyre!("Cannot provide two inputs with the same data!"));
       }
       tokens.insert("ordinal".to_owned(), rule_tokens);
     }
   }
 
   if cldr_version.is_none() || tokens.is_empty() {
-    panic!("None of the input files provided core data!");
+    return Err(eyre!("None of the input files provided core data!"));
   }
 
+  let cldr_version = &cldr_version.ok_or_eyre("No CLDR version found in input files!")?;
   // Call gen_rs to get Rust code. Convert TokenStream to string for file out.
-  parser::gen_rs::gen_fn(tokens, &cldr_version.unwrap()).to_string()
+  Ok(parser::gen_rs::gen_fn(tokens, cldr_version).to_string())
 }
 
-fn gen_type_rs(rules: BTreeMap<String, BTreeMap<String, String>>) -> Vec<TokenStream> {
+fn gen_type_rs(rules: BTreeMap<String, BTreeMap<String, String>>) -> color_eyre::Result<Vec<TokenStream>> {
   // rule_tokens is a vector of TokenStreams that represent the CLDR plural rules as Rust expressions.
   let mut rule_tokens = Vec::<TokenStream>::new();
 
   let mut rules: Vec<(LanguageIdentifier, BTreeMap<String, String>)> = rules
     .into_iter()
     .filter_map(|(key, value)| {
-      if key == "root" {
+      if key == "root" || key == "und" {
         None
       } else {
-        let langid = key.parse().unwrap_or_else(|_| panic!("Parsing {} failed", key));
+        let langid = key.parse().ok()?;
         Some((langid, value))
       }
     })
@@ -91,14 +93,15 @@ fn gen_type_rs(rules: BTreeMap<String, BTreeMap<String, String>>) -> Vec<TokenSt
         cldr_pluralrules_parser::parse_plural_condition(rule_line).expect("Parsing of a condition succeeded");
       let cat: PluralCategory = cat_name.into();
 
-      // Only allow rules that are not `OTHER` to be added. `OTHER` can have no rules and is added outside of the loop.
+      // Only allow rules that are not `OTHER` to be added. `OTHER` can have no rules and is added outside the loop.
       if cat != PluralCategory::Other {
         let tokens = parser::gen_pr::gen_pr(representation);
         this_lang_rules.push((cat, tokens));
       }
     }
     // convert language rules to TokenStream and add them to all the rules
-    rule_tokens.push(parser::gen_rs::gen_mid(&lang, &this_lang_rules));
+    rule_tokens.push(parser::gen_rs::gen_mid(&lang, &this_lang_rules)?);
   }
-  rule_tokens
+
+  Ok(rule_tokens)
 }

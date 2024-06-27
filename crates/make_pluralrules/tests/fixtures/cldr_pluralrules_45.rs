@@ -14,6 +14,7 @@ macro_rules! langid {
   }};
 }
 pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = &[
+  (langid!(None, None, None), |po| PluralCategory::OTHER, &[PluralCategory::OTHER]),
   (
     langid!(subtags::Language::from_raw_unchecked(26209u64), None, None),
     |po| {
@@ -2427,6 +2428,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   ),
 ];
 pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = &[
+  (langid!(None, None, None), |po| PluralCategory::OTHER, &[PluralCategory::OTHER]),
   (
     langid!(subtags::Language::from_raw_unchecked(26209u64), None, None),
     |po| PluralCategory::OTHER,

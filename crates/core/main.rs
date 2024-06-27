@@ -51,7 +51,7 @@ fn main() -> Result<()> {
   let now = Instant::now();
 
   let entries = parse_directory(path, config)?;
-  let merged = merge_all_values(entries, config);
+  let merged = merge_all_values(entries, config)?;
   write_to_file(&merged, config)?;
 
   let elapsed = now.elapsed();

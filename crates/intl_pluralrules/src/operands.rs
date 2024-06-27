@@ -10,6 +10,8 @@
 //! use std::convert::TryFrom;
 //! use intl_pluralrules::operands::*;
 //! assert_eq!(Ok(PluralOperands {
+//!    e: 0,
+//!    c: 0,
 //!    n: 2_f64,
 //!    i: 2,
 //!    v: 0,
@@ -25,6 +27,8 @@
 //! use std::convert::TryFrom;
 //! use intl_pluralrules::operands::*;
 //! assert_eq!(Ok(PluralOperands {
+//!    e: 0,
+//!    c: 0,
 //!    n: 1234.567_f64,
 //!    i: 1234,
 //!    v: 3,
@@ -40,6 +44,8 @@
 //! use std::convert::TryFrom;
 //! use intl_pluralrules::operands::*;
 //! assert_eq!(Ok(PluralOperands {
+//!    e: 0,
+//!    c: 0,
 //!    n: 123.45_f64,
 //!    i: 123,
 //!    v: 2,
@@ -56,6 +62,10 @@ use std::str::FromStr;
 /// A full plural operands representation of a number. See [CLDR Plural Rules](https://unicode.org/reports/tr35/tr35-numbers.html#Language_Plural_Rules) for complete operands description.
 #[derive(Debug, PartialEq)]
 pub struct PluralOperands {
+  /// compact decimal exponent value: exponent of the power of 10 used in compact decimal formatting
+  pub c: usize,
+  /// deprecated synonym of C
+  pub e: usize,
   /// Absolute value of input
   pub n: f64,
   /// Integer value of input
@@ -105,6 +115,8 @@ impl<'a> TryFrom<&'a str> for PluralOperands {
     }
 
     Ok(PluralOperands {
+      c: Default::default(),
+      e: Default::default(),
       n: absolute_value,
       i: integer_digits,
       v: num_fraction_digits0,
@@ -121,6 +133,8 @@ macro_rules! impl_integer_type {
             fn from(input: $ty) -> Self {
                 // XXXManishearth converting from u32 or u64 to isize may wrap
                 PluralOperands {
+                    c: 0,
+                    e: 0,
                     n: input as f64,
                     i: input as u64,
                     v: 0,
@@ -144,6 +158,8 @@ macro_rules! impl_signed_integer_type {
                 // XXXManishearth converting from i64 to isize may wrap
                 let x = (input as isize).checked_abs().ok_or("Number too big")?;
                 Ok(PluralOperands {
+                    c: 0,
+                    e: 0,
                     n: x as f64,
                     i: x as u64,
                     v: 0,

@@ -1,3 +1,4 @@
+use color_eyre::eyre::eyre;
 use std::collections::HashMap;
 
 use log::trace;
@@ -16,7 +17,7 @@ pub(crate) fn transform_entry(
   value: &Value,
   options: &Config,
   suffix: Option<&str>,
-) -> Value {
+) -> color_eyre::Result<Value> {
   let namespace = entry.namespace.clone().unwrap_or("default".to_string());
   if !unique_count.contains_key(&namespace) {
     unique_count.insert(namespace.clone(), 0);
@@ -28,32 +29,36 @@ pub(crate) fn transform_entry(
   let result = dot_path_to_hash(entry, value, suffix, options);
   trace!("Result: {:?} <- {:?}", value, result.target);
 
-  if result.duplicate {
-    match result.conflict {
-      Some(Conflict::Key) => printwarnln!(
-        "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}",
-        key = entry.key
-      ),
-      Some(Conflict::Value(old, new)) => {
-        let separator: &str = options.namespace_separator.as_ref();
-        printwarn!(
-          "Found same keys with different values: {namespace}{separator}{key}: ",
-          namespace = namespace.bright_yellow(),
-          key = entry.key.blue()
-        );
-        let diff = get_char_diff(&old, &new);
-        println!("{diff}");
-      },
-      _ => (),
-    }
-  } else {
-    *unique_count.get_mut(&namespace).unwrap() += 1;
-    if suffix.is_some() {
-      *unique_plurals_count.get_mut(&namespace).unwrap() += 1;
-    }
+  match result.conflict {
+    Some(Conflict::Key(key)) => {
+      printwarnln!(
+        "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}"
+      );
+      if options.fail_on_warnings {
+        return Err(eyre!(
+          "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}"
+        ));
+      }
+    },
+    Some(Conflict::Value(old, new)) => {
+      let separator: &str = options.namespace_separator.as_ref();
+      printwarn!(
+        "Found same keys with different values: {namespace}{separator}{key}: ",
+        namespace = namespace.bright_yellow(),
+        key = entry.key.blue()
+      );
+      let diff = get_char_diff(&old, &new);
+      println!("{diff}");
+    },
+    _ => {
+      *unique_count.get_mut(&namespace).unwrap() += 1;
+      if suffix.is_some() {
+        *unique_plurals_count.get_mut(&namespace).unwrap() += 1;
+      }
+    },
   }
 
-  result.target
+  Ok(result.target)
 }
 
 #[cfg(test)]
@@ -78,14 +83,8 @@ mod tests {
 
     let result = transform_entry(&entry, &mut unique_count, &mut unique_plurals_count, &value, &options, None);
 
-    assert_eq!(
-      result,
-      json!({
-        "default": {
-          "key1": "value1"
-        }
-      })
-    );
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), json!({"default": {"key1": "value1"}}));
     assert_eq!(unique_count.get("default"), Some(&1));
     assert_eq!(unique_plurals_count.get("default"), Some(&0));
   }

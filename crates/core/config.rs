@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub(crate) enum LineEnding {
@@ -74,9 +73,8 @@ pub(crate) struct Config {
   pub(crate) plural_separator: String,
   pub(crate) sort: bool,
   pub(crate) verbose: bool,
-  pub(crate) fail_on_warnings: Option<bool>,
-  pub(crate) fail_on_update: Option<bool>,
-  pub(crate) custom_value_template: Option<Value>,
+  pub(crate) fail_on_warnings: bool,
+  pub(crate) fail_on_update: bool,
   pub(crate) reset_default_value_locale: Option<String>,
 }
 
@@ -107,7 +105,6 @@ impl Default for Config {
       create_old_catalogs: Default::default(),
       fail_on_warnings: Default::default(),
       fail_on_update: Default::default(),
-      custom_value_template: Default::default(),
       reset_default_value_locale: Default::default(),
     }
   }
@@ -136,6 +133,8 @@ impl Config {
       .set_default("create_old_catalogs", default_config.create_old_catalogs)?
       .set_default("sort", default_config.sort)?
       .set_default("verbose", default_config.verbose)?
+      .set_default("fail_on_warnings", default_config.fail_on_warnings)?
+      .set_default("fail_on_update", default_config.fail_on_update)?
       .set_override("working_dir", working_dir_opt)?;
 
     if verbose {

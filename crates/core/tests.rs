@@ -36,7 +36,7 @@ fn should_parse_successfully() -> color_eyre::Result<()> {
 
   let entries = parse_directory(&PathBuf::from(working_path), config)?;
 
-  let entries = merge_all_values(entries, config);
+  let entries = merge_all_values(entries, config)?;
   for entry in entries {
     let MergeResults {
       namespace: _namespace,
@@ -111,7 +111,7 @@ fn should_not_override_current_values() -> color_eyre::Result<()> {
   let (working_path, config) = &setup_test(Some(path))?;
   let config = &Config { locales: vec!["en".into(), "fr".into()], ..config.clone() };
   let entries = parse_directory(&PathBuf::from(working_path), config)?;
-  let merged = merge_all_values(entries, config);
+  let merged = merge_all_values(entries, config)?;
   write_to_file(&merged, config)?;
 
   let en = dir.path().join("locales/en/ns.json");

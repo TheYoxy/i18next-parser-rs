@@ -11,7 +11,7 @@ use crate::helper::merge_hashes::{merge_hashes, MergeResult};
 use crate::print::print_count::print_counts;
 use crate::transform::transfer_values::transfer_values;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub(crate) struct MergeResults {
   pub(crate) namespace: String,
   pub(crate) locale: String,

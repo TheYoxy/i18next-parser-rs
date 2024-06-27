@@ -27,7 +27,16 @@ fn test_operands_from_str() {
 
   for test in tests {
     assert_eq!(
-      Ok(PluralOperands { n: (test.0).0, i: (test.0).1, v: (test.0).2, w: (test.0).3, f: (test.0).4, t: (test.0).5 }),
+      Ok(PluralOperands {
+        n: (test.0).0,
+        i: (test.0).1,
+        v: (test.0).2,
+        w: (test.0).3,
+        f: (test.0).4,
+        t: (test.0).5,
+        c: 0,
+        e: 0
+      }),
       PluralOperands::try_from(test.1)
     );
   }
@@ -47,7 +56,16 @@ fn test_operands_from_int() {
 
   for test in tests {
     assert_eq!(
-      Ok(PluralOperands { n: (test.0).0, i: (test.0).1, v: (test.0).2, w: (test.0).3, f: (test.0).4, t: (test.0).5 }),
+      Ok(PluralOperands {
+        n: (test.0).0,
+        i: (test.0).1,
+        v: (test.0).2,
+        w: (test.0).3,
+        f: (test.0).4,
+        t: (test.0).5,
+        c: 0,
+        e: 0
+      }),
       PluralOperands::try_from(test.1)
     );
   }
@@ -65,7 +83,16 @@ fn test_operands_from_float() {
 
   for test in tests {
     assert_eq!(
-      Ok(PluralOperands { n: (test.0).0, i: (test.0).1, v: (test.0).2, w: (test.0).3, f: (test.0).4, t: (test.0).5 }),
+      Ok(PluralOperands {
+        n: (test.0).0,
+        i: (test.0).1,
+        v: (test.0).2,
+        w: (test.0).3,
+        f: (test.0).4,
+        t: (test.0).5,
+        c: 0,
+        e: 0
+      }),
       PluralOperands::try_from(test.1)
     );
   }
@@ -93,7 +120,7 @@ fn custom_type() {
   impl TryInto<PluralOperands> for MyType {
     type Error = &'static str;
     fn try_into(self) -> Result<PluralOperands, Self::Error> {
-      Ok(PluralOperands { n: self.value as f64, i: self.value as u64, v: 0, w: 0, f: 0, t: 0 })
+      Ok(PluralOperands { n: self.value as f64, i: self.value as u64, v: 0, w: 0, f: 0, t: 0, c: 0, e: 0 })
     }
   }
 

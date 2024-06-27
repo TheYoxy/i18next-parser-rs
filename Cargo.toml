@@ -49,6 +49,8 @@ tracing-subscriber = { version = "0.3", features = [
 ] }
 unic-langid = "0.9.5"
 better-panic = "0.3"
+[dev-dependencies]
+pretty_assertions = "1.4.0"
 
 [workspace]
 members = [

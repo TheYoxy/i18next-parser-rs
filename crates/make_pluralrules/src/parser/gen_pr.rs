@@ -55,14 +55,7 @@ fn create_relation(rel: Relation) -> TokenStream {
     // All relations that need to be represented in the rust code are folded here. They are unfolded into one token steam later.
     let mut relations = Vec::<TokenStream>::new();
 
-    let l = match left.operand {
-        Operand::N => "n",
-        Operand::I => "i",
-        Operand::V => "v",
-        Operand::T => "t",
-        Operand::W => "w",
-        Operand::F => "f",
-    };
+    let l = left.operand.clone().into();
     let l = Ident::new(l, Span::call_site());
     let o = get_operator_symbol(&operator);
     let r1 = convert_rangl(right);

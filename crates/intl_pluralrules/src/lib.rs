@@ -60,7 +60,7 @@ impl Display for PluralCategory {
       PluralCategory::TWO => "two",
       PluralCategory::FEW => "few",
       PluralCategory::MANY => "many",
-      PluralCategory::OTHER => "other"
+      PluralCategory::OTHER => "other",
     };
 
     write!(f, "{val}")
@@ -212,7 +212,7 @@ mod tests {
 
     let langid: LanguageIdentifier = "xx".parse().expect("Parsing failed.");
     let pr_broken = PluralRules::create(langid, PluralRuleType::CARDINAL);
-    assert_eq!(pr_broken.is_err(), !pr_broken.is_ok());
+    assert_eq!(pr_broken.is_err(), pr_broken.is_err());
   }
 
   #[test]
@@ -230,6 +230,6 @@ mod tests {
 
   #[test]
   fn locale_test() {
-    assert_eq!(PluralRules::get_locales(PluralRuleType::CARDINAL).is_empty(), false);
+    assert!(!PluralRules::get_locales(PluralRuleType::CARDINAL).is_empty());
   }
 }

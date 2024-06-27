@@ -1,18 +1,21 @@
 //! gen_rs is a Rust code generator for expression representations of CLDR plural rules.
-use super::plural_category::PluralCategory;
-use proc_macro2::{Literal, TokenStream};
-use quote::quote;
 use std::collections::BTreeMap;
 use std::str;
+
+use color_eyre::{eyre::eyre, owo_colors::OwoColorize};
+use proc_macro2::{Literal, TokenStream};
+use quote::quote;
 use unic_langid::LanguageIdentifier;
+
+use super::plural_category::PluralCategory;
 
 /// Generates the complete TokenStream for the generated Rust code. This wraps the head and tail of the .rs file around the generated CLDR expressions.
 pub fn gen_fn(streams: BTreeMap<String, Vec<TokenStream>>, vr: &str) -> TokenStream {
   let ignore_noncritical_errors = quote! {
       #![allow(unused_variables, unused_parens)]
-      #![cfg_attr(feature = "cargo-clippy", allow(clippy::float_cmp))]
-      #![cfg_attr(feature = "cargo-clippy", allow(clippy::unreadable_literal))]
-      #![cfg_attr(feature = "cargo-clippy", allow(clippy::nonminimal_bool))]
+      #![cfg_attr(feature = "clippy", allow(clippy::float_cmp))]
+      #![cfg_attr(feature = "clippy", allow(clippy::unreadable_literal))]
+      #![cfg_attr(feature = "clippy", allow(clippy::nonminimal_bool))]
   };
   let use_statements = quote! {
       use super::operands::PluralOperands;
@@ -89,30 +92,46 @@ fn create_all_available(cat: &PluralCategory) -> TokenStream {
   }
 }
 
-pub fn gen_langid(id: &LanguageIdentifier) -> TokenStream {
-  let (lang, script, region, _) = id.clone().into_raw_parts();
-  let lang = if let Some(lang) = lang { quote!(subtags::Language::from_raw_unchecked(#lang)) } else { quote!(None) };
-  let script =
-    if let Some(script) = script { quote!(Some(subtags::Script::from_raw_unchecked(#script))) } else { quote!(None) };
-  let region =
-    if let Some(region) = region { quote!(Some(subtags::Region::from_raw_unchecked(#region))) } else { quote!(None) };
+pub fn gen_langid(id: &LanguageIdentifier) -> color_eyre::Result<TokenStream> {
+  let (lang, script, region, _) = id.clone().into_parts();
+  let lang_o: Option<u64> = lang.into();
+  let lang = if let Some(lang) = lang_o {
+    quote!(subtags::Language::from_raw_unchecked(#lang))
+  } else {
+    return Err(eyre!("{}: unable to find lang for {id}", "WARN".on_yellow()));
+  };
+  let script = if let Some(script) = script {
+    let script: u32 = script.into();
+    quote!(Some(subtags::Script::from_raw_unchecked(#script)))
+  } else {
+    quote!(None)
+  };
+  let region = if let Some(region) = region {
+    let region: u32 = region.into();
+    quote!(Some(subtags::Region::from_raw_unchecked(#region)))
+  } else {
+    quote!(None)
+  };
 
   // No support for variants yet
 
-  quote! {
+  Ok(quote! {
       langid!(
           #lang,
           #script,
           #region
       )
-  }
+  })
 }
 
 /// Generates the closures that comprise the majority of the generated rust code.
 ///
 /// These statements are the expression representations of the CLDR plural rules.
-pub fn gen_mid(lang: &LanguageIdentifier, pluralrule_set: &[(PluralCategory, TokenStream)]) -> TokenStream {
-  let langid = gen_langid(lang);
+pub fn gen_mid(
+  lang: &LanguageIdentifier,
+  pluralrule_set: &[(PluralCategory, TokenStream)],
+) -> color_eyre::Result<TokenStream> {
+  let langid = gen_langid(lang)?;
   // make pluralrule_set iterable
   let mut iter = pluralrule_set.iter();
   let all_available = gen_all_available(pluralrule_set);
@@ -137,13 +156,13 @@ pub fn gen_mid(lang: &LanguageIdentifier, pluralrule_set: &[(PluralCategory, Tok
 
   // We can't use a closure here because closures can't get rvalue
   // promoted to statics. They may in the future.
-  quote! {(
+  Ok(quote! {(
       #langid,
       |po| {
           #rule_tokens
       },
       #all_available
-  )}
+  )})
 }
 
 fn gen_all_available(pluralrule_set: &[(PluralCategory, TokenStream)]) -> TokenStream {
