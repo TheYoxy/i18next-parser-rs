@@ -6,9 +6,14 @@ authors = ["TheYoxy <floryansimar@gmail.com>"]
 license = "MIT"
 description = "A simple i18next parser"
 repository = "https://github.com/TheYoxy/i18next-parser-rs"
+build = "build.rs"
+
+[[bin]]
+bench = false
+path = "crates/core/main.rs"
+name = "i18next-parser"
 
 [dependencies]
-better-panic = "0.3"
 clap = { version = "4", features = ["unicode", "string", "derive"] }
 color-eyre = "0.6"
 config = "0.14"
@@ -17,6 +22,7 @@ flatten-json-object = "0.6"
 globset = "0.4"
 human-panic = "2"
 ignore = "0.4"
+intl_pluralrules = { path = "crates/intl_pluralrules", version = "7.0.2" }
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
@@ -27,8 +33,8 @@ oxc_parser = "0.15"
 oxc_span = "0.15"
 pretty_assertions = "1"
 regex = "1"
-serde = "1"
-serde_json = "1"
+serde = "1.0"
+serde_json = "1.0"
 serde_yaml = "0.9"
 similar = "2.5.0"
 simple_logger = "5"
@@ -37,7 +43,18 @@ tempdir = "0.3"
 tracing = "0.1"
 tracing-error = "0.2"
 tracing-subscriber = { version = "0.3", features = [
-  "env-filter",
-  "serde",
-  "time",
+    "env-filter",
+    "serde",
+    "time",
 ] }
+unic-langid = "0.9.5"
+better-panic = "0.3"
+[dev-dependencies]
+pretty_assertions = "1.4.0"
+
+[workspace]
+members = [
+    "crates/cldr_pluralrules_parser",
+    "crates/make_pluralrules",
+    "crates/intl_pluralrules",
+]
