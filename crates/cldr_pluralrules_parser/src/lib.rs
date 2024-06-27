@@ -80,12 +80,8 @@ pub fn parse_plural_rule<S: AsRef<str>>(source: S) -> color_eyre::Result<ast::Ru
   let source = source.as_ref();
   match parser::parse_rule(source) {
     Ok(("", rule)) => Ok(rule),
-    Ok((left, _)) => {
-      Err(color_eyre::eyre::eyre!("Left string: {left}"))
-    },
-    Err(e) => {
-      Err(color_eyre::eyre::eyre!("Parser failed: {e}"))
-    },
+    Ok((left, _)) => Err(color_eyre::eyre::eyre!("Left string: {left}")),
+    Err(e) => Err(color_eyre::eyre::eyre!("Parser failed: {e}")),
   }
 }
 

@@ -5,58 +5,53 @@ use std::io;
 use std::io::Read;
 
 fn read_file(path: &str) -> Result<String, io::Error> {
-    let mut f = File::open(path)?;
-    let mut s = String::new();
-    f.read_to_string(&mut s)?;
-    Ok(s.trim().to_string())
+  let mut f = File::open(path)?;
+  let mut s = String::new();
+  f.read_to_string(&mut s)?;
+  Ok(s.trim().to_string())
 }
-
 
 #[test]
 fn full_cldr_test_v45() {
-    let cardinal_json = read_file("./tests/fixtures/cldr_pluralrules_cardinals_45.json")
-        .expect("Could not read input json");
-    let ordinal_json = read_file("./tests/fixtures/cldr_pluralrules_ordinals_45.json")
-        .expect("Could not read input json");
-    let output_rs =
-        read_file("./tests/fixtures/cldr_pluralrules_45.rs").expect("Could not read output rs");
+  let cardinal_json =
+    read_file("./tests/fixtures/cldr_pluralrules_cardinals_45.json").expect("Could not read input json");
+  let ordinal_json =
+    read_file("./tests/fixtures/cldr_pluralrules_ordinals_45.json").expect("Could not read input json");
+  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_45.rs").expect("Could not read output rs");
 
-    let output = generate_rs(&[cardinal_json, ordinal_json]).unwrap();
+  let output = generate_rs(&[cardinal_json, ordinal_json]).unwrap();
 
-    assert_eq!(output_rs, output);
+  assert_eq!(output_rs, output);
 }
 
 #[test]
 fn full_cldr_test_v33() {
-    let cardinal_json = read_file("./tests/fixtures/cldr_pluralrules_cardinals_33.json")
-        .expect("Could not read input json");
-    let ordinal_json = read_file("./tests/fixtures/cldr_pluralrules_ordinals_33.json")
-        .expect("Could not read input json");
-    let output_rs =
-        read_file("./tests/fixtures/cldr_pluralrules_33.rs").expect("Could not read output rs");
+  let cardinal_json =
+    read_file("./tests/fixtures/cldr_pluralrules_cardinals_33.json").expect("Could not read input json");
+  let ordinal_json =
+    read_file("./tests/fixtures/cldr_pluralrules_ordinals_33.json").expect("Could not read input json");
+  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_33.rs").expect("Could not read output rs");
 
-    let output = generate_rs(&[cardinal_json, ordinal_json]).unwrap();
+  let output = generate_rs(&[cardinal_json, ordinal_json]).unwrap();
 
-    assert_eq!(output_rs, output);
+  assert_eq!(output_rs, output);
 }
 
 #[test]
 fn within_test() {
-    let input_json = read_file("./tests/fixtures/cldr_pluralrules_within_test.json")
-        .expect("Could not read input json");
-    let output_rs = read_file("./tests/fixtures/cldr_pluralrules_within_test.rs")
-        .expect("Could not read output rs");
+  let input_json = read_file("./tests/fixtures/cldr_pluralrules_within_test.json").expect("Could not read input json");
+  let output_rs = read_file("./tests/fixtures/cldr_pluralrules_within_test.rs").expect("Could not read output rs");
 
-    let output = generate_rs(&[input_json]).unwrap();
+  let output = generate_rs(&[input_json]).unwrap();
 
-    assert_eq!(output_rs, output);
+  assert_eq!(output_rs, output);
 }
 
 #[test]
 #[should_panic]
 fn bad_type_test() {
-    let text = String::from(
-        r#"{
+  let text = String::from(
+    r#"{
   "supplemental": {
     "version": {
       "_number": "$Revision: 13898 $",
@@ -71,38 +66,36 @@ fn bad_type_test() {
     }
   }
 }"#,
-    );
+  );
 
-    generate_rs(&[text]).unwrap();
+  generate_rs(&[text]).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn same_data_cardinal_test() {
-    let cardinal_json = read_file("./tests/fixtures/cldr_pluralrules_cardinals_33.json")
-        .expect("Could not read input json");
-    let copy_json = read_file("./tests/fixtures/cldr_pluralrules_cardinals_33.json")
-        .expect("Could not read input json");
+  let cardinal_json =
+    read_file("./tests/fixtures/cldr_pluralrules_cardinals_33.json").expect("Could not read input json");
+  let copy_json = read_file("./tests/fixtures/cldr_pluralrules_cardinals_33.json").expect("Could not read input json");
 
-    generate_rs(&[cardinal_json, copy_json]).unwrap();
+  generate_rs(&[cardinal_json, copy_json]).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn same_data_ordinal_test() {
-    let cardinal_json = read_file("./tests/fixtures/cldr_pluralrules_ordinals_33.json")
-        .expect("Could not read input json");
-    let copy_json = read_file("./tests/fixtures/cldr_pluralrules_ordinals_33.json")
-        .expect("Could not read input json");
+  let cardinal_json =
+    read_file("./tests/fixtures/cldr_pluralrules_ordinals_33.json").expect("Could not read input json");
+  let copy_json = read_file("./tests/fixtures/cldr_pluralrules_ordinals_33.json").expect("Could not read input json");
 
-    generate_rs(&[cardinal_json, copy_json]).unwrap();
+  generate_rs(&[cardinal_json, copy_json]).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn different_version_test() {
-    let cardinal_json = String::from(
-        r#"{
+  let cardinal_json = String::from(
+    r#"{
   "supplemental": {
     "version": {
       "_number": "$Revision: 13898 $",
@@ -117,9 +110,9 @@ fn different_version_test() {
     }
   }
 }"#,
-    );
-    let ordinal_json = String::from(
-        r#"{
+  );
+  let ordinal_json = String::from(
+    r#"{
   "supplemental": {
     "version": {
       "_number": "$Revision: 13898 $",
@@ -134,7 +127,7 @@ fn different_version_test() {
     }
   }
 }"#,
-    );
+  );
 
-    generate_rs(&[cardinal_json, ordinal_json]).unwrap();
+  generate_rs(&[cardinal_json, ordinal_json]).unwrap();
 }

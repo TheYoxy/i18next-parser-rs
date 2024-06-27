@@ -668,6 +668,27 @@ mod tests {
   }
 
   #[test]
+  fn should_parse_jsx_with_count_numeral() {
+    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title" count={2}>Reset password</Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
+    assert_eq!(le.count, Some(2));
+  }
+
+  #[test]
+  fn should_parse_jsx_with_count_double_reference() {
+    let source_text =
+      r#"const a = 2; const b = a; const el = <Trans ns="ns" i18nKey="dialog.title" count={b}>Reset password</Trans>;"#;
+    let keys = parse(source_text);
+    assert_eq!(keys.len(), 1);
+    let le = keys.first().unwrap();
+    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
+    assert_eq!(le.count, Some(2));
+  }
+
+  #[test]
   fn should_parse_jsx_with_nested_template() {
     let source_text =
       r#"const attempt = 0; const el = <Trans ns="ns" i18nKey="dialog.title">Reset password {{attempt}}</Trans>;"#;
@@ -702,16 +723,6 @@ mod tests {
     assert_eq!(keys.len(), 1);
     let le = keys.first().unwrap();
     le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password<1></1>".to_string()));
-  }
-
-  #[test]
-  fn should_parse_jsx_with_count_numeral() {
-    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title" count={2}>Reset password</Trans>;"#;
-    let keys = parse(source_text);
-    assert_eq!(keys.len(), 1);
-    let le = keys.first().unwrap();
-    le.assert_eq("dialog.title", Some("ns".to_string()), Some("Reset password".to_string()));
-    assert_eq!(le.count, Some(2));
   }
 
   #[test]
