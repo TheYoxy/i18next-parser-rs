@@ -1,3 +1,4 @@
+//! This module contains the plural rules and resolver.
 use std::collections::HashMap;
 
 use color_eyre::{eyre::eyre, Result};
@@ -27,8 +28,11 @@ fn get_cleaned_code(code: &str) -> String {
 /// * `nr` - A vector of unsigned 32-bit integers representing numbers.
 /// * `fc` - An unsigned 32-bit integer representing a function code.
 struct PluralSet {
+  /// A vector of static string slices representing languages.
   lngs: Vec<&'static str>,
+  /// A vector of unsigned 32-bit integers representing numbers.
   nr: Vec<u32>,
+  /// An unsigned 32-bit integer representing a function code.
   fc: u32,
 }
 
@@ -229,6 +233,7 @@ pub(crate) struct PluralResolver {
   version: I18NVersion,
 }
 
+/// A struct representing the supported i18n version.
 #[derive(Default)]
 pub(crate) enum I18NVersion {
   #[default]

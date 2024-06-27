@@ -50,6 +50,10 @@ tracing-subscriber = { version = "0.3", features = [
 unic-langid = "0.9"
 better-panic = "0.3"
 
+[features]
+default = ["generate_types"]
+generate_types = []
+
 [dev-dependencies]
 pretty_assertions = "1.4.0"
 test-log = "0.2"

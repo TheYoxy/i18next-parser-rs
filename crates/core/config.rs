@@ -1,17 +1,25 @@
+//! Configuration module.
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+/// Line ending configuration.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub(crate) enum LineEnding {
+  /// Auto-detect line endings.
   #[default]
   Auto,
+  /// Use CRLF line endings.
   Crlf,
+  /// Use CR line endings.
   Cr,
+  /// Use LF line endings.
   Lf,
 }
 
+/// Convert `LineEnding` to `config::Value`.
 impl From<LineEnding> for config::Value {
+  /// Convert `LineEnding` to `config::Value`.
   #[inline]
   fn from(val: LineEnding) -> Self {
     match val {
@@ -22,59 +30,44 @@ impl From<LineEnding> for config::Value {
     }
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test_log::test]
-  fn test_line_ending_auto() {
-    let line_ending = LineEnding::Auto;
-    let value: config::Value = line_ending.into();
-    assert_eq!(value, "auto".into());
-  }
-
-  #[test_log::test]
-  fn test_line_ending_crlf() {
-    let line_ending = LineEnding::Crlf;
-    let value: config::Value = line_ending.into();
-    assert_eq!(value, "crlf".into());
-  }
-
-  #[test_log::test]
-  fn test_line_ending_cr() {
-    let line_ending = LineEnding::Cr;
-    let value: config::Value = line_ending.into();
-    assert_eq!(value, "cr".into());
-  }
-
-  #[test_log::test]
-  fn test_line_ending_lf() {
-    let line_ending = LineEnding::Lf;
-    let value: config::Value = line_ending.into();
-    assert_eq!(value, "lf".into());
-  }
-}
-
+/// This struct represents the configuration for the i18n system.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct Config {
+  /// The working directory for the i18n system.
   pub(crate) working_dir: PathBuf,
+  /// A vector of locales used in the i18n system.
   pub(crate) locales: Vec<String>,
+  /// A vector of input sources for the i18n system.
   pub(crate) input: Vec<String>,
+  /// The output destination for the i18n system.
   pub(crate) output: String,
+  /// The separator used in the context of the i18n system.
   pub(crate) context_separator: String,
+  /// A boolean indicating whether to create old catalogs in the i18n system.
   pub(crate) create_old_catalogs: bool,
+  /// The default namespace used in the i18n system.
   pub(crate) default_namespace: String,
+  /// The default value used in the i18n system.
   pub(crate) default_value: String,
+  /// A boolean indicating whether to keep removed entries in the i18n system.
   pub(crate) keep_removed: bool,
+  /// The separator used for keys in the i18n system.
   pub(crate) key_separator: String,
+  /// The line ending configuration for the i18n system.
   pub(crate) line_ending: LineEnding,
+  /// The separator used for namespaces in the i18n system.
   pub(crate) namespace_separator: String,
+  /// The separator used for plurals in the i18n system.
   pub(crate) plural_separator: String,
+  /// A boolean indicating whether to sort entries in the i18n system.
   pub(crate) sort: bool,
+  /// A boolean indicating whether to output verbose logs in the i18n system.
   pub(crate) verbose: bool,
+  /// A boolean indicating whether to fail on warnings in the i18n system.
   pub(crate) fail_on_warnings: bool,
+  /// A boolean indicating whether to fail on updates in the i18n system.
   pub(crate) fail_on_update: bool,
+  /// An optional string representing the locale to reset the default value in the i18n system.
   pub(crate) reset_default_value_locale: Option<String>,
 }
 
@@ -110,7 +103,12 @@ impl Default for Config {
   }
 }
 
+/// Implement `Config`.
 impl Config {
+  /// Create a new instance of `Config`.
+  /// # Arguments
+  /// * `working_dir` - The working directory for the i18n system.
+  /// * `verbose` - A boolean indicating whether to output verbose logs in the i18n system.
   pub(crate) fn new<T>(working_dir: T, verbose: bool) -> Result<Self, config::ConfigError>
   where
     T: Into<PathBuf>,
@@ -169,7 +167,41 @@ impl Config {
     builder.build().and_then(|config| config.try_deserialize())
   }
 
+  /// Get the output destination for the i18n system.
   pub(crate) fn get_output(&self) -> String {
     self.working_dir.join(&self.output).to_str().unwrap().to_string()
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test_log::test]
+  fn test_line_ending_auto() {
+    let line_ending = LineEnding::Auto;
+    let value: config::Value = line_ending.into();
+    assert_eq!(value, "auto".into());
+  }
+
+  #[test_log::test]
+  fn test_line_ending_crlf() {
+    let line_ending = LineEnding::Crlf;
+    let value: config::Value = line_ending.into();
+    assert_eq!(value, "crlf".into());
+  }
+
+  #[test_log::test]
+  fn test_line_ending_cr() {
+    let line_ending = LineEnding::Cr;
+    let value: config::Value = line_ending.into();
+    assert_eq!(value, "cr".into());
+  }
+
+  #[test_log::test]
+  fn test_line_ending_lf() {
+    let line_ending = LineEnding::Lf;
+    let value: config::Value = line_ending.into();
+    assert_eq!(value, "lf".into());
   }
 }

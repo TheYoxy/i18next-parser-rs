@@ -1,7 +1,9 @@
+///! Print the configuration.
 use color_eyre::owo_colors::OwoColorize;
 
 use crate::config::Config;
 
+/// Print the configuration.
 pub(crate) fn print_config<C: AsRef<Config>>(config: C) {
   let config = config.as_ref();
   println!("  {}", "i18next Parser rust".bright_cyan());

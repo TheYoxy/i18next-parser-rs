@@ -1,16 +1,33 @@
+//! This module contains the logic to transform entries into a JSON object.
 use std::collections::HashMap;
 
 use serde_json::Value;
 
 use crate::{config::Config, plural, printerror, transform::transform_entry::transform_entry, visitor::Entry};
 
+/// Represents the result of transforming entries.
 pub(crate) struct TransformEntriesResult {
+  /// The unique count of entries.
   pub(crate) unique_count: HashMap<String, usize>,
+  /// The unique count of plural entries.
   pub(crate) unique_plurals_count: HashMap<String, usize>,
+  /// The transformed value.
   pub(crate) value: Value,
+  /// The locale of the transformed value.
   pub(crate) locale: String,
 }
 
+/// Transforms entries into a JSON object.
+///
+/// # Arguments
+///
+/// * `entries` - A reference to the entries to transform.
+/// * `locale` - The locale of the entries.
+/// * `config` - A reference to the configuration.
+///
+/// # Returns
+///
+/// * `Result<TransformEntriesResult, color_eyre::Error>` - The result of transforming the entries.
 pub(crate) fn transform_entries(
   entries: &[Entry],
   locale: &str,

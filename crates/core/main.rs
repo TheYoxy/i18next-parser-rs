@@ -1,3 +1,7 @@
+//! # i18next_parser
+//! A rust rewrite of the [`i18next-parser`](https://github.com/i18next/i18next-parser) written in plain js
+//!
+
 use std::time::Instant;
 
 use clap::Parser;
@@ -18,6 +22,7 @@ mod catalog;
 mod cli;
 mod config;
 mod file;
+#[cfg(feature = "generate_types")]
 mod generate_types;
 mod helper;
 mod is_empty;
@@ -31,6 +36,7 @@ mod transform;
 mod utils;
 mod visitor;
 
+/// Entry point of the application
 fn main() -> Result<()> {
   print_app();
   initialize_panic_handler()?;
@@ -54,6 +60,7 @@ fn main() -> Result<()> {
   let elapsed = now.elapsed();
   let path = path.file_name().unwrap();
   printinfo!("Directory {path:?} parsed in {:.2}ms", elapsed.as_millis());
+  #[cfg(feature = "generate_types")]
   if cli.generate_types {
     generate_types::generate_types(&merged, config)?;
   }

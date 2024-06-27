@@ -121,7 +121,7 @@ impl<I: Iterator> SkipLast for I {
 /// * `target`: The target JSON object.
 /// * `segments`: The segments of the key.
 ///
-/// returns: (Option<String>, Option<Conflict>, &'a mut Value, &'a str) - A tuple containing a mutable reference to the value and an optional conflict.
+/// returns: (`Option<String>`, `Option<Conflict>`, &'a mut Value, &'a str) - A tuple containing a mutable reference to the value and an optional conflict.
 fn lookup_by_key<'a>(
   target: &'a mut Value,
   segments: &'a [&'a str],

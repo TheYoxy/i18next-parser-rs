@@ -1,3 +1,5 @@
+//! Collection of utility functions and constants used throughout the project.
+
 use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
@@ -7,15 +9,21 @@ use tracing_error::ErrorLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
 
 lazy_static! {
+  /// The name of the project.
   pub(crate) static ref PROJECT_NAME: String = env!("CARGO_CRATE_NAME").to_uppercase().to_string();
+  /// The folder where the data is stored.
   pub(crate) static ref DATA_FOLDER: Option<PathBuf> =
     std::env::var(format!("{}_DATA", PROJECT_NAME.clone())).ok().map(PathBuf::from);
+  /// The folder where the configuration is stored.
   pub(crate) static ref CONFIG_FOLDER: Option<PathBuf> =
     std::env::var(format!("{}_CONFIG", PROJECT_NAME.clone())).ok().map(PathBuf::from);
+  /// The log environment variable to check for the log level.
   pub(crate) static ref LOG_ENV: String = format!("{}_LOGLEVEL", PROJECT_NAME.clone());
+  /// The log file name.
   pub(crate) static ref LOG_FILE: String = format!("{}.log", env!("CARGO_PKG_NAME"));
 }
 
+/// Initialize the logging system.
 pub(crate) fn initialize_logging() -> Result<()> {
   let directory = get_data_dir();
   std::fs::create_dir_all(&directory)?;
@@ -38,6 +46,7 @@ pub(crate) fn initialize_logging() -> Result<()> {
   Ok(())
 }
 
+/// Initialize the panic handler.
 pub(crate) fn initialize_panic_handler() -> Result<()> {
   let (panic_hook, eyre_hook) = color_eyre::config::HookBuilder::default()
     .panic_section(format!("This is a bug. Consider reporting it at {}", env!("CARGO_PKG_REPOSITORY")))
@@ -77,10 +86,12 @@ pub(crate) fn initialize_panic_handler() -> Result<()> {
   Ok(())
 }
 
+/// Get the directory where the project files are stored.
 fn project_directory() -> Option<ProjectDirs> {
   ProjectDirs::from("be", "endevops", env!("CARGO_PKG_NAME"))
 }
 
+/// Get the directory where the data is stored.
 pub(crate) fn get_data_dir() -> PathBuf {
   let directory = if let Some(s) = DATA_FOLDER.clone() {
     s

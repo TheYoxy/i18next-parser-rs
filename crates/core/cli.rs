@@ -2,10 +2,12 @@ use std::{env, path::PathBuf};
 
 use clap::{command, Parser};
 
+/// Get the default log path
 fn get_default_log_path() -> PathBuf {
   env::current_dir().unwrap()
 }
 
+/// The CLI options
 #[derive(Parser, Debug)]
 #[command(version, about, author)]
 pub(crate) struct Cli {
@@ -18,6 +20,7 @@ pub(crate) struct Cli {
   pub(crate) verbose: bool,
   /// Should generate types
   #[arg(short, long, default_value = "false")]
+  #[cfg(feature = "generate_types")]
   pub(crate) generate_types: bool,
 }
 

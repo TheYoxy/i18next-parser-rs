@@ -4,7 +4,7 @@ use log::trace;
 use serde_json::Value;
 
 use crate::{
-  catalog::get_catalog,
+  catalog::read_file_into_serde,
   config::Config,
   helper::merge_hashes::{merge_hashes, MergeResult},
   print::print_count::print_counts,
@@ -44,9 +44,9 @@ pub(crate) fn merge_results<C: AsRef<Config>>(
   trace!("File path: {path:?}");
   trace!("Backup path: {backup:?}");
 
-  let value = get_catalog(&path);
+  let value = read_file_into_serde(&path);
 
-  let old_value = get_catalog(&backup);
+  let old_value = read_file_into_serde(&backup);
   let old_value = old_value.as_ref();
 
   trace!("Value: {value:?} -> {old_value:?}");

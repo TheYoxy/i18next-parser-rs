@@ -1,3 +1,6 @@
+//! Macros for the core crate.
+
+/// Log the execution time of a function.
 #[macro_export]
 macro_rules! log_time {
   ($message:expr, $func:expr) => {{
@@ -13,6 +16,7 @@ macro_rules! log_time {
   }};
 }
 
+/// Print a message with a prefix of `[read]` in bright green color.
 #[macro_export]
 macro_rules! printread {
     ($($arg:tt)*) => {{
@@ -22,6 +26,7 @@ macro_rules! printread {
     }};
 }
 
+/// Print a message with a prefix of `[write]` in blue color.
 #[macro_export]
 macro_rules! printinfo {
     ($($arg:tt)*) => {{
@@ -31,6 +36,7 @@ macro_rules! printinfo {
     }};
 }
 
+/// Print a message with a prefix of `[warn]` in yellow color.
 #[macro_export]
 macro_rules! printwarn {
     ($($arg:tt)*) => {{
@@ -40,6 +46,7 @@ macro_rules! printwarn {
     }};
 }
 
+/// Print a message with a prefix of `[warn]` in yellow color.
 #[macro_export]
 macro_rules! printwarnln {
     ($($arg:tt)*) => {{
@@ -49,6 +56,7 @@ macro_rules! printwarnln {
     }};
 }
 
+/// Print a message with a prefix of `[err ]` in red color.
 #[macro_export]
 macro_rules! printerror {
     ($($arg:tt)*) => {{

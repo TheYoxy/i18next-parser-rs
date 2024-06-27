@@ -1,3 +1,4 @@
+//! This module is responsible for generating types for the i18next resources.
 use std::{fmt::Display, fs, path::MAIN_SEPARATOR_STR};
 
 use regex::Regex;
@@ -18,13 +19,18 @@ fn camelize(s: &str) -> String {
   .to_string()
 }
 
+/// Represents the value of an entry in the generated types.
 #[derive(Debug)]
 struct EntryValue<T: Display, P: Display, O: Display> {
+  /// The visual of the entry.
   display_name: P,
+  /// The name of the entry.
   name: O,
+  /// The path of the entry.
   path: T,
 }
 
+/// Generates types for the i18next resources.
 pub(crate) fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> color_eyre::Result<()> {
   let config = config.as_ref();
   let default_locale = config

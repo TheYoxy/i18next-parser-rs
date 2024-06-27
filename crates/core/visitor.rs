@@ -1,3 +1,4 @@
+//! This module contains the visitor that will parse the AST and extract the i18n keys.
 use std::collections::HashMap;
 
 use log::{debug, error, trace, warn};
@@ -10,11 +11,22 @@ use oxc_span::GetSpan;
 use serde_json::Value;
 use tracing::span;
 
-use crate::helper::clean_multi_line_code::clean_multi_line_code;
+use crate::{helper::clean_multi_line_code::clean_multi_line_code, is_empty::IsEmpty};
 
+/// This type alias represents the options for i18next.
+/// It is a HashMap where the key is a String representing the option name,
+/// and the value is an Option<`String`> representing the option value.
 type I18NextOptions = HashMap<String, Option<String>>;
 
-
+/// This struct represents an entry in the i18n system.
+///
+/// # Fields
+///
+/// * `key` - The key of the entry.
+/// * `value` - The value found for the key.
+/// * `namespace` - The namespace found for the key.
+/// * `i18next_options` - All i18next options found in the file.
+/// * `has_count` - A boolean indicating whether the key has a count (if plural).
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub(crate) struct Entry {
@@ -30,22 +42,39 @@ pub(crate) struct Entry {
   pub(crate) has_count: bool,
 }
 
+/// This struct represents the options for the I18NVisitor.
+///
+/// # Fields
+///
+/// * `trans_keep_basic_html_nodes_for` - An optional vector of strings representing the basic HTML nodes to be kept for translation.
 #[derive(Debug, Default)]
 pub(crate) struct VisitorOptions {
   pub(crate) trans_keep_basic_html_nodes_for: Option<Vec<String>>,
 }
 
+/// This struct represents the I18NVisitor which is used to parse the AST and extract the i18n keys.
+///
+/// # Fields
+///
+/// * `program` - The program to be parsed.
+/// * `entries` - A vector of entries in the i18n system.
+/// * `options` - The options for the I18NVisitor.
+/// * `current_namespace` - The current namespace while parsing a file.
 #[derive(Debug)]
 pub(crate) struct I18NVisitor<'a> {
+  /// the program to be parsed
   pub(crate) program: &'a Program<'a>,
+  /// the entries in the i18n system
   pub(crate) entries: Vec<Entry>,
+  /// the options for the I18NVisitor
   pub(crate) options: VisitorOptions,
   /// the current namespace while parsing a file
   current_namespace: Option<String>,
 }
 
+/// The visitor implementation that will search for translations inside javascript code
 impl<'a> I18NVisitor<'a> {
-  /// Creates a new [`CountASTNodes`].
+  /// Creates a new \[`CountASTNodes`\].
   pub(crate) fn new(program: &'a Program<'a>) -> Self {
     I18NVisitor {
       program,
@@ -55,6 +84,15 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
+  /// Parse an expression to find its value
+  ///
+  /// # Arguments
+  ///
+  /// * `expr` - The expression to parse
+  ///
+  /// # Returns
+  ///
+  /// An optional value representing the value of the expression
   fn parse_expression(&self, expr: &Expression<'_>) -> Option<Value> {
     use serde_json::json;
     trace!("Parsing expression: {expr:?}");
@@ -72,8 +110,18 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
+  /// Parse an expression to find its value
+  ///
+  /// # Arguments
+  ///
+  /// * `expr` - The expression to parse
+  ///
+  /// # Returns
+  ///
+  /// An optional value representing the value of the expression
   fn parse_expression_as_string(&self, expr: &Expression<'_>) -> Option<String> {
     trace!("Parsing expression: {expr:?}");
+
     match expr {
       Expression::StringLiteral(str) => Some(str.value.to_string()),
       Expression::Identifier(identifier) => self.find_identifier_value_as_string(identifier),
@@ -88,6 +136,14 @@ impl<'a> I18NVisitor<'a> {
   }
 
   /// Find the value of an identifier.
+  ///
+  /// # Arguments
+  ///
+  /// * `identifier` - The identifier to find the value for
+  ///
+  /// # Returns
+  ///
+  /// An optional value representing the value of the identifier
   fn find_identifier_value(&self, identifier: &oxc_allocator::Box<IdentifierReference>) -> Option<Value> {
     let arr = self.program.body.iter().find_map(|stmt| {
       if let Statement::VariableDeclaration(var) = stmt {
@@ -109,7 +165,15 @@ impl<'a> I18NVisitor<'a> {
     arr
   }
 
-  /// Find the value of an identifier.
+  /// Find the value of an identifier as a string
+  ///
+  /// # Arguments
+  ///
+  /// * `identifier` - The identifier to find the value for
+  ///
+  /// # Returns
+  ///
+  /// An optional string representing the value of the identifier
   fn find_identifier_value_as_string(&self, identifier: &oxc_allocator::Box<IdentifierReference>) -> Option<String> {
     let arr = self.program.body.iter().find_map(|stmt| {
       if let Statement::VariableDeclaration(var) = stmt {
@@ -131,6 +195,16 @@ impl<'a> I18NVisitor<'a> {
     arr
   }
 
+  /// Extract the namespace from the i18next function
+  ///
+  /// # Arguments
+  ///
+  /// * `name` - The name of the function
+  /// * `expr` - The call expression
+  ///
+  /// # Returns
+  ///
+  /// The namespace found in the function
   fn extract_namespace(&mut self, name: &str, expr: &CallExpression<'a>) {
     let arg = match name {
       "useTranslation" | "withTranslation" => expr.arguments.first(),
@@ -152,6 +226,15 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
+  /// Parse the i18next options
+  ///
+  /// # Arguments
+  ///
+  /// * `obj` - The object expression to parse
+  ///
+  /// # Returns
+  ///
+  /// The i18next options found in the object
   fn parse_i18next_option(&self, obj: &oxc_allocator::Box<ObjectExpression>) -> I18NextOptions {
     use color_eyre::owo_colors::OwoColorize;
 
@@ -172,7 +255,7 @@ impl<'a> I18NVisitor<'a> {
               parsed_value = value
             );
 
-            kv.key.name().map(|name| (name.to_string(), I18NextOptionValue::new(value)))
+            kv.key.name().map(|name| (name.to_string(), value))
           },
           ObjectPropertyKind::SpreadProperty(_) => {
             warn!("Unsupported spread property");
@@ -183,6 +266,16 @@ impl<'a> I18NVisitor<'a> {
       .collect::<I18NextOptions>()
   }
 
+  /// Check if a prop exists in a JSX element
+  ///
+  /// # Arguments
+  ///
+  /// * `elem` - The JSX element to check
+  /// * `attribute_name` - The name of the attribute to check
+  ///
+  /// # Returns
+  ///
+  /// A boolean indicating whether the prop exists
   fn has_prop(&self, elem: &JSXElement<'_>, attribute_name: &str) -> bool {
     elem.opening_element.attributes.iter().any(|elem| {
       match elem {
@@ -211,6 +304,16 @@ impl<'a> I18NVisitor<'a> {
     })
   }
 
+  /// Get the value of a prop in a JSX element
+  ///
+  /// # Arguments
+  ///
+  /// * `elem` - The JSX element to get the prop value from
+  /// * `attribute_name` - The name of the attribute to get the value for
+  ///
+  /// # Returns
+  ///
+  /// The value of the prop
   fn get_prop_value(&self, elem: &JSXElement<'_>, attribute_name: &str) -> Option<String> {
     _ = span!(tracing::Level::TRACE, "get_prop_value", attribute_name = attribute_name).enter();
     elem
@@ -258,6 +361,7 @@ impl<'a> I18NVisitor<'a> {
       .map(|v| v.to_string())
   }
 
+  /// Convert the children of a tag to a string
   fn elem_to_string(&self, childs: &[NodeChild]) -> String {
     childs
       .iter()
@@ -433,7 +537,7 @@ impl<'a> I18NVisitor<'a> {
       },
       (None, None) => (None, None),
       (arg_1, arg_2) => {
-        warn!("Unknown argument combinaison type: {arg_1:?} {arg_2:?}");
+        warn!("Unknown argument combination type: {arg_1:?} {arg_2:?}");
         todo!("Handle argument {arg_1:?} {arg_2:?}")
       },
     }
@@ -444,28 +548,25 @@ impl<'a> I18NVisitor<'a> {
     obj: &oxc_allocator::Box<'_, ObjectExpression<'_>>,
   ) -> (I18NextOptions, Option<String>) {
     let i18next_options = self.parse_i18next_option(obj);
-    let default_value = i18next_options.get("defaultValue").and_then(|value| value.to_string());
-    if let Some(value) = &default_value {
+    let default_value = i18next_options.get("defaultValue").cloned().flatten();
+    if let Some(value) = i18next_options.get("defaultValue") {
       trace!("translation value found in i18next options: {value:?}");
     }
     (i18next_options, default_value)
   }
 }
 
+/// This enum represents the children of a tag.
 enum NodeChild {
+  /// The children is a text.
   Text(String),
+  /// The children is a tag
   Tag(NodeTag),
+  /// The children are js code
   Js(String),
 }
 
-struct NodeTag {
-  children: Option<Vec<NodeChild>>,
-  name: String,
-  is_basic: bool,
-  self_closing: bool,
-}
-
-impl NodeChild {
+impl IsEmpty for NodeChild {
   fn is_empty(&self) -> bool {
     match self {
       NodeChild::Text(text) => text.is_empty(),
@@ -473,6 +574,18 @@ impl NodeChild {
       NodeChild::Js(js) => js.is_empty(),
     }
   }
+}
+
+/// This struct represents a tag.
+struct NodeTag {
+  /// The children of the tag.
+  children: Option<Vec<NodeChild>>,
+  /// The name of the tag.
+  name: String,
+  /// A boolean indicating whether the tag is basic.
+  is_basic: bool,
+  /// A boolean indicating whether the tag is self-closing.
+  self_closing: bool,
 }
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
@@ -507,8 +620,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
         let (value, i18next_options) = self.read_t_args((expr.arguments.get(1), expr.arguments.get(2)));
 
         let options = i18next_options.as_ref();
-        let namespace =
-          self.current_namespace.clone().or(options.and_then(|o| o.get("namespace").and_then(|v| v.to_string())));
+        let namespace = self.current_namespace.clone().or(options.and_then(|o| o.get("namespace").cloned().flatten()));
         let has_count = match options {
           Some(opt) => opt.get("count").is_some(),
           None => false,
@@ -722,7 +834,7 @@ mod tests {
     use super::*;
 
     #[test_log::test]
-    fn should_parse_t_with_count_litteral_spread() {
+    fn should_parse_t_with_count_literal_spread() {
       let source_text = r#"const count = 1;const title = t("toast.title", undefined, { count });"#;
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
@@ -732,7 +844,7 @@ mod tests {
     }
 
     #[test_log::test]
-    fn should_parse_t_with_count_litteral() {
+    fn should_parse_t_with_count_literal() {
       let source_text = r#"const count = 1;const title = t("toast.title", undefined, {count: count});"#;
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
