@@ -116,7 +116,7 @@ impl<'a> PluralRules<'a> {
   /// ```
   pub fn create<L: Into<LanguageIdentifier>>(langid: L, prt: PluralRuleType) -> Result<Self, &'static str> {
     let langid = langid.into();
-    println!("lang: {langid:?}");
+
     let returned_rule = match prt {
       PluralRuleType::CARDINAL => {
         let idx = PRS_CARDINAL.binary_search_by_key(&&langid, |(l, _, _)| l);

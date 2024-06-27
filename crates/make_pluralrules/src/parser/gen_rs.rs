@@ -11,10 +11,7 @@ use super::plural_category::PluralCategory;
 /// Generates the complete TokenStream for the generated Rust code. This wraps the head and tail of the .rs file around the generated CLDR expressions.
 pub fn gen_fn(streams: BTreeMap<String, Vec<TokenStream>>, vr: &str) -> TokenStream {
   let ignore_noncritical_errors = quote! {
-      #![allow(unused_variables, unused_parens)]
-      #![cfg_attr(feature = "clippy", allow(clippy::float_cmp))]
-      #![cfg_attr(feature = "clippy", allow(clippy::unreadable_literal))]
-      #![cfg_attr(feature = "clippy", allow(clippy::nonminimal_bool))]
+      #![allow(unused_variables, unused_parens, clippy::float_cmp, clippy::unreadable_literal, clippy::nonminimal_bool)]
   };
   let use_statements = quote! {
       use super::operands::PluralOperands;

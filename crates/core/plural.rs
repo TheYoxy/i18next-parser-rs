@@ -226,11 +226,18 @@ pub(crate) struct PluralResolver {
   rules: Rules,
   simplify_plural_suffix: bool,
   prepend: Option<String>,
+  version: I18NVersion,
+}
+
+#[derive(Default)]
+pub(crate) enum I18NVersion {
+  #[default]
+  V4,
 }
 
 impl Default for PluralResolver {
   fn default() -> Self {
-    Self::new(false, Some("_".to_string()))
+    Self::new(false, Some("_".to_string()), Default::default())
   }
 }
 
@@ -241,7 +248,7 @@ impl PluralResolver {
   ///
   /// * `simplify_plural_suffix` - A boolean indicating whether to simplify the plural suffix.
   /// * `prepend` - An optional string slice that holds the value to prepend.
-  pub(crate) fn new(simplify_plural_suffix: bool, prepend: Option<String>) -> Self {
+  pub(crate) fn new(simplify_plural_suffix: bool, prepend: Option<String>, version: I18NVersion) -> Self {
     let sets = vec![
       PluralSet {
         lngs: vec![
@@ -293,7 +300,7 @@ impl PluralResolver {
 
     let rules = create_rules(sets);
 
-    Self { rules, simplify_plural_suffix, prepend }
+    Self { rules, simplify_plural_suffix, prepend, version }
   }
 
   /// Returns the plural rule for the provided code.
@@ -320,18 +327,24 @@ impl PluralResolver {
   ///
   /// * A vector of Strings representing the suffixes.
   pub(crate) fn get_suffixes(&self, code: &str) -> Result<Vec<String>> {
-    let lang: unic_langid::LanguageIdentifier = code.parse()?;
-    let plural_rules = PluralRules::create(lang, PluralRuleType::CARDINAL).map_err(|e| eyre!(e))?;
-    let result = plural_rules.resolved_options();
-    let prepend = self.prepend.clone().unwrap_or_default();
+    #[allow(unreachable_patterns)]
+    match self.version {
+      I18NVersion::V4 => {
+        let lang: unic_langid::LanguageIdentifier = code.parse()?;
+        let plural_rules = PluralRules::create(lang, PluralRuleType::CARDINAL).map_err(|e| eyre!(e))?;
+        let result = plural_rules.resolved_options();
+        let prepend = self.prepend.clone().unwrap_or_default();
+        Ok(result.iter().map(|n| format!("{prepend}{n}")).collect::<Vec<String>>())
+      },
+      _ => {
+        let result = match self.get_rule(code) {
+          Some((numbers, _)) => numbers.iter().map(|&n| self.get_suffix(code, n)).collect(),
+          None => vec![],
+        };
 
-    Ok(result.iter().map(|n| format!("{prepend}{n}")).collect::<Vec<String>>())
-
-    // v3 support
-    // match self.get_rule(code) {
-    //   Some((numbers, _)) => numbers.iter().map(|&n| self.get_suffix(code, n)).collect(),
-    //   None => vec![],
-    // }
+        Ok(result)
+      },
+    }
   }
 
   /// Returns a string representing the suffix for the provided code and count.
@@ -403,7 +416,7 @@ mod tests {
 
     #[test]
     fn plural_resolver_new_creates_new_with_given_simplify_suffix() {
-      let resolver = PluralResolver::new(false, None);
+      let resolver = PluralResolver::new(false, None, Default::default());
       assert!(!resolver.simplify_plural_suffix);
     }
 

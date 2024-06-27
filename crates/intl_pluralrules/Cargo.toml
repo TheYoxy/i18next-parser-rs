@@ -20,10 +20,13 @@ include = [
 unic-langid = "0.9"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.5"
 unic-langid = { version = "0.9", features = ["macros"] }
-pretty_assertions = "1.4.0"
+pretty_assertions = "1"
 
 [[bench]]
 name = "pluralrules"
 harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

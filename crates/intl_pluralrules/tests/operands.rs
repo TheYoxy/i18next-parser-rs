@@ -100,7 +100,7 @@ fn test_operands_from_float() {
 
 #[test]
 fn test_incorrect_operand() {
-  assert_eq!(PluralOperands::try_from("foo").is_err(), true);
+  assert!(PluralOperands::try_from("foo").is_err());
 }
 
 #[test]
@@ -136,5 +136,5 @@ fn custom_type() {
 fn many_decimal_places() {
   // this should not panic on an i32 system
   let num: f64 = 2.813829837982735;
-  assert_eq!(dbg!(PluralOperands::try_from(num)).is_ok(), true);
+  assert!(dbg!(PluralOperands::try_from(num)).is_ok());
 }

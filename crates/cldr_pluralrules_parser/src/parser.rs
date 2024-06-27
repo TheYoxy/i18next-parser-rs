@@ -5,7 +5,7 @@ use nom::{
   bytes::complete::tag,
   character::complete::{alphanumeric1, one_of, space0, space1},
   combinator::{map, map_res, opt},
-  multi::{separated_list, separated_nonempty_list},
+  multi::{separated_list0, separated_list1},
   sequence::{preceded, separated_pair, tuple},
   IResult,
 };
@@ -39,7 +39,7 @@ fn range_list_item(i: &str) -> IResult<&str, RangeListItem> {
 }
 
 fn range_list(i: &str) -> IResult<&str, RangeList> {
-  map(separated_list(tuple((space0, tag(","), space0)), range_list_item), RangeList)(i)
+  map(separated_list0(tuple((space0, tag(","), space0)), range_list_item), RangeList)(i)
 }
 
 fn operand(i: &str) -> IResult<&str, Operand> {
@@ -99,7 +99,7 @@ fn relation(i: &str) -> IResult<&str, Relation> {
 }
 
 fn and_condition(i: &str) -> IResult<&str, AndCondition> {
-  map(separated_nonempty_list(tuple((space1, tag("and"), space1)), relation), AndCondition)(i)
+  map(separated_list1(tuple((space1, tag("and"), space1)), relation), AndCondition)(i)
 }
 
 fn decimal_value(i: &str) -> IResult<&str, DecimalValue> {
@@ -116,7 +116,7 @@ fn sample_range(i: &str) -> IResult<&str, SampleRange> {
 fn sample_list(i: &str) -> IResult<&str, SampleList> {
   map(
     tuple((
-      separated_nonempty_list(tuple((space0, tag(","), space0)), sample_range),
+      separated_list1(tuple((space0, tag(","), space0)), sample_range),
       opt(preceded(tuple((space0, tag(","), space0)), alt((tag("..."), tag("…"))))),
     )),
     |(l, ellipsis)| SampleList { sample_ranges: l, ellipsis: ellipsis.is_some() },
@@ -153,5 +153,5 @@ pub fn parse_condition(i: &str) -> IResult<&str, Condition> {
     return Ok(("", Condition(vec![])));
   }
 
-  map(separated_nonempty_list(tuple((space1, tag("or"), space1)), and_condition), Condition)(i)
+  map(separated_list1(tuple((space1, tag("or"), space1)), and_condition), Condition)(i)
 }

@@ -27,27 +27,33 @@
   in
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system overlays;};
+      rustPlatform = pkgs.makeRustPlatform {
+        cargo = pkgs.rustToolchain;
+        rustc = pkgs.rustToolchain;
+      };
     in {
       formatter = pkgs.alejandra;
 
       devShells = {
-        default = with pkgs; mkShell {
-          buildInputs = [
-            libiconv
-            pkg-config
-            rustToolchain
-          ];
-        };
+        default = with pkgs;
+          mkShell {
+            buildInputs = [
+              libiconv
+              pkg-config
+              rustToolchain
+              (cargo-tarpaulin.override {
+                inherit rustPlatform;
+              })
+            ];
+          };
       };
 
       packages = let
         lib = pkgs.lib;
         package = (lib.importTOML ./Cargo.toml).package;
       in rec {
-        i18next-parser = (pkgs.makeRustPlatform {
-            cargo = pkgs.rustToolchain;
-            rustc = pkgs.rustToolchain;
-          })
+        i18next-parser =
+          rustPlatform
           .buildRustPackage {
             pname = package.name;
             version = package.version;

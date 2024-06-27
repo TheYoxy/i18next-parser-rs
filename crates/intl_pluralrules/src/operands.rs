@@ -39,8 +39,8 @@
 //!   PluralOperands::try_from(123.45)
 //! )
 //! ```
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::cast_lossless))]
-use std::{convert::TryFrom, isize, str::FromStr};
+#![allow(clippy::cast_lossless)]
+use std::{convert::TryFrom, str::FromStr};
 
 /// A full plural operands representation of a number. See [CLDR Plural Rules](https://unicode.org/reports/tr35/tr35-numbers.html#Language_Plural_Rules) for complete operands description.
 #[derive(Debug, PartialEq)]
@@ -67,9 +67,9 @@ impl<'a> TryFrom<&'a str> for PluralOperands {
   type Error = &'static str;
 
   fn try_from(input: &'a str) -> Result<Self, Self::Error> {
-    let abs_str = if input.starts_with('-') { &input[1..] } else { &input };
+    let abs_str = input.strip_prefix("-").unwrap_or(input);
 
-    let absolute_value = f64::from_str(&abs_str).map_err(|_| "Incorrect number passed!")?;
+    let absolute_value = f64::from_str(abs_str).map_err(|_| "Incorrect number passed!")?;
 
     let integer_digits;
     let num_fraction_digits0;
@@ -81,12 +81,12 @@ impl<'a> TryFrom<&'a str> for PluralOperands {
       let int_str = &abs_str[..dec_pos];
       let dec_str = &abs_str[(dec_pos + 1)..];
 
-      integer_digits = u64::from_str(&int_str).map_err(|_| "Could not convert string to integer!")?;
+      integer_digits = u64::from_str(int_str).map_err(|_| "Could not convert string to integer!")?;
 
       let backtrace = dec_str.trim_end_matches('0');
 
-      num_fraction_digits0 = dec_str.len() as usize;
-      num_fraction_digits = backtrace.len() as usize;
+      num_fraction_digits0 = dec_str.len();
+      num_fraction_digits = backtrace.len();
       fraction_digits0 = u64::from_str(dec_str).map_err(|_| "Could not convert string to integer!")?;
       fraction_digits = u64::from_str(backtrace).unwrap_or(0);
     } else {

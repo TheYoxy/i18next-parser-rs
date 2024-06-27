@@ -48,6 +48,7 @@ mod tests {
   use super::*;
   use crate::{config::Config, helper::merge_hashes::MergeResult, visitor::Entry};
 
+  #[test]
   fn merge_all_values_simple_case() {
     let entries = vec![Entry {
       namespace: Some("default".into()),

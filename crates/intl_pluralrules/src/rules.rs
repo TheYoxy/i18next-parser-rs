@@ -1,7 +1,4 @@
-#![allow(unused_variables, unused_parens)]
-#![cfg_attr(feature = "clippy", allow(clippy::float_cmp))]
-#![cfg_attr(feature = "clippy", allow(clippy::unreadable_literal))]
-#![cfg_attr(feature = "clippy", allow(clippy::nonminimal_bool))]
+#![allow(unused_variables, unused_parens, clippy::float_cmp, clippy::unreadable_literal, clippy::nonminimal_bool)]
 use unic_langid::{subtags, LanguageIdentifier};
 
 use super::{operands::PluralOperands, PluralCategory};
