@@ -1,4 +1,6 @@
+use color_eyre::eyre::eyre;
 use serde_json::Value;
+use tracing::instrument;
 
 use crate::{
   config::Config,
@@ -8,9 +10,11 @@ use crate::{
   visitor::Entry,
 };
 
+#[instrument]
 pub(crate) fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<Vec<MergeResults>> {
-  log_time!("Preparing entries to write", || {
+  log_time!("Preparing entries to write", {
     let locales = &config.locales;
+    let default_locale = &config.locales.first().ok_or(eyre!("No locales found in the configuration."))?;
     let results = locales
       .iter()
       .map(|locale| transform_entries(&entries, locale, config))
@@ -25,7 +29,15 @@ pub(crate) fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_ey
           let result = catalog
             .iter()
             .map(|(namespace, catalog)| {
-              merge_results(locale, namespace, catalog, unique_count, unique_plurals_count, config)
+              merge_results(
+                locale,
+                namespace,
+                catalog,
+                unique_count,
+                unique_plurals_count,
+                locale == *default_locale,
+                config,
+              )
             })
             .collect::<Vec<_>>();
           Some(result)

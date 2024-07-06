@@ -2,11 +2,19 @@
 
 use std::path::PathBuf;
 
-use color_eyre::eyre::Result;
+use color_eyre::{eyre::Result, owo_colors::OwoColorize};
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
-use tracing_error::ErrorLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
+use tracing::{Event, Level, Subscriber};
+use tracing_subscriber::{
+  filter::filter_fn,
+  fmt,
+  fmt::{FormatEvent, FormatFields},
+  layer::SubscriberExt,
+  registry::LookupSpan,
+  util::SubscriberInitExt,
+  EnvFilter, Layer,
+};
 
 lazy_static! {
   /// The name of the project.
@@ -23,18 +31,97 @@ lazy_static! {
   pub(crate) static ref LOG_FILE: String = format!("{}.log", env!("CARGO_PKG_NAME"));
 }
 
+#[cfg(debug_assertions)]
+pub(crate) fn initialize_logging() -> color_eyre::Result<()> {
+  struct InfoFormatter;
+  impl<S, N> FormatEvent<S, N> for InfoFormatter
+  where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+    N: for<'a> FormatFields<'a> + 'static,
+  {
+    fn format_event(
+      &self,
+      ctx: &fmt::FmtContext<'_, S, N>,
+      mut writer: fmt::format::Writer,
+      event: &Event,
+    ) -> std::fmt::Result {
+      // Based on https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/trait.FormatEvent.html#examples
+      // Without the unused parts
+      let metadata = event.metadata();
+      let level = *metadata.level();
+
+      if level == Level::ERROR {
+        write!(writer, "{} ", "!".red())?;
+      } else if level == Level::WARN {
+        write!(writer, "{} ", "!".yellow())?;
+      } else if level == Level::INFO {
+        write!(writer, "{} ", ">".green())?;
+      } else {
+        write!(writer, "{} ", ">".cyan())?;
+      }
+
+      ctx.field_format().format_fields(writer.by_ref(), event)?;
+
+      if level != Level::INFO {
+        if let (Some(file), Some(line)) = (metadata.file(), metadata.line()) {
+          write!(writer, " @ {}:{}", file, line)?;
+        }
+      }
+
+      writeln!(writer)?;
+      Ok(())
+    }
+  }
+
+  use color_eyre::eyre::Context;
+  use tracing_error::ErrorLayer;
+  use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
+  let file_subscriber = tracing_subscriber::fmt::layer()
+    .compact()
+    .without_time()
+    .with_file(false)
+    .with_line_number(false)
+    .with_writer(std::io::stderr)
+    .with_target(false)
+    .with_ansi(true)
+    .event_format(InfoFormatter)
+    .with_filter(filter_fn(|meta| {
+      let level = *meta.level();
+      level <= Level::DEBUG
+    }))
+    .with_filter(EnvFilter::from_default_env());
+
+  let layer_debug = tracing_subscriber::fmt::layer()
+    .with_writer(std::io::stderr)
+    .without_time()
+    .compact()
+    .with_line_number(true)
+    .with_filter(EnvFilter::from_default_env())
+    .with_filter(filter_fn(|meta| *meta.level() > Level::DEBUG));
+
+  tracing_subscriber::registry()
+    .with(file_subscriber)
+    .with(layer_debug)
+    .with(ErrorLayer::default())
+    .try_init()
+    .with_context(|| "initializing logging")
+}
+
 /// Initialize the logging system.
+#[cfg(not(debug_assertions))]
 pub(crate) fn initialize_logging() -> Result<()> {
   let directory = get_data_dir();
   std::fs::create_dir_all(&directory)?;
   let log_path = directory.join(LOG_FILE.clone());
   let log_file = std::fs::File::create(log_path)?;
+
   std::env::set_var(
     "RUST_LOG",
     std::env::var("RUST_LOG")
       .or_else(|_| std::env::var(LOG_ENV.clone()))
       .unwrap_or_else(|_| format!("{}=info", env!("CARGO_CRATE_NAME"))),
   );
+
   let file_subscriber = tracing_subscriber::fmt::layer()
     .with_file(true)
     .with_line_number(true)

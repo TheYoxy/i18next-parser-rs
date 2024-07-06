@@ -8,7 +8,7 @@ macro_rules! log_time {
 
     use log::debug;
     let start = Instant::now();
-    let result = $func();
+    let result = $func;
     let duration = start.elapsed();
     let duration_ms = duration.as_secs_f64() * 1000.0;
     debug!("{} - Execution time: {:.2} ms", $message, duration_ms);

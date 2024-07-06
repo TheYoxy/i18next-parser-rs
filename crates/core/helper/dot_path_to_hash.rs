@@ -111,8 +111,7 @@ trait SkipLast: Iterator + Sized {
     SkipLastIterator(self.peekable())
   }
 }
-impl<I: Iterator> SkipLast for I {
-}
+impl<I: Iterator> SkipLast for I {}
 
 /// Lookup a value in a JSON object by key.
 ///

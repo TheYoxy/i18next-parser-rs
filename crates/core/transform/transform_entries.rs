@@ -41,11 +41,9 @@ pub(crate) fn transform_entries(
       let resolver = plural::PluralResolver::default();
       let suffixes = resolver.get_suffixes(locale);
       match suffixes {
-        Ok(suffixes) => {
-          suffixes.iter().try_fold(value, |value, suffix| {
-            transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(suffix))
-          })
-        },
+        Ok(suffixes) => suffixes.iter().try_fold(value, |value, suffix| {
+          transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(suffix))
+        }),
         Err(e) => {
           printerror!("Error getting suffixes: {}", e);
           Ok(value)

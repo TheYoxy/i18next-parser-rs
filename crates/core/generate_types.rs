@@ -45,17 +45,15 @@ pub(crate) fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config:
         .strip_prefix(&config.working_dir)
         .is_ok_and(|s| s.to_str().map_or(false, |p| p.contains(default_locale.as_str())))
     })
-    .map(|entry| {
-      EntryValue {
-        name: entry.namespace.as_str(),
-        display_name: camelize(entry.namespace.as_str()),
-        path: entry
-          .path
-          .strip_prefix(&config.working_dir)
-          .unwrap_or_else(|_| panic!("Failed to strip prefix"))
-          .to_str()
-          .unwrap(),
-      }
+    .map(|entry| EntryValue {
+      name: entry.namespace.as_str(),
+      display_name: camelize(entry.namespace.as_str()),
+      path: entry
+        .path
+        .strip_prefix(&config.working_dir)
+        .unwrap_or_else(|_| panic!("Failed to strip prefix"))
+        .to_str()
+        .unwrap(),
     })
     .collect::<Vec<_>>();
 
