@@ -709,13 +709,31 @@ dependencies = [
  "clap",
  "clap_complete",
  "color-eyre",
+ "flatten-json-object",
+ "human-panic",
+ "i18next_parser_core",
+ "log",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "strip-ansi-escapes",
+ "tempdir",
+ "test-log",
+ "tracing",
+ "tracing-error",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "i18next_parser_core"
+version = "0.2.2"
+dependencies = [
+ "color-eyre",
  "config",
  "flatten-json-object",
  "globset",
- "human-panic",
  "ignore",
  "intl_pluralrules",
- "lazy_static",
  "log",
  "oxc_allocator",
  "oxc_ast",
@@ -727,12 +745,9 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "similar",
- "strip-ansi-escapes",
  "tempdir",
  "test-log",
  "tracing",
- "tracing-error",
- "tracing-subscriber",
  "unic-langid",
 ]
 

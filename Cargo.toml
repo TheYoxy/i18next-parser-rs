@@ -1,64 +1,12 @@
-[package]
-name = "i18next-parser"
-version = "0.2.2"
-edition = "2021"
-authors = ["TheYoxy <floryansimar@gmail.com>"]
-license = "MIT"
-description = "A simple i18next parser"
-repository = "https://github.com/TheYoxy/i18next-parser-rs"
-build = "build.rs"
-
-[[bin]]
-bench = false
-path = "i18next_parser/main.rs"
-name = "i18next-parser"
-
-[dependencies]
-clap = { version = "4", features = ["unicode", "string", "derive"] }
-color-eyre = "0.6"
-config = "0.14"
-flatten-json-object = "0.6"
-globset = "0.4"
-ignore = "0.4"
-intl_pluralrules = { path = "intl_pluralrules", version = "7.0.2" }
-lazy_static = "1"
-log = "0.4"
-oxc_allocator = "0.20"
-oxc_ast = "0.20"
-oxc_parser = "0.20"
-oxc_span = "0.20"
-pretty_assertions = "1"
-regex = "1"
-serde = "1.0"
-serde_json = "1.0"
-similar = "2"
-strip-ansi-escapes = "0.2"
-tempdir = "0.3"
-tracing = "0.1"
-tracing-error = "0.2"
-tracing-subscriber = { version = "0.3", features = [
-    "env-filter",
-    "serde",
-    "time",
-] }
-unic-langid = "0.9"
-better-panic = "0.3"
-anstyle = "1.0.7"
-clap_complete = "4.5.7"
-serde_yaml_ng = "0.10.0"
-human-panic = "2.0.0"
-
-[features]
-default = ["generate_types"]
-generate_types = []
-
-[dev-dependencies]
-pretty_assertions = "1.4.0"
-test-log = "0.2"
-
 [workspace]
-members = [
-    "cldr_pluralrules_parser",
-    "make_pluralrules",
-    "intl_pluralrules",
-]
+members = ["cldr_pluralrules_parser", "make_pluralrules", "intl_pluralrules", "i18next_parser_core", "i18next_parser" ]
+resolver = "2"
+
+[profile.dev]
+opt-level = 0
+debug = true
+panic = "abort"
+
+[profile.test]
+opt-level = 0
+debug = true

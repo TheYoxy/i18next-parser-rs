@@ -6,11 +6,14 @@
       <sourceFolder url="file://$MODULE_DIR$/cldr_pluralrules_parser/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/cldr_pluralrules_parser/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/cldr_pluralrules_parser/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/i18next_parser/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/i18next_parser_core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/intl_pluralrules/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/intl_pluralrules/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/intl_pluralrules/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/make_pluralrules/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/make_pluralrules/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/i18next_parser/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/.direnv" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
