@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2024-07-16
+### Details
+#### Features
+- Replaced serde_yaml with serde_yaml_ng by @TheYoxy
+
+#### Refactor
+- Added more logs into generate_types method by @TheYoxy
+
 ## [0.2.1] - 2024-07-16
 ### Details
 #### Miscellaneous Tasks
@@ -21,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Documentation
 - Added documentation for most of modules by @TheYoxy
 - Added better documentation in README.md by @TheYoxy
+- Added more documentation by @TheYoxy
 
 #### Features
 - Improved global logging and QOL by @TheYoxy
@@ -80,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tempdir for testing by @TheYoxy
 - Added test to validate that the value isn't overriden when existing by @TheYoxy
 
+[0.2.2]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.1..0.2.2
 [0.2.1]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.0..0.2.1
 [0.2.0]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.1.0..0.2.0
 
