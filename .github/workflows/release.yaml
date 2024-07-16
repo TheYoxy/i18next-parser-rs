@@ -1,61 +1,51 @@
 name: Release
 
 on:
+  workflow_dispatch:
   push:
-    tags:
-      - "*.*.*"
+    branches:
+      - master
 
 jobs:
-  bump_version:
+  tag:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+        name: Checkout
+        with:
+          fetch-depth: 0
+      - name: Git Version
+        id: version
+        uses: codacy/git-version@2.7.1
       - name: Bump version
-        uses: tj-actions/cargo-bump@v3
+        shell: bash
+        run: sed -i -e 's/^version = .*/version = "${{ steps.version.outputs.version }}"/' Cargo.toml
       - name: Generate a changelog
         uses: orhun/git-cliff-action@v3
-        id: git-cliff
+        id: i18next-parser
         with:
           config: cliff.toml
-          args: --verbose --latest --no-exec --github-repo ${{ github.repository }}
+          args: --verbose --no-exec --tag ${{ steps.version.outputs.version }}
         env:
           OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
-
-      - name: Commit CHANGELOG.md
-        uses: stefanzweifel/git-auto-commit-action@v4
+      - name: Get last commit message
+        id: last-commit
+        run: |
+          echo "message=$(git log -1 --pretty=%s)" >> $GITHUB_OUTPUT
+          echo "author=$(git log -1 --pretty=\"%an <%ae>\")" >> $GITHUB_OUTPUT
+      - name: Commit bump_version
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: master
-          commit_message: "docs: update CHANGELOG.md for ${{ github.ref_name }} [skip ci]"
-          file_pattern: CHANGELOG.md
-      # Commit and Push changes to the Cargo.toml
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          body: ${{ steps.git-cliff.outputs.content }}
-  release:
-    name: release ${{ matrix.target }}
-    needs: bump_version
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-pc-windows-gnu
-            archive: zip
-          - target: x86_64-unknown-linux-musl
-            archive: tar.gz tar.xz tar.zst
-          - target: x86_64-apple-darwin
-            archive: zip
-          - target: aarch64-apple-darwin
-            archive: zip
-    steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.5
+          commit_author: ${{ steps.last-commit.outputs.author }}
+          commit_message: "chore: bumped version to ${{ steps.version.outputs.version }}\n\nOld message: ${{ steps.last-commit.outputs.message }}"
+          file_pattern: 'CHANGELOG.md Cargo.toml'
+          tagging_message: ${{ steps.version.outputs.version }}
+          commit_options: '--amend --no-edit'
+          push_options: '--force-with-lease'
+          skip_fetch: true
+      - name: Trigger tag
+        run: gh workflow run tag.yaml --ref ${{ steps.version.outputs.version }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
+          GH_TOKEN: ${{ github.token }}
