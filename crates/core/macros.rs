@@ -6,64 +6,21 @@ macro_rules! log_time {
   ($message:expr, $func:expr) => {{
     use std::time::Instant;
 
-    use color_eyre::owo_colors::OwoColorize;
+    use color_eyre::owo_colors::{AnsiColors, OwoColorize};
     use log::trace;
 
     let start = Instant::now();
     let result = $func;
     let duration = start.elapsed();
     let duration_ms = duration.as_secs_f64() * 1000.0;
-    trace!("{} - Execution time: {:.2} ms", $message, duration_ms.cyan());
+    let duration_str = if duration_ms < 10.0 {
+      duration_ms.color(AnsiColors::Cyan)
+    } else if duration_ms < 50.0 {
+      duration_ms.color(AnsiColors::Yellow)
+    } else {
+      duration_ms.color(AnsiColors::Red)
+    };
+    trace!("{} - Execution time: {:.2} ms", $message, duration_str);
     result
   }};
-}
-
-/// Print a message with a prefix of `[read]` in bright green color.
-#[macro_export]
-macro_rules! printread {
-    ($($arg:tt)*) => {{
-        use color_eyre::owo_colors::OwoColorize;
-        let info_prefix = " [read] ".bright_green();
-        println!("{}{}", info_prefix, format!($($arg)*));
-    }};
-}
-
-/// Print a message with a prefix of `[write]` in blue color.
-#[macro_export]
-macro_rules! printinfo {
-    ($($arg:tt)*) => {{
-        use color_eyre::owo_colors::OwoColorize;
-        let info_prefix = " [info] ".blue();
-        println!("{}{}", info_prefix, format!($($arg)*));
-    }};
-}
-
-/// Print a message with a prefix of `[warn]` in yellow color.
-#[macro_export]
-macro_rules! printwarn {
-    ($($arg:tt)*) => {{
-        use color_eyre::owo_colors::OwoColorize;
-        let warn_prefix = " [warn] ".yellow();
-        print!("{}{}", warn_prefix, format!($($arg)*));
-    }};
-}
-
-/// Print a message with a prefix of `[warn]` in yellow color.
-#[macro_export]
-macro_rules! printwarnln {
-    ($($arg:tt)*) => {{
-        use color_eyre::owo_colors::OwoColorize;
-        let warn_prefix = " [warn] ".yellow();
-        println!("{}{}", warn_prefix, format!($($arg)*));
-    }};
-}
-
-/// Print a message with a prefix of `[err ]` in red color.
-#[macro_export]
-macro_rules! printerror {
-    ($($arg:tt)*) => {{
-        use color_eyre::owo_colors::OwoColorize;
-        let err_prefix = " [err ] ".red();
-        println!("{}{}", err_prefix, format!($($arg)*));
-    }};
 }

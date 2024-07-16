@@ -1,29 +1,30 @@
 use std::{num::NonZero, path::PathBuf};
 
-use color_eyre::eyre::{bail, eyre};
+use color_eyre::{
+  eyre::{bail, eyre},
+  owo_colors::OwoColorize,
+};
 use ignore::DirEntry;
 use log::{debug, info};
 use tracing::instrument;
 
-use crate::{config::Config, log_time, parser::parse_file::parse_file, printinfo, visitor::Entry};
+use crate::{config::Config, log_time, parser::parse_file::parse_file, visitor::Entry};
 
-#[instrument(skip(filter, is_verbose))]
-fn parse_directory_mono_thread(filter: &[DirEntry], is_verbose: bool) -> Vec<Entry> {
+#[instrument(skip(filter))]
+fn parse_directory_mono_thread(filter: &[DirEntry]) -> Vec<Entry> {
   filter
     .iter()
     .filter_map(move |entry| {
       let entry_path = entry.path();
-      if is_verbose {
-        crate::printread!("{}", entry_path.display());
-      }
+      tracing::info!(target: "file_read", "{file}", file = entry_path.display());
       parse_file(entry_path).ok()
     })
     .flatten()
     .collect()
 }
 
-#[instrument(skip(filter, parallelism, is_verbose))]
-fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry], is_verbose: bool) -> Vec<Entry> {
+#[instrument(skip(filter, parallelism))]
+fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry]) -> Vec<Entry> {
   let len = filter.len();
   let items_per_threads = len / parallelism;
   let chunk_size = (len + items_per_threads - 1) / items_per_threads; // ceil(len / n)
@@ -34,7 +35,7 @@ fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry], is_v
   vectors
     .iter()
     .cloned()
-    .flat_map(|filter| std::thread::spawn(move || parse_directory_mono_thread(&filter, is_verbose)).join().unwrap())
+    .flat_map(|filter| std::thread::spawn(move || parse_directory_mono_thread(&filter)).join().unwrap())
     .collect::<Vec<_>>()
 }
 
@@ -59,20 +60,20 @@ pub(crate) fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(
   };
 
   if path.exists() {
-    debug!("Reading directory {path:?} to find {:?}", &config.input);
+    debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
   } else {
     bail!("Directory {path:?} does not exist");
   }
 
   for path in path.read_dir()? {
     let Ok(path) = path else { continue };
-    debug!("Reading directory {path:?} to find {:?}", &config.input);
+    debug!("Reading directory {} to find {:?}", path.path().display().yellow(), &config.input);
   }
 
   let directory_name =
     path.file_name().and_then(|s| s.to_str()).ok_or(eyre!("Unable to get filename of path {path:?}"))?;
-  log_time!(format!("Reading directory {directory_name}"), {
-    debug!("Reading directory {path:?} to find {:?}", &config.input);
+  log_time!(format!("Reading directory {}", directory_name.yellow()), {
+    debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
     let filter = ignore::WalkBuilder::new(path)
       .standard_filters(true)
       .build()
@@ -85,13 +86,12 @@ pub(crate) fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(
       let parallelism = std::thread::available_parallelism().unwrap();
       let len = filter.len();
 
-      printinfo!("Reading {len} files");
-      let is_verbose = config.verbose;
+      info!("Reading {} files", len.blue());
       let entries = if len > parallelism.get() {
-        info!("Using {parallelism} threads to read the directory {directory_name}");
-        parse_directory_thread(parallelism, &filter, is_verbose)
+        debug!("Using {parallelism} threads to read the directory {directory_name}");
+        parse_directory_thread(parallelism, &filter)
       } else {
-        parse_directory_mono_thread(&filter, is_verbose)
+        parse_directory_mono_thread(&filter)
       };
 
       Ok(entries)

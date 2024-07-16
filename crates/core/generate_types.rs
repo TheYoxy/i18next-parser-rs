@@ -1,10 +1,10 @@
 //! This module is responsible for generating types for the i18next resources.
 use std::{fmt::Display, fs, path::MAIN_SEPARATOR_STR};
 
-use log::trace;
+use log::{info, trace};
 use regex::Regex;
 
-use crate::{config::Config, merger::merge_results::MergeResults, printinfo};
+use crate::{config::Config, merger::merge_results::MergeResults};
 
 /// Converts a string to camel case.
 fn camelize(s: &str) -> String {
@@ -118,7 +118,7 @@ declare global {{
   let generated_file_name = "react-i18next.resources.d.ts";
   let path = &config.working_dir.join(generated_file_name);
   fs::write(path, template)?;
-  printinfo!("Generated {}", generated_file_name);
+  info!("Generated {}", generated_file_name);
 
   Ok(())
 }

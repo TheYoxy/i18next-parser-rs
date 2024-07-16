@@ -1,6 +1,6 @@
 //! This module contains the merge_hashes function that merges two JSON objects (hashes) together.
 use color_eyre::owo_colors::OwoColorize;
-use log::{debug, error, trace, warn};
+use log::{debug, error, trace};
 use regex::Regex;
 use serde_json::{Map, Value};
 
@@ -166,7 +166,7 @@ pub(crate) fn merge_hashes(
           reset_count += 1;
         },
         Some(target_value) => {
-          debug!("Replacing key: {} from {} to {}", key.purple(), target_value.cyan(), value.cyan());
+          trace!("Replacing key: {} from {} to {}", key.purple(), target_value.cyan(), value.cyan());
           *target_value = value.clone();
           merge_count += 1;
         },
@@ -195,7 +195,7 @@ pub(crate) fn merge_hashes(
       trace!("Existing: {:?}", existing.cyan());
     }
   } else {
-    warn!("No source provided, returning existing hash as is. {:?}", existing.cyan());
+    debug!("No source provided, returning existing hash as is. {:?}", existing.cyan());
   }
 
   MergeResult {

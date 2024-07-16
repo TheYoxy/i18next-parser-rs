@@ -79,7 +79,7 @@ fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> s
       std::fs::create_dir_all(parent)?;
     }
   }
-  debug!("Writting {} to {}", contents.cyan(), path.display().yellow());
+  trace!("Writting {} to {}", contents.cyan(), path.display().yellow());
   let mut file = File::create(Path::new(path))?;
   let bytes = text.as_bytes();
   file.write_all(bytes)?;

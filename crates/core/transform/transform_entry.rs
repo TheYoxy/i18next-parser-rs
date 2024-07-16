@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use color_eyre::{eyre::bail, owo_colors::OwoColorize};
-use log::trace;
+use log::{trace, warn};
 use serde_json::Value;
 
 use crate::{
@@ -10,7 +10,6 @@ use crate::{
     dot_path_to_hash::{dot_path_to_hash, Conflict},
     get_char_diff::get_char_diff,
   },
-  printwarn, printwarnln,
   visitor::Entry,
 };
 
@@ -35,22 +34,20 @@ pub(crate) fn transform_entry(
 
   match result.conflict {
     Some(Conflict::Key(key)) => {
-      printwarnln!(
-        "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}"
-      );
+      warn!("Found translation key already mapped to a map or parent of new key already mapped to a string: {key}");
       if options.fail_on_warnings {
         bail!("Found translation key already mapped to a map or parent of new key already mapped to a string: {key}")
       }
     },
     Some(Conflict::Value(old, new)) => {
       let separator: &str = options.namespace_separator.as_ref();
-      printwarn!(
-        "Found same keys with different values: {namespace}{separator}{key}: ",
-        namespace = namespace.bright_yellow(),
-        key = entry.key.blue()
-      );
       let diff = get_char_diff(&old, &new);
-      println!("{diff}");
+      warn!(
+        "Found same keys with different values: {namespace}{separator}{key}: {diff}",
+        namespace = namespace.bright_yellow(),
+        key = entry.key.blue(),
+        diff = diff
+      );
     },
     _ => {
       *unique_count.get_mut(&namespace).unwrap() += 1;

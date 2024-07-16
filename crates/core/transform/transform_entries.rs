@@ -1,9 +1,10 @@
 //! This module contains the logic to transform entries into a JSON object.
 use std::collections::HashMap;
 
+use log::error;
 use serde_json::Value;
 
-use crate::{config::Config, plural, printerror, transform::transform_entry::transform_entry, visitor::Entry};
+use crate::{config::Config, plural, transform::transform_entry::transform_entry, visitor::Entry};
 
 /// Represents the result of transforming entries.
 pub(crate) struct TransformEntriesResult {
@@ -47,7 +48,7 @@ pub(crate) fn transform_entries(
           })
         },
         Err(e) => {
-          printerror!("Error getting suffixes: {}", e);
+          error!("Error getting suffixes: {}", e);
           Ok(value)
         },
       }

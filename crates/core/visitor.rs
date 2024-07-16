@@ -1,6 +1,7 @@
 //! This module contains the visitor that will parse the AST and extract the i18n keys.
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
+use color_eyre::owo_colors::OwoColorize;
 use log::{debug, error, trace, warn};
 use oxc_ast::{
   ast::{Argument, CallExpression, Expression, IdentifierReference, ObjectPropertyKind, Program, Statement, *},
@@ -9,7 +10,7 @@ use oxc_ast::{
 };
 use oxc_span::GetSpan;
 use serde_json::Value;
-use tracing::span;
+use tracing::{instrument, span};
 
 use crate::{helper::clean_multi_line_code::clean_multi_line_code, is_empty::IsEmpty};
 
@@ -64,6 +65,8 @@ pub(crate) struct VisitorOptions {
 pub(crate) struct I18NVisitor<'a> {
   /// the program to be parsed
   pub(crate) program: &'a Program<'a>,
+  /// the file name of the file being parsed
+  pub(crate) file_path: PathBuf,
   /// the entries in the i18n system
   pub(crate) entries: Vec<Entry>,
   /// the options for the I18NVisitor
@@ -75,9 +78,10 @@ pub(crate) struct I18NVisitor<'a> {
 /// The visitor implementation that will search for translations inside javascript code
 impl<'a> I18NVisitor<'a> {
   /// Creates a new \[`CountASTNodes`\].
-  pub(crate) fn new(program: &'a Program<'a>) -> Self {
+  pub(crate) fn new<Path: Into<PathBuf>>(program: &'a Program<'a>, file_path: Path) -> Self {
     I18NVisitor {
       program,
+      file_path: file_path.into(),
       entries: Default::default(),
       options: Default::default(),
       current_namespace: Default::default(),
@@ -95,7 +99,7 @@ impl<'a> I18NVisitor<'a> {
   /// An optional value representing the value of the expression
   fn parse_expression(&self, expr: &Expression<'_>) -> Option<Value> {
     use serde_json::json;
-    trace!("Parsing expression: {expr:?}");
+    trace!("Parsing expression: {:?}", expr.bright_black().italic());
 
     match expr {
       Expression::StringLiteral(str) => Some(json!(str.value.to_string())),
@@ -104,7 +108,7 @@ impl<'a> I18NVisitor<'a> {
       // Expression::Identifier(identifier) => self.find_identifier_value_as_string(identifier),
       // Expression::TSSatisfiesExpression(expr) => self.parse_expression_as_string(&expr.expression),
       _ => {
-        warn!("Unsupported expression: {expr:?}");
+        debug!("Unsupported expression: {expr:?}");
         None
       },
     }
@@ -120,12 +124,19 @@ impl<'a> I18NVisitor<'a> {
   ///
   /// An optional value representing the value of the expression
   fn parse_expression_as_string(&self, expr: &Expression<'_>) -> Option<String> {
-    trace!("Parsing expression: {expr:?}");
+    trace!("Parsing expression: {:?}", expr.bright_black().italic());
 
     match expr {
+      Expression::StaticMemberExpression(expression) => self.parse_expression_as_string(&expression.object),
+      Expression::Identifier(identifier) => {
+        trace!("Looking for identifier value from expression");
+        self.find_identifier_value_as_string(identifier)
+      },
+      Expression::TSSatisfiesExpression(expr) => {
+        trace!("Looking for identifier value from expression");
+        self.parse_expression_as_string(&expr.expression)
+      },
       Expression::StringLiteral(str) => Some(str.value.to_string()),
-      Expression::Identifier(identifier) => self.find_identifier_value_as_string(identifier),
-      Expression::TSSatisfiesExpression(expr) => self.parse_expression_as_string(&expr.expression),
       Expression::NumericLiteral(num) => Some(num.value.to_string()),
       Expression::BooleanLiteral(bool) => Some(bool.value.to_string()),
       _ => {
@@ -151,15 +162,19 @@ impl<'a> I18NVisitor<'a> {
           .declarations
           .iter()
           .find(|v| v.id.get_identifier() == Some(identifier.name.clone()))
-          .and_then(|item| item.init.as_ref().and_then(|init| self.parse_expression(init)))
+          .and_then(|item| item.init.as_ref())
+          .and_then(|init| self.parse_expression(init))
       } else {
-        warn!("Cannot find identifier value for {stmt:?}");
         None
       }
     });
 
     if arr.is_none() {
-      warn!("Cannot find identifier value for {identifier:?}");
+      warn!(
+        "Cannot find identifier value in {} for {name} {identifier:?}",
+        self.file_path.display().yellow(),
+        name = identifier.name.cyan()
+      );
     }
 
     arr
@@ -181,15 +196,22 @@ impl<'a> I18NVisitor<'a> {
           .declarations
           .iter()
           .find(|v| v.id.get_identifier() == Some(identifier.name.clone()))
-          .and_then(|item| item.init.as_ref().and_then(|init| self.parse_expression_as_string(init)))
+          .and_then(|item| item.init.as_ref())
+          .and_then(|init| {
+            trace!("Looking for expression value from {:?}", init.bright_black().italic());
+            self.parse_expression_as_string(init)
+          })
       } else {
-        warn!("Cannot find identifier value for {stmt:?}");
         None
       }
     });
 
     if arr.is_none() {
-      warn!("Cannot find identifier value for {identifier:?}");
+      debug!(
+        "Cannot find identifier str value in {} for {name} {identifier:?}",
+        self.file_path.display().yellow(),
+        name = identifier.name.cyan()
+      );
     }
 
     arr
@@ -214,10 +236,11 @@ impl<'a> I18NVisitor<'a> {
     if let Some(arg) = arg {
       match arg {
         Argument::StringLiteral(str) => {
-          trace!("{name:?} Arg: {str:?}");
+          trace!("{} Arg: {}", name.cyan(), str.value.to_string().blue());
           todo!("Handle string literal")
         },
         Argument::Identifier(identifier) => {
+          trace!("Looking for namespace {} value from identifier", name.cyan());
           let identifier = self.find_identifier_value_as_string(identifier);
           self.current_namespace = identifier;
         },
@@ -235,6 +258,7 @@ impl<'a> I18NVisitor<'a> {
   /// # Returns
   ///
   /// The i18next options found in the object
+  #[instrument(skip(self))]
   fn parse_i18next_option(&self, obj: &oxc_allocator::Box<ObjectExpression>) -> I18NextOptions {
     use color_eyre::owo_colors::OwoColorize;
 
@@ -244,18 +268,22 @@ impl<'a> I18NVisitor<'a> {
     obj
       .properties
       .iter()
-      .filter_map(|prop| {
+      .enumerate()
+      .filter_map(|(idx, prop)| {
         match prop {
           ObjectPropertyKind::ObjectProperty(kv) => {
-            let value = self.parse_expression_as_string(&kv.value);
-            trace!(
-              "Parsed {key}: {parsed_value:?} <- {value:?}",
-              key = kv.key.name().unwrap().blue(),
-              value = kv.value,
-              parsed_value = value
-            );
+            let name = kv.key.name().unwrap();
+            if name == "defaultValue" || name == "count" || name == "namespace" {
+              let key = name.blue();
+              trace!("Parsing key {key} {} from {}", idx.cyan(), self.file_path.display().yellow());
+              let value = self.parse_expression_as_string(&kv.value);
+              trace!("Parsed {key}: {parsed_value:?} <- {value:?}", parsed_value = value.yellow(), value = kv.value,);
 
-            kv.key.name().map(|name| (name.to_string(), value))
+              kv.key.name().map(|name| (name.to_string(), value))
+            } else {
+              debug!("Couldn't parse {}", name.yellow());
+              None
+            }
           },
           ObjectPropertyKind::SpreadProperty(_) => {
             warn!("Unsupported spread property");
@@ -333,7 +361,10 @@ impl<'a> I18NVisitor<'a> {
                       // todo this expression will contains the required identifier
                       match &e.expression {
                         JSXExpression::StringLiteral(str) => Some(str.value.to_string()),
-                        JSXExpression::Identifier(identifier) => self.find_identifier_value_as_string(identifier),
+                        JSXExpression::Identifier(identifier) => {
+                          trace!("Looking for identifier value for prop");
+                          self.find_identifier_value_as_string(identifier)
+                        },
                         JSXExpression::NumericLiteral(num) => Some(num.value.to_string()),
                         JSXExpression::StaticMemberExpression(expression) => {
                           self.parse_expression_as_string(&expression.object)
@@ -495,27 +526,29 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
+  #[instrument(skip(self))]
   fn read_t_args(
     &mut self,
     args: (Option<&Argument<'a>>, Option<&Argument<'a>>),
   ) -> (Option<String>, Option<I18NextOptions>) {
-    trace!("Reading arguments: {args:?}");
+    debug!("Reading t arguments: {:?} - {:?}", args.0.bright_black().italic(), args.1.bright_black().italic());
 
     match args {
       (Some(Argument::StringLiteral(str)), Some(Argument::ObjectExpression(obj))) => {
-        trace!("translation value defined as string literal: {str:?}");
+        let value = str.value.to_string();
+        trace!("translation value defined as string literal: {}", value.cyan());
         let (i18next_options, default_value) = self.parse_option_and_default_value(obj);
 
-        let value = str.value.to_string();
         let value = if value.is_empty() { default_value } else { Some(value) };
         (value, Some(i18next_options))
       },
       (Some(Argument::StringLiteral(str)), None) => {
-        trace!("translation value defined as string literal: {str:?}");
-        (Some(str.value.to_string()), None)
+        let value = str.value.to_string();
+        trace!("translation value defined as string literal: {}", value.cyan());
+        (Some(value), None)
       },
       (Some(Argument::ObjectExpression(obj)), None) => {
-        trace!("settings provided as 2nd argument");
+        trace!("settings provided as 2nd argument {:?}", obj.bright_black().italic());
         let (i18next_options, default_value) = self.parse_option_and_default_value(obj);
 
         (default_value, Some(i18next_options))
@@ -527,6 +560,7 @@ impl<'a> I18NVisitor<'a> {
         (default_value, Some(i18next_options))
       },
       (Some(Argument::Identifier(identifier)), Some(Argument::ObjectExpression(obj))) => {
+        debug!("looking for identifier value in t");
         let value = self.find_identifier_value(identifier);
         let (i18next_options, default_value) = self.parse_option_and_default_value(obj);
         if value.is_none() {
@@ -596,15 +630,15 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
         let key = if let Some(arg) = expr.arguments.first() {
           match arg {
             Argument::StringLiteral(str) => {
-              trace!("t Arg: {str:?}");
+              trace!("t Arg: {:?}", str.bright_black().italic());
               str.value.to_string()
             },
             Argument::TemplateLiteral(template) => {
-              trace!("t Arg: {template:?}");
+              trace!("t Arg: {:?}", template.bright_black().italic());
               todo!("Handle template literal")
             },
             Argument::BinaryExpression(bin) => {
-              trace!("t Arg: {bin:?}");
+              trace!("t Arg: {:?}", bin.bright_black().italic());
               todo!("Handle binary expression")
             },
             _ => {
@@ -616,7 +650,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           warn!("No key provided, skipping entry");
           return;
         };
-        trace!("Key: {:?}", key);
+        trace!("Key: {}", key.italic().cyan());
         let (value, i18next_options) = self.read_t_args((expr.arguments.get(1), expr.arguments.get(2)));
 
         let options = i18next_options.as_ref();
@@ -700,7 +734,7 @@ mod tests {
 
     let program = ret.program;
 
-    let mut visitor = I18NVisitor::new(&program);
+    let mut visitor = I18NVisitor::new(&program, "file.tsx");
     visitor.visit_program(&program);
     visitor.entries
   }
@@ -712,7 +746,7 @@ mod tests {
 
     let program = ret.program;
 
-    let mut visitor = I18NVisitor::new(&program);
+    let mut visitor = I18NVisitor::new(&program, "file.tsx");
     visitor.options.trans_keep_basic_html_nodes_for =
       Some(vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]);
     visitor.visit_program(&program);
