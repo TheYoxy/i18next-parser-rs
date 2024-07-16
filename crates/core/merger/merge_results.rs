@@ -53,8 +53,7 @@ pub(crate) fn merge_results<C: AsRef<Config>>(
 
   trace!("Value: {:?} -> {:?}", value.cyan(), old_value.cyan());
 
-  let ns_separator = &config.key_separator;
-  let full_key_prefix = namespace.to_string() + ns_separator;
+  let full_key_prefix = format!("{}{}", namespace, config.key_separator);
   let merged = merge_hashes(catalog, value.as_ref(), old_value, &full_key_prefix, is_default, config);
   let old_merged = merge_hashes(&merged.new, old_value, None, &full_key_prefix, false, &Config {
     keep_removed: false,

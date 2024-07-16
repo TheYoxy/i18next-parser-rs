@@ -1,7 +1,6 @@
 //! # Clean Multi Line Code
 //!
 //! `clean_multi_line_code` is a function that takes a string reference as an input and returns a new String.
-//!
 
 /// `clean_multi_line_code` is a function that takes a string reference as an input and returns a new String.
 /// It removes leading and trailing newline and whitespace characters from the input string.

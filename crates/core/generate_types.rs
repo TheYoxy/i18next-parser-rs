@@ -1,6 +1,7 @@
 //! This module is responsible for generating types for the i18next resources.
 use std::{fmt::Display, fs, path::MAIN_SEPARATOR_STR};
 
+use log::trace;
 use regex::Regex;
 
 use crate::{config::Config, merger::merge_results::MergeResults, printinfo};
@@ -33,6 +34,7 @@ struct EntryValue<T: Display, P: Display, O: Display> {
 /// Generates types for the i18next resources.
 pub(crate) fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> color_eyre::Result<()> {
   let config = config.as_ref();
+  trace!("Generating types for i18next resources.");
   let default_locale = config
     .locales
     .first()
@@ -71,6 +73,17 @@ pub(crate) fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config:
   let key_separator = &config.key_separator;
   let context_separator = &config.context_separator;
 
+  let imports = result
+    .iter()
+    .map(|entry| format!("import type {} from '{}';", entry.display_name, entry.path))
+    .collect::<Vec<String>>()
+    .join("\n");
+  let resources = result
+    .iter()
+    .map(|entry| format!("{}: typeof {};", get_name_property(entry.name), entry.display_name))
+    .collect::<Vec<String>>()
+    .join("\n      ");
+  let types = result.iter().map(|entry| format!("'{}'", entry.name)).collect::<Vec<String>>().join(" | ");
   let default_namespace = &config.default_namespace;
   let template = format!(
     r#"
@@ -100,17 +113,6 @@ declare global {{
   type Ns = {types};
 }}
 "#,
-    imports = result
-      .iter()
-      .map(|entry| format!("import type {} from '{}';", entry.display_name, entry.path))
-      .collect::<Vec<String>>()
-      .join("\n"),
-    resources = result
-      .iter()
-      .map(|entry| format!("{}: typeof {};", get_name_property(entry.name), entry.display_name))
-      .collect::<Vec<String>>()
-      .join("\n      "),
-    types = result.iter().map(|entry| format!("'{}'", entry.name)).collect::<Vec<String>>().join(" | ")
   );
 
   let generated_file_name = "react-i18next.resources.d.ts";
@@ -123,7 +125,6 @@ declare global {{
 
 #[cfg(test)]
 mod tests {
-  use color_eyre::Result;
   use tempdir::TempDir;
 
   use super::*;
@@ -148,8 +149,8 @@ mod tests {
   }
 
   #[test_log::test]
-  fn generate_types_creates_expected_output() -> Result<()> {
-    let temp = TempDir::new("generate_types")?;
+  fn generate_types_creates_expected_output() {
+    let temp = TempDir::new("generate_types").unwrap();
     let config = Config {
       working_dir: temp.path().to_path_buf(),
       locales: vec!["en".to_string()],
@@ -179,34 +180,13 @@ mod tests {
       },
     ];
 
-    generate_types(&entries, &config)?;
+    let generation = generate_types(&entries, &config);
+    assert!(generation.is_ok());
 
     // Check that the generated file exists and contains the expected content.
-    fs::read_to_string(config.working_dir.join("react-i18next.resources.d.ts"))?;
-
-    Ok(())
-  }
-
-  #[test_log::test]
-  fn generate_types_panics_when_unable_to_strip_prefix() -> Result<()> {
-    let temp = TempDir::new("generate_types")?;
-    let config = Config {
-      working_dir: temp.path().to_path_buf(),
-      locales: vec!["en".to_string()],
-      namespace_separator: ':'.into(),
-      key_separator: '.'.into(),
-      context_separator: '_'.into(),
-      default_namespace: "default".to_string(),
-      ..Default::default()
-    };
-
-    let entries = vec![MergeResults {
-      namespace: "namespace".to_string(),
-      path: temp.path().join("en/namespace.json"),
-      ..Default::default()
-    }];
-
-    let _ = generate_types(&entries, &config);
-    Ok(())
+    let result = fs::read_to_string(config.working_dir.join("react-i18next.resources.d.ts"));
+    assert!(result.is_ok());
+    let content = result.unwrap();
+    assert_ne!(content.len(), 0, "some content must be generated");
   }
 }

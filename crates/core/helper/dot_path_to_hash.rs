@@ -45,8 +45,12 @@ pub(crate) fn dot_path_to_hash(
   }
 
   let path = {
-    let base_path =
-      entry.namespace.clone().or(Some(config.default_namespace.clone())).map(|ns| ns + separator + &entry.key).unwrap();
+    let base_path = entry
+      .namespace
+      .clone()
+      .or(Some(config.default_namespace.clone()))
+      .map(|ns| format!("{ns}{separator}{key}", key = entry.key))
+      .unwrap();
     let mut path =
       base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
 
