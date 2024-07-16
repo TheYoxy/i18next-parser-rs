@@ -65,7 +65,7 @@ fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> s
 
   let text = {
     let text = if path.ends_with("yml") {
-      serde_yaml::to_string(contents).unwrap()
+      serde_yaml_ng::to_string(contents).unwrap()
     } else {
       serde_json::to_string_pretty(contents).map(|t| t.replace("\r\n", "\n").replace('\r', "\n")).unwrap()
     };

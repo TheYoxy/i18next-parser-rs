@@ -15,7 +15,7 @@ pub(crate) fn read_file_into_serde(path: &PathBuf) -> Option<Value> {
   file.map_or(Default::default(), |file| {
     let reader = BufReader::new(file);
     if path.extension().is_some_and(|ext| ext == "yml") {
-      serde_yaml::from_reader(reader).ok()
+      serde_yaml_ng::from_reader(reader).ok()
     } else {
       // read json file
       serde_json::from_reader(reader).ok()
