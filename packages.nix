@@ -4,7 +4,7 @@
   installShellFiles,
   rev ? "dirty",
 }: let
-  inherit (lib.importTOML ./Cargo.toml) package;
+  inherit (lib.importTOML ./i18next_parser/Cargo.toml) package;
 in
   rustPlatform
   .buildRustPackage {
@@ -16,7 +16,11 @@ in
         lib.fileset.intersection
         (lib.fileset.fromSource (lib.sources.cleanSource ./.))
         (lib.fileset.unions [
-          ./crates
+          ./i18next_parser
+          ./i18next_parser_core
+          ./cldr_pluralrules_parser
+          ./intl_pluralrules
+          ./make_pluralrules
           ./Cargo.toml
           ./Cargo.lock
           ./build.rs
