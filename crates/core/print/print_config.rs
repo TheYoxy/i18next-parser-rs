@@ -1,4 +1,4 @@
-///! Print the configuration.
+/// ! Print the configuration.
 use color_eyre::owo_colors::OwoColorize;
 
 use crate::config::Config;

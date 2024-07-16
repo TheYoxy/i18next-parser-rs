@@ -2,19 +2,9 @@
 
 use std::path::PathBuf;
 
-use color_eyre::{eyre::Result, owo_colors::OwoColorize};
-use directories::ProjectDirs;
+use color_eyre::eyre::Result;
 use lazy_static::lazy_static;
-use tracing::{Event, Level, Subscriber};
-use tracing_subscriber::{
-  filter::filter_fn,
-  fmt,
-  fmt::{FormatEvent, FormatFields},
-  layer::SubscriberExt,
-  registry::LookupSpan,
-  util::SubscriberInitExt,
-  EnvFilter, Layer,
-};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 lazy_static! {
   /// The name of the project.
@@ -33,6 +23,17 @@ lazy_static! {
 
 #[cfg(debug_assertions)]
 pub(crate) fn initialize_logging() -> color_eyre::Result<()> {
+  use color_eyre::{eyre::Context, owo_colors::OwoColorize};
+  use tracing::{Event, Level, Subscriber};
+  use tracing_error::ErrorLayer;
+  use tracing_subscriber::{
+    filter::filter_fn,
+    fmt,
+    fmt::{FormatEvent, FormatFields},
+    registry::LookupSpan,
+    EnvFilter, Layer,
+  };
+
   struct InfoFormatter;
   impl<S, N> FormatEvent<S, N> for InfoFormatter
   where
@@ -57,7 +58,7 @@ pub(crate) fn initialize_logging() -> color_eyre::Result<()> {
       } else if level == Level::INFO {
         write!(writer, "{} ", ">".green())?;
       } else {
-        write!(writer, "{} ", ">".cyan())?;
+        write!(writer, "{} ", "~".cyan())?;
       }
 
       ctx.field_format().format_fields(writer.by_ref(), event)?;
@@ -73,9 +74,6 @@ pub(crate) fn initialize_logging() -> color_eyre::Result<()> {
     }
   }
 
-  use color_eyre::eyre::Context;
-  use tracing_error::ErrorLayer;
-  use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
   let file_subscriber = tracing_subscriber::fmt::layer()
     .compact()
     .without_time()
@@ -110,6 +108,8 @@ pub(crate) fn initialize_logging() -> color_eyre::Result<()> {
 /// Initialize the logging system.
 #[cfg(not(debug_assertions))]
 pub(crate) fn initialize_logging() -> Result<()> {
+  use tracing_error::ErrorLayer;
+  use tracing_subscriber::Layer;
   let directory = get_data_dir();
   std::fs::create_dir_all(&directory)?;
   let log_path = directory.join(LOG_FILE.clone());
@@ -173,13 +173,15 @@ pub(crate) fn initialize_panic_handler() -> Result<()> {
   Ok(())
 }
 
-/// Get the directory where the project files are stored.
-fn project_directory() -> Option<ProjectDirs> {
-  ProjectDirs::from("be", "endevops", env!("CARGO_PKG_NAME"))
-}
-
 /// Get the directory where the data is stored.
+#[cfg(not(debug_assertions))]
 pub(crate) fn get_data_dir() -> PathBuf {
+  use directories::ProjectDirs;
+  /// Get the directory where the project files are stored.
+  fn project_directory() -> Option<ProjectDirs> {
+    ProjectDirs::from("be", "endevops", env!("CARGO_PKG_NAME"))
+  }
+
   let directory = if let Some(s) = DATA_FOLDER.clone() {
     s
   } else if let Some(proj_dirs) = project_directory() {

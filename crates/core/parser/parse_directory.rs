@@ -1,7 +1,6 @@
 use std::{num::NonZero, path::PathBuf};
 
 use color_eyre::eyre::{bail, eyre};
-use color_eyre::owo_colors::OwoColorize;
 use ignore::DirEntry;
 use log::{debug, info};
 use tracing::instrument;
@@ -64,10 +63,10 @@ pub(crate) fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(
   } else {
     bail!("Directory {path:?} does not exist");
   }
+
   for path in path.read_dir()? {
-    if let Ok(path) = path {
-      debug!("Reading directory {path:?} to find {:?}", &config.input);
-    }
+    let Ok(path) = path else { continue };
+    debug!("Reading directory {path:?} to find {:?}", &config.input);
   }
 
   let directory_name =

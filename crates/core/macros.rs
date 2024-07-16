@@ -6,12 +6,14 @@ macro_rules! log_time {
   ($message:expr, $func:expr) => {{
     use std::time::Instant;
 
-    use log::debug;
+    use color_eyre::owo_colors::OwoColorize;
+    use log::trace;
+
     let start = Instant::now();
     let result = $func;
     let duration = start.elapsed();
     let duration_ms = duration.as_secs_f64() * 1000.0;
-    debug!("{} - Execution time: {:.2} ms", $message, duration_ms);
+    trace!("{} - Execution time: {:.2} ms", $message, duration_ms.cyan());
     result
   }};
 }

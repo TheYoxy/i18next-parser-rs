@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use std::{
+  collections::HashMap,
   io::Write,
   path::{Path, PathBuf, MAIN_SEPARATOR_STR},
 };
@@ -115,7 +116,12 @@ fn create_file<P: AsRef<Path>, V: ?Sized + Serialize>(path: P, value: &V) -> col
 fn should_not_override_current_values() -> color_eyre::Result<()> {
   let _ = initialize_logging();
   let dir = TempDir::new("translations")?;
-  fn create_files(dir: &TempDir) -> color_eyre::Result<()> {
+  let mut map = HashMap::new();
+
+  let raw_en = json!({ "dialog": { "title": "Reset" }});
+  map.insert("en", raw_en);
+  map.insert("fr", json!({ "dialog": { "title": "[fr] Reset" }}));
+  fn create_files(dir: &TempDir, map: &HashMap<&str, Value>) -> color_eyre::Result<()> {
     let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password</Trans>;"#;
     let dir_path = dir.path();
     let file_path = dir_path.join("src/main.tsx");
@@ -124,16 +130,19 @@ fn should_not_override_current_values() -> color_eyre::Result<()> {
     file.write_all(source_text.as_bytes())?;
     debug!("{} written", file_path.display().yellow());
 
-    let en = dir_path.join("locales/en/ns.json");
-    let raw_en = json!({ "dialog": { "title": "Reset" }});
-    create_file(en, &raw_en)?;
+    let locales: Vec<String> = vec!["en".into(), "fr".into()];
+    for lang in &locales {
+      let file = dir_path.join("locales").join(lang).join("ns.json");
+      let raw_val = map.get(lang.as_str()).ok_or(eyre!("Unable to get {} value", lang.yellow()))?;
+      create_file(file, raw_val)?;
+    }
 
     let fr = dir_path.join("locales/fr/ns.json");
     let raw_fr = json!({ "dialog": { "title": "[fr] Reset" }});
     create_file(fr, &raw_fr)?;
 
     let config = Config {
-      locales: vec!["en".into(), "fr".into()],
+      locales,
       output: ["locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR),
       input: vec!["**/*.{ts,tsx}".into()],
       ..Default::default()
@@ -144,7 +153,7 @@ fn should_not_override_current_values() -> color_eyre::Result<()> {
     Ok(())
   }
 
-  create_files(&dir)?;
+  create_files(&dir, &map)?;
   let args = ["", "-v", dir.path().to_str().unwrap()];
   let cli = Cli::parse_from(args);
   cli.run()?;
@@ -154,7 +163,8 @@ fn should_not_override_current_values() -> color_eyre::Result<()> {
     let en = std::fs::read(en)?;
     serde_json::from_slice(&en)?
   };
-  validate_object("dialog.title", &en, "Reset");
+  validate_object("dialog.title", &en, "Reset password");
+  assert_eq!(en, json!({ "dialog": { "title": "Reset password" } }));
 
   let fr: Value = {
     let fr = dir.path().join("locales/fr/ns.json");
@@ -162,6 +172,8 @@ fn should_not_override_current_values() -> color_eyre::Result<()> {
     serde_json::from_slice(&fr)?
   };
   validate_object("dialog.title", &fr, "[fr] Reset");
+  let raw_fr = map.get("fr").ok_or(eyre!("Unable to get fr value"))?;
+  assert_eq!(fr, *raw_fr);
 
   drop(dir);
   Ok(())

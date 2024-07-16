@@ -1,13 +1,11 @@
 //! # i18next_parser
 //! A rust rewrite of the [`i18next-parser`](https://github.com/i18next/i18next-parser) written in plain js
-//!
 
 use clap::Parser;
 use color_eyre::eyre::Result;
 
-use crate::cli::Runnable;
 use crate::{
-  cli::Cli,
+  cli::{Cli, Runnable},
   print::print_app::print_app,
   utils::{initialize_logging, initialize_panic_handler},
 };

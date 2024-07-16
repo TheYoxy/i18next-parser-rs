@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use color_eyre::owo_colors::OwoColorize;
 use log::trace;
 use oxc_ast::Visit;
 use tracing::instrument;
@@ -30,10 +31,10 @@ where
   let mut visitor = I18NVisitor::new(&parsed.program);
 
   trace!("Start parsing...");
-  log_time!(format!("Parsing file {file_name}"), {
+  log_time!(format!("Parsing file {}", file_name.yellow()), {
     visitor.visit_program(&parsed.program);
   });
-  trace!("Found {} entries", visitor.entries.len());
+  trace!("Found {} entries", visitor.entries.len().cyan());
 
   Ok(visitor.entries)
 }

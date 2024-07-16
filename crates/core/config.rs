@@ -1,8 +1,8 @@
 //! Configuration module.
-use color_eyre::owo_colors::OwoColorize;
-use config::{File, FileFormat, FileSourceFile};
 use std::path::{PathBuf, MAIN_SEPARATOR_STR};
 
+use color_eyre::owo_colors::OwoColorize;
+use config::{File, FileFormat, FileSourceFile};
 use serde::{Deserialize, Serialize};
 
 /// Line ending configuration.

@@ -43,15 +43,17 @@ fn range_list(i: &str) -> IResult<&str, RangeList> {
 }
 
 fn operand(i: &str) -> IResult<&str, Operand> {
-  map(one_of("enivwft"), |c| match c {
-    'e' => Operand::E,
-    'n' => Operand::N,
-    'i' => Operand::I,
-    'v' => Operand::V,
-    'w' => Operand::W,
-    'f' => Operand::F,
-    't' => Operand::T,
-    _ => unreachable!(),
+  map(one_of("enivwft"), |c| {
+    match c {
+      'e' => Operand::E,
+      'n' => Operand::N,
+      'i' => Operand::I,
+      'v' => Operand::V,
+      'w' => Operand::W,
+      'f' => Operand::F,
+      't' => Operand::T,
+      _ => unreachable!(),
+    }
   })(i)
 }
 

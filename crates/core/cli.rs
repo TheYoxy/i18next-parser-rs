@@ -1,15 +1,13 @@
 use std::{env, path::PathBuf};
 
-use crate::config::Config;
-use crate::file::write_to_file;
-use crate::merger::merge_all_values::merge_all_values;
-use crate::parser::parse_directory::parse_directory;
-use crate::print::print_config::print_config;
-use crate::{generate_types, log_time};
 use clap::{command, Parser};
 use color_eyre::eyre::eyre;
-use color_eyre::owo_colors::OwoColorize;
-use log::{debug, info, trace};
+use log::{info, trace};
+
+use crate::{
+  config::Config, file::write_to_file, generate_types, log_time, merger::merge_all_values::merge_all_values,
+  parser::parse_directory::parse_directory, print::print_config::print_config,
+};
 
 /// Get the default log path
 fn get_default_log_path() -> PathBuf {
@@ -40,29 +38,30 @@ pub trait Runnable {
 impl Runnable for Cli {
   fn run(&self) -> color_eyre::Result<()> {
     let path = &self.path;
+    log_time!(format!("Parsing {} to find translations to extract", path.display().yellow()), {
+      info!("Working directory: {}", path.display().yellow());
+      let config = &Config::new(path, self.verbose)?;
+      trace!("Configuration: {config:?}");
 
-    info!("Working directory: {}", path.display().yellow());
-    let config = &Config::new(path, self.verbose)?;
-    trace!("Configuration: {config:?}");
+      print_config(config);
 
-    print_config(config);
+      let file_name = path.file_name().ok_or(eyre!("Invalid path"))?;
+      let merged = log_time!(format!("Parsing directory {:?}", file_name.yellow()), {
+        let entries = parse_directory(path, config)?;
+        let merged = merge_all_values(entries, config)?;
+        write_to_file(&merged, config)?;
 
-    let file_name = path.file_name().ok_or(eyre!("Invalid path"))?;
-    let merged = log_time!(format!("Parsing directory {file_name:?}"), {
-      let entries = parse_directory(path, config)?;
-      let merged = merge_all_values(entries, config)?;
-      write_to_file(&merged, config)?;
-
-      merged
-    });
-    #[cfg(feature = "generate_types")]
-    if self.generate_types {
-      generate_types::generate_types(&merged, config)
-    } else {
+        merged
+      });
+      #[cfg(feature = "generate_types")]
+      if self.generate_types {
+        log_time!("Generating types", { generate_types::generate_types(&merged, config) })
+      } else {
+        Ok(())
+      }
+      #[cfg(not(feature = "generate_types"))]
       Ok(())
-    }
-    #[cfg(not(feature = "generate_types"))]
-    Ok(())
+    })
   }
 }
 

@@ -1,4 +1,5 @@
-use log::{debug, trace};
+use color_eyre::owo_colors::OwoColorize;
+use log::{debug, error, trace, warn};
 use regex::Regex;
 use serde_json::{Map, Value};
 
@@ -94,30 +95,29 @@ pub(crate) fn merge_hashes(
   let mut reset_count = 0;
   let mut existing = existing_values.as_object().map_or_else(Map::new, |v| v.clone());
 
-  if source.is_none() {
-    debug!("No source provided, returning existing hash as is. {:?}", existing);
-    return MergeResult {
-      new: Value::Object(existing),
-      old: Value::Object(Map::new()),
-      reset: Value::Object(Map::new()),
-      merge_count: 0,
-      pull_count: 0,
-      old_count: 0,
-      reset_count: 0,
-    };
-  }
+  // if source.is_none() {
+  //   debug!("No source provided, returning existing hash as is. {:?}", existing.cyan());
+  //   return MergeResult {
+  //     new: Value::Object(existing),
+  //     old: Value::Object(Map::new()),
+  //     reset: Value::Object(Map::new()),
+  //     merge_count: 0,
+  //     pull_count: 0,
+  //     old_count: 0,
+  //     reset_count: 0,
+  //   };
+  // }
 
   let key_separator = &config.key_separator;
   let plural_separator = &config.plural_separator;
-
   let reset_values_map = reset_values.and_then(|v| v.as_object()).map_or_else(Map::new, |v| v.clone());
 
   if let Some(Value::Object(source_map)) = source {
     for (key, value) in source_map {
-      trace!("Handling {key:?} with value {value:?}");
+      trace!("Handling {} with value {}", key.italic().purple(), value.cyan());
       match existing.get_mut(key) {
         Some(target_value) if target_value.is_object() && value.is_object() => {
-          trace!("Merging nested key: {}", key);
+          debug!("Merging nested key: {}", key.yellow());
           let nested_result = merge_hashes(
             target_value,
             Some(value),
@@ -126,31 +126,51 @@ pub(crate) fn merge_hashes(
             reset_and_flag,
             config,
           );
+          *target_value = nested_result.new;
           merge_count += nested_result.merge_count;
           pull_count += nested_result.pull_count;
           old_count += nested_result.old_count;
           reset_count += nested_result.reset_count;
-          if !nested_result.old.as_object().unwrap().is_empty() {
-            old.insert(key.clone(), nested_result.old);
+          match nested_result.old {
+            Value::Object(old_map) if !old_map.is_empty() => {
+              old.insert(key.clone(), old_map.into());
+            },
+            Value::Object(old_map) => {
+              old = old_map;
+            },
+            _ => {
+              error!("Old map is not an object: {:?}", nested_result.old);
+            },
           }
-          if !nested_result.reset.as_object().unwrap().is_empty() {
-            reset.insert(key.clone(), nested_result.reset);
+
+          match nested_result.reset {
+            Value::Object(reset_map) if !reset_map.is_empty() => {
+              reset.insert(key.clone(), reset_map.into());
+            },
+            Value::Object(reset_map) => {
+              reset = reset_map;
+            },
+            _ => {
+              error!("reset map is not an object: {:?}", nested_result.reset);
+            },
           }
         },
         Some(target_value)
           if reset_and_flag && !is_plural(key) && value != target_value || reset_values_map.contains_key(key) =>
         {
-          debug!("Merging nested key: {}", key);
+          debug!("Inserting key: {} with {}", key.purple(), value.cyan());
           old.insert(key.clone(), value.clone());
           old_count += 1;
           reset.insert(key.clone(), Value::Bool(true));
           reset_count += 1;
         },
         Some(target_value) => {
+          debug!("Replacing key: {} from {} to {}", key.purple(), target_value.cyan(), value.cyan());
           *target_value = value.clone();
           merge_count += 1;
         },
         None => {
+          debug!("Pulling key: {}", key.purple());
           let singular_key = get_singular_form(key, plural_separator);
           let plural_match = key != &singular_key;
           let context_match = singular_key.contains('_');
@@ -171,7 +191,10 @@ pub(crate) fn merge_hashes(
           }
         },
       }
+      trace!("Existing: {:?}", existing.cyan());
     }
+  } else {
+    warn!("No source provided, returning existing hash as is. {:?}", existing.cyan());
   }
 
   MergeResult {
