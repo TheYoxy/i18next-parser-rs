@@ -1,3 +1,4 @@
+//! This module contains the implementation of the `get_char_diff` function.
 pub(crate) fn get_char_diff(old: &str, new: &str) -> String {
   use color_eyre::owo_colors::OwoColorize;
   use similar::{ChangeTag, TextDiff};

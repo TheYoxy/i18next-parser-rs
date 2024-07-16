@@ -1,7 +1,6 @@
 //! # i18next_parser
 //! A rust rewrite of the [`i18next-parser`](https://github.com/i18next/i18next-parser) written in plain js
 
-
 use clap::Parser;
 use color_eyre::eyre::Result;
 
@@ -30,7 +29,8 @@ mod transform;
 mod utils;
 mod visitor;
 
-pub(crate) mod completion {
+mod completion {
+  //! This module provides functionality for generating shell completions
   use clap::CommandFactory;
   use clap_complete::Shell;
   use log::debug;

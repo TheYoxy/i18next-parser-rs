@@ -1,3 +1,4 @@
+//! Module containing the dot_path_to_hash function.
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, trace, warn};
 use serde_json::{Map, Value};

@@ -1,3 +1,4 @@
+//! This module provides the CLI for the i18n system.
 use std::{env, path::PathBuf};
 
 use anstyle::Style;

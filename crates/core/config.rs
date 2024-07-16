@@ -1,4 +1,4 @@
-//! Configuration module.
+//! This module provides configuration for the i18n system.
 use std::path::{PathBuf, MAIN_SEPARATOR_STR};
 
 use color_eyre::owo_colors::OwoColorize;

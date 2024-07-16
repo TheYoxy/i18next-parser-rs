@@ -1,3 +1,4 @@
+//! This module provides functionality for reading files into serde values
 use std::{fs::File, io::BufReader, path::PathBuf};
 
 use color_eyre::owo_colors::OwoColorize;

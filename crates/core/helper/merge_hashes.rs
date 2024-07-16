@@ -1,3 +1,4 @@
+//! This module contains the merge_hashes function that merges two JSON objects (hashes) together.
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, error, trace, warn};
 use regex::Regex;

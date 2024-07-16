@@ -1,3 +1,4 @@
+//! This module provides functionality for writing files
 use std::{
   fs::File,
   io::Write,
