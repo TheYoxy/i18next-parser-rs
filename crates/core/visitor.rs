@@ -150,7 +150,7 @@ impl<'a> I18NVisitor<'a> {
         var
           .declarations
           .iter()
-          .find(|v| v.id.get_identifier() == Some(&identifier.name))
+          .find(|v| v.id.get_identifier() == Some(identifier.name.clone()))
           .and_then(|item| item.init.as_ref().and_then(|init| self.parse_expression(init)))
       } else {
         warn!("Cannot find identifier value for {stmt:?}");
@@ -180,7 +180,7 @@ impl<'a> I18NVisitor<'a> {
         var
           .declarations
           .iter()
-          .find(|v| v.id.get_identifier() == Some(&identifier.name))
+          .find(|v| v.id.get_identifier() == Some(identifier.name.clone()))
           .and_then(|item| item.init.as_ref().and_then(|init| self.parse_expression_as_string(init)))
       } else {
         warn!("Cannot find identifier value for {stmt:?}");
