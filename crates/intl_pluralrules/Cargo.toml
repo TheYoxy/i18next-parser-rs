@@ -1,0 +1,32 @@
+[package]
+name = "intl_pluralrules"
+version = "7.0.2"
+edition = "2018"
+authors = ["Kekoa Riggin <kekoariggin@gmail.com>", "Zibi Braniecki <zbraniecki@mozilla.com>"]
+description = "Unicode Plural Rules categorizer for numeric input."
+license = "Apache-2.0/MIT"
+repository = "https://github.com/zbraniecki/pluralrules"
+readme = "README.md"
+keywords = ["localization", "l10n", "i18n", "intl", "internationalization"]
+categories = ["localization", "internationalization"]
+include = [
+	"src/**/*",
+	"benches/*.rs",
+	"Cargo.toml",
+	"README.md"
+]
+
+[dependencies]
+unic-langid = "0.9"
+
+[dev-dependencies]
+criterion = "0.5"
+unic-langid = { version = "0.9", features = ["macros"] }
+pretty_assertions = "1"
+
+[[bench]]
+name = "pluralrules"
+harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

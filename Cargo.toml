@@ -1,14 +1,19 @@
 [package]
 name = "i18next-parser"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["TheYoxy <floryansimar@gmail.com>"]
 license = "MIT"
 description = "A simple i18next parser"
 repository = "https://github.com/TheYoxy/i18next-parser-rs"
+build = "build.rs"
+
+[[bin]]
+bench = false
+path = "crates/core/main.rs"
+name = "i18next-parser"
 
 [dependencies]
-better-panic = "0.3"
 clap = { version = "4", features = ["unicode", "string", "derive"] }
 color-eyre = "0.6"
 config = "0.14"
@@ -17,22 +22,47 @@ flatten-json-object = "0.6"
 globset = "0.4"
 human-panic = "2"
 ignore = "0.4"
+intl_pluralrules = { path = "crates/intl_pluralrules", version = "7.0.2" }
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
-oxc = "0.14"
-oxc_allocator = { version = "0.14", features = ["serialize"] }
-oxc_ast = { version = "0.14", features = ["serialize"] }
-oxc_parser = "0.14"
-oxc_span = { version = "0.14", features = ["serialize"] }
+oxc = "0.20"
+oxc_allocator = "0.20"
+oxc_ast = "0.20"
+oxc_parser = "0.20"
+oxc_span = "0.20"
 pretty_assertions = "1"
 regex = "1"
-serde = "1"
-serde_json = "1"
+serde = "1.0"
+serde_json = "1.0"
 serde_yaml = "0.9"
+similar = "2"
 simple_logger = "5"
 strip-ansi-escapes = "0.2"
 tempdir = "0.3"
 tracing = "0.1"
 tracing-error = "0.2"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "serde", "time"] }
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "serde",
+    "time",
+] }
+unic-langid = "0.9"
+better-panic = "0.3"
+anstyle = "1.0.7"
+clap_complete = "4.5.7"
+
+[features]
+default = ["generate_types"]
+generate_types = []
+
+[dev-dependencies]
+pretty_assertions = "1.4.0"
+test-log = "0.2"
+
+[workspace]
+members = [
+    "crates/cldr_pluralrules_parser",
+    "crates/make_pluralrules",
+    "crates/intl_pluralrules",
+]

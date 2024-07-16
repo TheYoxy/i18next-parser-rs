@@ -3,55 +3,55 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
+    flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
+    flake-utils,
+    rust-overlay,
+    ...
   }: let
-    # Systems supported
-    allSystems = [
-      "x86_64-linux" # 64-bit Intel/AMD Linux
-      "aarch64-linux" # 64-bit ARM Linux
-      "x86_64-darwin" # 64-bit Intel macOS
-      "aarch64-darwin" # 64-bit ARM macOS
+    overlays = [
+      rust-overlay.overlays.default
+      (final: _prev: {
+        rustToolchain = final.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+      })
     ];
-
-    # Helper to provide system-specific attributes
-    forAllSystems = f:
-      nixpkgs.lib.genAttrs allSystems (system:
-        f {
-          pkgs = import nixpkgs {inherit system;};
-        });
-  in {
-    formatter = forAllSystems ({pkgs}: pkgs.alejandra);
-
-    packages = forAllSystems ({pkgs, ...}: let
-      rustPlatform = pkgs.rustPlatform;
-      lib = pkgs.lib;
-      package = (lib.importTOML ./Cargo.toml).package;
+  in
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {inherit system overlays;};
+      rustPlatform = pkgs.makeRustPlatform {
+        cargo = pkgs.rustToolchain;
+        rustc = pkgs.rustToolchain;
+      };
     in {
-      default = rustPlatform.buildRustPackage {
-        pname = package.name;
-        version = package.version;
-        src = ./.;
-        cargoLock = {
-          lockFile = ./Cargo.lock;
-        };
+      formatter = pkgs.alejandra;
 
-        doCheck = false;
-        meta = {
-          description = package.description;
-          homepage = package.repository;
-          license = lib.licenses.mit;
-          maintainers = [
-            {
-              name = "TheYoxy";
-              email = "floryansimar@gmail.com";
-            }
-          ];
+      devShells = {
+        default = with pkgs;
+          mkShell {
+            buildInputs = [
+              pkg-config
+              rustToolchain
+            ];
+          };
+      };
+
+      packages = let
+        rev = self.shortRev or self.dirtyShortRev or "dirty";
+      in rec {
+        i18next-parser = pkgs.callPackage ./packages.nix {
+          inherit rev rustPlatform;
         };
+        default = i18next-parser;
       };
     });
-  };
 }
