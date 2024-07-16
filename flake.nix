@@ -39,15 +39,8 @@
         default = with pkgs;
           mkShell {
             buildInputs = [
-              libiconv
               pkg-config
               rustToolchain
-              (cargo-watch.override {
-                inherit rustPlatform;
-              })
-              (cargo-tarpaulin.override {
-                inherit rustPlatform;
-              })
             ];
           };
       };

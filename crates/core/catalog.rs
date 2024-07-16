@@ -1,14 +1,15 @@
 use std::{fs::File, io::BufReader, path::PathBuf};
 
+use color_eyre::owo_colors::OwoColorize;
 use log::{trace, warn};
 use serde_json::Value;
 
 /// Read a file into a serde value
 pub(crate) fn read_file_into_serde(path: &PathBuf) -> Option<Value> {
-  trace!("Reading file: {:?}", path);
+  trace!("Reading file: {}", path.display().yellow());
   let file = File::open(path);
   if file.is_err() && path.file_name().and_then(|f| f.to_str()).is_some_and(|name| !name.to_string().contains("_old")) {
-    warn!("Unable to find file: {:?}", path);
+    warn!("Unable to find file: {}", path.display().yellow());
   }
   file.map_or(Default::default(), |file| {
     let reader = BufReader::new(file);

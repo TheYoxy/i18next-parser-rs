@@ -1,5 +1,13 @@
 use std::{env, path::PathBuf};
 
+use clap::{command, Parser};
+use color_eyre::eyre::eyre;
+use log::{info, trace};
+
+use crate::{
+  config::Config, file::write_to_file, generate_types, log_time, merger::merge_all_values::merge_all_values,
+  parser::parse_directory::parse_directory, print::print_config::print_config,
+};
 use anstyle::Style;
 use clap::{builder::Styles, command, Parser};
 use clap_complete::Shell;
@@ -18,22 +26,57 @@ fn make_style() -> Styles {
 /// The CLI options
 #[derive(Parser, Debug)]
 #[command(version, about, author, long_about= None, styles=make_style())]
-pub(crate) struct Cli {
+pub struct Cli {
   /// The path to extract the translations from
   #[arg(value_name = "PATH", default_value = get_default_log_path().into_os_string(), global = true, value_hint = clap::ValueHint::DirPath)]
-  pub(crate) path: PathBuf,
+  path: PathBuf,
 
   /// Should the output to be verbose
-  #[arg(short, long, default_value = "false")]
-  pub(crate) verbose: bool,
+  #[arg(short, long, default_value = "false", global = true)]
+  verbose: bool,
   /// Should generate types
-  #[arg(short, long, default_value = "false")]
+  #[arg(short, long, default_value = "false", global = true)]
   #[cfg(feature = "generate_types")]
-  pub(crate) generate_types: bool,
-  /// Should generate shell completions
-  #[arg(long)]
-  #[clap(value_enum)]
-  pub(crate) generate_shell: Option<Shell>
+  generate_types: bool,
+
+    /// Should generate shell completions
+    #[arg(long)]
+    #[clap(value_enum)]
+    generate_shell: Option<Shell>
+}
+
+pub trait Runnable {
+  fn run(&self) -> color_eyre::Result<()>;
+}
+
+impl Runnable for Cli {
+  fn run(&self) -> color_eyre::Result<()> {
+    let path = &self.path;
+    log_time!(format!("Parsing {} to find translations to extract", path.display().yellow()), {
+      info!("Working directory: {}", path.display().yellow());
+      let config = &Config::new(path, self.verbose)?;
+      trace!("Configuration: {config:?}");
+
+      print_config(config);
+
+      let file_name = path.file_name().ok_or(eyre!("Invalid path"))?;
+      let merged = log_time!(format!("Parsing directory {:?}", file_name.yellow()), {
+        let entries = parse_directory(path, config)?;
+        let merged = merge_all_values(entries, config)?;
+        write_to_file(&merged, config)?;
+
+        merged
+      });
+      #[cfg(feature = "generate_types")]
+      if self.generate_types {
+        log_time!("Generating types", { generate_types::generate_types(&merged, config) })
+      } else {
+        Ok(())
+      }
+      #[cfg(not(feature = "generate_types"))]
+      Ok(())
+    })
+  }
 }
 
 #[cfg(test)]

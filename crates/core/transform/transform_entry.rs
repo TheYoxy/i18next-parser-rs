@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use color_eyre::eyre::eyre;
+use color_eyre::{eyre::bail, owo_colors::OwoColorize};
 use log::trace;
 use serde_json::Value;
 
@@ -31,7 +31,7 @@ pub(crate) fn transform_entry(
   }
 
   let result = dot_path_to_hash(entry, value, suffix, options);
-  trace!("Result: {:?} <- {:?}", value, result.target);
+  trace!("Result: {} <- {}", value.cyan(), result.target.cyan());
 
   match result.conflict {
     Some(Conflict::Key(key)) => {
@@ -39,9 +39,7 @@ pub(crate) fn transform_entry(
         "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}"
       );
       if options.fail_on_warnings {
-        return Err(eyre!(
-          "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}"
-        ));
+        bail!("Found translation key already mapped to a map or parent of new key already mapped to a string: {key}")
       }
     },
     Some(Conflict::Value(old, new)) => {

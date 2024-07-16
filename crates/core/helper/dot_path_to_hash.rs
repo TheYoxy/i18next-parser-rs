@@ -1,4 +1,5 @@
-use log::{trace, warn};
+use color_eyre::owo_colors::OwoColorize;
+use log::{debug, trace, warn};
 use serde_json::{Map, Value};
 
 use crate::{config::Config, visitor::Entry};
@@ -42,54 +43,59 @@ pub(crate) fn dot_path_to_hash(
     return DotPathToHashResult { target, conflict: None };
   }
 
-  let base_path =
-    entry.namespace.clone().or(Some(config.default_namespace.clone())).map(|ns| ns + separator + &entry.key).unwrap();
-  let mut path =
-    base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
-  if let Some(suffix) = suffix {
-    path += suffix;
-  }
-  trace!("Path: {:?}", path);
+  let path = {
+    let base_path =
+      entry.namespace.clone().or(Some(config.default_namespace.clone())).map(|ns| ns + separator + &entry.key).unwrap();
+    let mut path =
+      base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
 
-  if path.ends_with(separator) {
-    trace!("Removing trailing separator from path: {:?}", path);
-    path = path[..path.len() - separator.len()].into();
-    trace!("New path: {:?}", path);
-  }
+    if let Some(suffix) = suffix {
+      path += suffix;
+    }
+    trace!("Path: {:?}", path.purple());
+
+    if path.ends_with(separator) {
+      trace!("Removing trailing separator from path: {:?}", path.purple());
+      path = path[..path.len() - separator.len()].into();
+      trace!("New path: {:?}", path.purple());
+    }
+
+    path
+  };
 
   let segments: Vec<&str> = path.split(separator).collect();
-  trace!("Val {:?} {:?} {:?}", &target, entry.key, entry.value);
+  trace!("Val {:?} {:?} {:?}", &target.yellow(), entry.key.purple(), entry.value.cyan());
 
   let (old_value, mut conflict, inner, last_segment) = lookup_by_key(&mut target, &segments);
 
-  let new_value = entry
+  let new_value: String = entry
     .value
     .clone()
     .map(|new_value| {
       if let Some(old_value) = old_value {
-        trace!("Values {:?} -> {:?}", old_value, new_value);
+        trace!("Values {:?} -> {:?}", old_value.purple(), new_value.purple());
         if old_value != new_value && !old_value.is_empty() {
           if new_value.is_empty() {
             trace!("new value is empty, keeping old value {old_value:?}");
             old_value
           } else {
-            warn!("Conflict: {:?} -> {:?} -> {:?}", path, old_value, new_value);
+            warn!("Conflict: {:?} -> {:?} -> {:?}", path.yellow().italic(), old_value.purple(), new_value.purple());
             conflict = Some(Conflict::Value(old_value, new_value.clone()));
             new_value
           }
         } else {
-          trace!("Old value is empty or match new value, assigning new value {new_value:?}");
+          trace!("Old value is empty or match new value, assigning new value {:?}", new_value.purple());
           new_value
         }
       } else {
-        trace!("No old value, assigning new value {new_value:?}");
+        trace!("No old value, assigning new value {:?}", new_value.purple());
         new_value
       }
     })
     .map(|v| v.trim().into())
     .unwrap_or_default();
 
-  trace!("Setting {path:?} -> {new_value:?}");
+  debug!("Setting {:?} -> {:?}", path.yellow(), new_value.purple());
   inner[last_segment] = Value::String(new_value);
 
   DotPathToHashResult { target: target.clone(), conflict }

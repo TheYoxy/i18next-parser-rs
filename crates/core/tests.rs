@@ -1,19 +1,23 @@
 #![cfg(test)]
 
 use std::{
+  collections::HashMap,
   io::Write,
   path::{Path, PathBuf, MAIN_SEPARATOR_STR},
 };
 
+use clap::Parser;
+use color_eyre::{eyre::eyre, owo_colors::OwoColorize};
 use flatten_json_object::Flattener;
-use pretty_assertions::assert_eq;
+use log::debug;
+use pretty_assertions::{assert_eq, assert_str_eq};
 use serde::Serialize;
 use serde_json::{json, Value};
 use tempdir::TempDir;
 
 use crate::{
+  cli::{Cli, Runnable},
   config::Config,
-  file::write_to_file,
   is_empty::IsEmpty,
   merger::{merge_all_values::merge_all_values, merge_results::MergeResults},
   parser::parse_directory::parse_directory,
@@ -37,7 +41,7 @@ fn setup_test(path: Option<&str>) -> color_eyre::Result<(&str, Config)> {
 fn should_parse_successfully() -> color_eyre::Result<()> {
   let (working_path, config) = &setup_test(None)?;
 
-  let entries = parse_directory(&PathBuf::from(working_path), config)?;
+  let entries = parse_directory(PathBuf::from(working_path), config)?;
 
   let entries = merge_all_values(entries, config)?;
   for entry in entries {
@@ -77,59 +81,100 @@ fn should_parse_successfully() -> color_eyre::Result<()> {
   Ok(())
 }
 
-fn validate_object<T: Into<Value>>(v: &Value, key: &str, value: T) {
-  if let Value::Object(v) = v {
+fn validate_object<T: Into<Value>>(key: &str, current_value: &Value, to_compare: T) {
+  if let Value::Object(v) = current_value {
     if let Some((key, remaining)) = key.split_once('.') {
       let v = v.get(key).unwrap();
-      validate_object(v, remaining, value)
+      validate_object(remaining, v, to_compare)
+    } else {
+      let v = v.get(key).unwrap();
+      validate_object(key, v, to_compare)
     }
   } else {
-    assert_eq!(v, &value.into());
+    let val = &to_compare.into();
+    match (val, current_value) {
+      (Value::String(val), Value::String(current_value)) => {
+        assert_str_eq!(val, current_value, "there is a difference in the key {key:#?}")
+      },
+      (_, _) => assert_eq!(val, current_value, "there is a difference in the key {key:#?}"),
+    }
   }
 }
 
 fn create_file<P: AsRef<Path>, V: ?Sized + Serialize>(path: P, value: &V) -> color_eyre::Result<()> {
-  std::fs::create_dir_all(path.as_ref().parent().unwrap())?;
+  let path = path.as_ref();
+  let parent = path.parent().ok_or(eyre!("unable to get parent of {}", path.display().yellow()))?;
+  std::fs::create_dir_all(parent)?;
   let file = std::fs::File::create(path)?;
   serde_json::to_writer_pretty(file, value)?;
+  debug!("{} written", path.display().yellow());
 
   Ok(())
 }
 
-#[test_log::test]
+#[test]
 fn should_not_override_current_values() -> color_eyre::Result<()> {
-  let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password</Trans>;"#;
+  let _ = initialize_logging();
   let dir = TempDir::new("translations")?;
-  let file = dir.path().join("text.tsx");
-  let mut file = std::fs::File::create(file)?;
-  file.write_all(source_text.as_bytes())?;
+  let mut map = HashMap::new();
 
-  let en = dir.path().join("locales/en/ns.json");
-  create_file(en, &(json!({ "dialog": { "title": "Reset" }})))?;
+  let raw_en = json!({ "dialog": { "title": "Reset" }});
+  map.insert("en", raw_en);
+  map.insert("fr", json!({ "dialog": { "title": "[fr] Reset" }}));
+  fn create_files(dir: &TempDir, map: &HashMap<&str, Value>) -> color_eyre::Result<()> {
+    let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password</Trans>;"#;
+    let dir_path = dir.path();
+    let file_path = dir_path.join("src/main.tsx");
+    std::fs::create_dir_all(file_path.parent().unwrap())?;
+    let mut file = std::fs::File::create(&file_path)?;
+    file.write_all(source_text.as_bytes())?;
+    debug!("{} written", file_path.display().yellow());
 
-  let fr = dir.path().join("locales/fr/ns.json");
-  create_file(fr, &(json!({ "dialog": { "title": "[fr] Reset" }})))?;
+    let locales: Vec<String> = vec!["en".into(), "fr".into()];
+    for lang in &locales {
+      let file = dir_path.join("locales").join(lang).join("ns.json");
+      let raw_val = map.get(lang.as_str()).ok_or(eyre!("Unable to get {} value", lang.yellow()))?;
+      create_file(file, raw_val)?;
+    }
 
-  let path = dir.path().to_str().unwrap();
-  let (working_path, config) = &setup_test(Some(path))?;
-  let config = &Config { locales: vec!["en".into(), "fr".into()], ..config.clone() };
-  let entries = parse_directory(&PathBuf::from(working_path), config)?;
-  let merged = merge_all_values(entries, config)?;
-  write_to_file(&merged, config)?;
+    let fr = dir_path.join("locales/fr/ns.json");
+    let raw_fr = json!({ "dialog": { "title": "[fr] Reset" }});
+    create_file(fr, &raw_fr)?;
 
-  let en = dir.path().join("locales/en/ns.json");
-  let en = std::fs::read_to_string(en)?;
-  let en = serde_json::from_str::<Value>(&en)?;
+    let config = Config {
+      locales,
+      output: ["locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR),
+      input: vec!["**/*.{ts,tsx}".into()],
+      ..Default::default()
+    };
 
-  let fr = dir.path().join("locales/fr/ns.json");
-  let fr = std::fs::read_to_string(fr)?;
-  let fr = serde_json::from_str::<Value>(&fr)?;
+    let config_file = dir_path.join(".i18next-parser.json");
+    create_file(config_file, &config)?;
+    Ok(())
+  }
 
-  assert!(en.is_object());
-  validate_object(&en, "dialog.title", "Reset");
+  create_files(&dir, &map)?;
+  let args = ["", "-v", dir.path().to_str().unwrap()];
+  let cli = Cli::parse_from(args);
+  cli.run()?;
 
-  assert!(fr.is_object());
-  validate_object(&fr, "dialog.title", "[fr] Reset");
+  let en: Value = {
+    let en = dir.path().join("locales/en/ns.json");
+    let en = std::fs::read(en)?;
+    serde_json::from_slice(&en)?
+  };
+  validate_object("dialog.title", &en, "Reset password");
+  assert_eq!(en, json!({ "dialog": { "title": "Reset password" } }));
 
+  let fr: Value = {
+    let fr = dir.path().join("locales/fr/ns.json");
+    let fr = std::fs::read(fr)?;
+    serde_json::from_slice(&fr)?
+  };
+  validate_object("dialog.title", &fr, "[fr] Reset");
+  let raw_fr = map.get("fr").ok_or(eyre!("Unable to get fr value"))?;
+  assert_eq!(fr, *raw_fr);
+
+  drop(dir);
   Ok(())
 }

@@ -1,6 +1,8 @@
 //! Configuration module.
-use std::path::PathBuf;
+use std::path::{PathBuf, MAIN_SEPARATOR_STR};
 
+use color_eyre::owo_colors::OwoColorize;
+use config::{File, FileFormat, FileSourceFile};
 use serde::{Deserialize, Serialize};
 
 /// Line ending configuration.
@@ -83,7 +85,7 @@ impl Default for Config {
     Self {
       working_dir: PathBuf::from("."),
       locales: vec!["en".into()],
-      output: "locales/$LOCALE/$NAMESPACE.json".into(),
+      output: ["locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR),
       input: vec!["src/**/*.{ts,tsx}".into()],
       context_separator: "_".into(),
       default_namespace: "translation".into(),
@@ -140,31 +142,38 @@ impl Config {
     }
 
     let config_files = [
-      (".i18next-parser.json5", config::FileFormat::Json5),
-      (".i18next-parser.json", config::FileFormat::Json),
-      (".i18next-parser.yaml", config::FileFormat::Yaml),
-      (".i18next-parser.toml", config::FileFormat::Toml),
-      (".i18next-parser.ini", config::FileFormat::Ini),
-      ("i18next-parser.json5", config::FileFormat::Json5),
-      ("i18next-parser.json", config::FileFormat::Json),
-      ("i18next-parser.yaml", config::FileFormat::Yaml),
-      ("i18next-parser.toml", config::FileFormat::Toml),
-      ("i18next-parser.ini", config::FileFormat::Ini),
+      (".i18next-parser.json5", FileFormat::Json5),
+      (".i18next-parser.json", FileFormat::Json),
+      (".i18next-parser.yaml", FileFormat::Yaml),
+      (".i18next-parser.toml", FileFormat::Toml),
+      (".i18next-parser.ini", FileFormat::Ini),
+      ("i18next-parser.json5", FileFormat::Json5),
+      ("i18next-parser.json", FileFormat::Json),
+      ("i18next-parser.yaml", FileFormat::Yaml),
+      ("i18next-parser.toml", FileFormat::Toml),
+      ("i18next-parser.ini", FileFormat::Ini),
     ];
 
     let mut found_config = false;
     for (file, format) in &config_files {
-      builder = builder.add_source(config::File::from(working_dir.join(file)).format(*format).required(false));
-      if working_dir.join(file).exists() {
-        found_config = true
+      log::trace!("Looking for {} in {}", file.italic().yellow(), working_dir.display().yellow());
+      let file_name = &working_dir.join(file);
+      let config_file: File<FileSourceFile, FileFormat> = file_name.clone().into();
+      let source = config_file.format(*format).required(false);
+      builder = builder.add_source(source);
+      if file_name.exists() {
+        found_config = true;
+        log::info!("found {} in {}", file.italic().green(), working_dir.display().yellow());
       }
     }
 
     if !found_config {
-      log::error!("No configuration file found. Using default configuration.");
+      log::warn!("No configuration file found. Using default configuration.");
     }
 
-    builder.build().and_then(|config| config.try_deserialize())
+    let configuration = builder.build().and_then(|config| config.try_deserialize())?;
+    log::trace!("Loaded configuration: {:#?}", configuration);
+    Ok(configuration)
   }
 
   /// Get the output destination for the i18n system.

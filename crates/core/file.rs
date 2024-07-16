@@ -4,9 +4,10 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use color_eyre::Report;
-use log::trace;
+use color_eyre::{owo_colors::OwoColorize, Report};
+use log::{debug, trace};
 use serde_json::Value;
+use tracing::instrument;
 
 use crate::{
   config::{Config, LineEnding},
@@ -17,9 +18,10 @@ use crate::{
 };
 
 /// Write all entries to the specific file based on its namespace
+#[instrument(skip(values, config), err)]
 pub(crate) fn write_to_file<T: AsRef<Config>>(values: &[MergeResults], config: T) -> color_eyre::Result<()> {
   let config = config.as_ref();
-  log_time!("Writing files", || {
+  log_time!("Writing files", {
     for value in values {
       let MergeResults { namespace: _namespace, locale: _locale, path, backup, merged, old_catalog } = value;
       write_files(path, backup, merged, old_catalog, config)?;
@@ -29,6 +31,7 @@ pub(crate) fn write_to_file<T: AsRef<Config>>(values: &[MergeResults], config: T
   })
 }
 
+#[instrument(skip(path, backup, merged, old_catalog, config), err)]
 fn write_files<T: AsRef<Config>>(
   path: &PathBuf,
   backup: &PathBuf,
@@ -37,7 +40,7 @@ fn write_files<T: AsRef<Config>>(
   config: T,
 ) -> Result<(), Report> {
   let config = config.as_ref();
-  log_time!(format!("Writing file {path:?}"), || {
+  log_time!(format!("Writing file {:?}", path.yellow()), {
     let new_catalog = &merged.new;
     push_file(path, new_catalog, config)?;
     if config.create_old_catalogs && !old_catalog.is_empty() {
@@ -75,8 +78,11 @@ fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> s
       std::fs::create_dir_all(parent)?;
     }
   }
+  debug!("Writting {} to {}", contents.cyan(), path.display().yellow());
   let mut file = File::create(Path::new(path))?;
-  file.write_all(text.as_bytes())?;
+  let bytes = text.as_bytes();
+  file.write_all(bytes)?;
+  debug!("Wrote {} bytes to {}", bytes.len().cyan(), path.display().yellow());
 
   Ok(())
 }
