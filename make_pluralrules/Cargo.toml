@@ -21,7 +21,6 @@ bench = false
 name = "make_pluralrules"
 path = "src/main.rs"
 
-
 [dependencies]
 cldr_pluralrules_parser = { path = "../cldr_pluralrules_parser", version = "2.0" }
 serde = { version = "1", features = ["derive"] }

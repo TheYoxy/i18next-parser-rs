@@ -10,7 +10,7 @@ build = "build.rs"
 
 [[bin]]
 bench = false
-path = "crates/core/main.rs"
+path = "i18next_parser/main.rs"
 name = "i18next-parser"
 
 [dependencies]
@@ -20,7 +20,7 @@ config = "0.14"
 flatten-json-object = "0.6"
 globset = "0.4"
 ignore = "0.4"
-intl_pluralrules = { path = "crates/intl_pluralrules", version = "7.0.2" }
+intl_pluralrules = { path = "intl_pluralrules", version = "7.0.2" }
 lazy_static = "1"
 log = "0.4"
 oxc_allocator = "0.20"
@@ -58,7 +58,7 @@ test-log = "0.2"
 
 [workspace]
 members = [
-    "crates/cldr_pluralrules_parser",
-    "crates/make_pluralrules",
-    "crates/intl_pluralrules",
+    "cldr_pluralrules_parser",
+    "make_pluralrules",
+    "intl_pluralrules",
 ]
