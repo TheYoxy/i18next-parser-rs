@@ -1,3 +1,7 @@
+//! # Clean Multi Line Code
+//!
+//! `clean_multi_line_code` is a function that takes a string reference as an input and returns a new String.
+
 /// `clean_multi_line_code` is a function that takes a string reference as an input and returns a new String.
 /// It removes leading and trailing newline and whitespace characters from the input string.
 /// It also replaces newline characters in the middle of the string with a space.
@@ -19,8 +23,8 @@
 pub(crate) fn clean_multi_line_code(text: &str) -> String {
   use regex::Regex;
 
-  let re_start_end = Regex::new(r"(^(\n|\r)\s*)|((\n|\r)\s*$)").unwrap();
-  let re_middle = Regex::new(r"(\n|\r)\s*").unwrap();
+  let re_start_end = Regex::new(r"(^([\n\r])\s*)|(([\n\r])\s*$)").unwrap();
+  let re_middle = Regex::new(r"([\n\r])\s*").unwrap();
 
   let result = re_start_end.replace_all(text, "");
   let result = re_middle.replace_all(&result, " ");
