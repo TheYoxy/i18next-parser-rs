@@ -1,20 +1,13 @@
 //! # i18next_parser
 //! A rust rewrite of the [`i18next-parser`](https://github.com/i18next/i18next-parser) written in plain js
 
-use std::time::Instant;
 
 use clap::Parser;
 use color_eyre::eyre::Result;
 
 use crate::{
-  cli::Cli,
-  completion::generate_completion,
-  config::Config,
-  file::write_to_file,
-  merger::merge_all_values::merge_all_values,
-  parser::parse_directory::parse_directory,
-  print::{print_app::print_app, print_config::print_config},
   cli::{Cli, Runnable},
+  completion::generate_completion,
   print::print_app::print_app,
   utils::{initialize_logging, initialize_panic_handler},
 };
@@ -65,14 +58,14 @@ pub(crate) mod completion {
 /// Entry point of the application
 fn main() -> Result<()> {
   let cli = Cli::parse();
-  if let Some(shell) = cli.generate_shell {
-    return generate_completion(shell);
+  if let Some(shell) = cli.generate_shell() {
+    generate_completion(shell)
+  } else {
+    print_app();
+    initialize_panic_handler()?;
+    initialize_logging()?;
+
+    let cli = Cli::parse();
+    cli.run()
   }
-
-  print_app();
-  initialize_panic_handler()?;
-  initialize_logging()?;
-
-  let cli = Cli::parse();
-  cli.run()
 }

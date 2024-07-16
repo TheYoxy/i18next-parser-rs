@@ -1,6 +1,8 @@
 use std::{env, path::PathBuf};
 
-use clap::{command, Parser};
+use anstyle::Style;
+use clap::{builder::Styles, command, Parser};
+use clap_complete::Shell;
 use color_eyre::eyre::eyre;
 use log::{info, trace};
 
@@ -8,9 +10,6 @@ use crate::{
   config::Config, file::write_to_file, generate_types, log_time, merger::merge_all_values::merge_all_values,
   parser::parse_directory::parse_directory, print::print_config::print_config,
 };
-use anstyle::Style;
-use clap::{builder::Styles, command, Parser};
-use clap_complete::Shell;
 
 /// Get the default log path
 fn get_default_log_path() -> PathBuf {
@@ -39,10 +38,16 @@ pub struct Cli {
   #[cfg(feature = "generate_types")]
   generate_types: bool,
 
-    /// Should generate shell completions
-    #[arg(long)]
-    #[clap(value_enum)]
-    generate_shell: Option<Shell>
+  /// Should generate shell completions
+  #[arg(long)]
+  #[clap(value_enum)]
+  generate_shell: Option<Shell>,
+}
+
+impl Cli {
+  pub(crate) fn generate_shell(&self) -> Option<Shell> {
+    self.generate_shell
+  }
 }
 
 pub trait Runnable {
