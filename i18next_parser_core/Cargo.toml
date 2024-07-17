@@ -1,0 +1,43 @@
+[package]
+name = "i18next_parser_core"
+version = "0.2.2"
+edition = "2021"
+authors = ["TheYoxy <floryansimar@gmail.com>"]
+license = "MIT"
+description = "A simple i18next parser"
+repository = "https://github.com/TheYoxy/i18next-parser-rs"
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "../README.md"
+]
+
+[dependencies]
+color-eyre = "0.6"
+config = "0.14"
+flatten-json-object = "0.6"
+globset = "0.4"
+ignore = "0.4"
+intl_pluralrules = { path = "../intl_pluralrules" }
+log = "0.4"
+oxc_allocator = "0.20"
+oxc_ast = "0.20"
+oxc_parser = "0.20"
+oxc_span = "0.20"
+pretty_assertions = "1"
+regex = "1"
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1"
+similar = "2"
+unic-langid = "0.9"
+serde_yaml_ng = "0.10"
+tracing = "0.1"
+
+[features]
+default = ["generate_types"]
+generate_types = []
+
+[dev-dependencies]
+pretty_assertions = "1"
+test-log = "0.2"
+tempdir = "0.3"
