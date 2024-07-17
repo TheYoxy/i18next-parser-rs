@@ -4,7 +4,11 @@ use std::collections::HashMap;
 use log::error;
 use serde_json::Value;
 
-use crate::{config::Config, plural, transform::transform_entry::transform_entry, visitor::Entry};
+use crate::{
+  config::Config,
+  transform::{plural::PluralResolver, transform_entry::transform_entry},
+  Entry,
+};
 
 /// Represents the result of transforming entries.
 pub struct TransformEntriesResult {
@@ -39,8 +43,7 @@ pub fn transform_entries(
 
   let value = entries.iter().try_fold(Value::Object(Default::default()), |value, entry| {
     return if entry.has_count {
-      let resolver = plural::PluralResolver::default();
-      let suffixes = resolver.get_suffixes(locale);
+      let suffixes = PluralResolver::default().get_suffixes(locale);
       match suffixes {
         Ok(suffixes) => {
           suffixes.iter().try_fold(value, |value, suffix| {
@@ -66,6 +69,7 @@ mod tests {
   use serde_json::json;
 
   use super::*;
+  use crate::Entry;
 
   #[test]
   fn test_transform_entries() {

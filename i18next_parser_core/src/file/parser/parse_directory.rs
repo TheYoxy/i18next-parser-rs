@@ -8,7 +8,7 @@ use ignore::DirEntry;
 use log::{debug, info};
 use tracing::instrument;
 
-use crate::{config::Config, log_time, parser::parse_file::parse_file, visitor::Entry};
+use crate::{config::Config, file::parser::parse_file::parse_file, log_time, Entry};
 
 #[instrument(skip(filter))]
 fn parse_directory_mono_thread(filter: &[DirEntry]) -> Vec<Entry> {

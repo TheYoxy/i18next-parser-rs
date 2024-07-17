@@ -5,8 +5,8 @@ use log::trace;
 use serde_json::Value;
 
 use crate::{
-  catalog::read_file_into_serde,
   config::Config,
+  file::catalog::read_file_into_serde,
   helper::merge_hashes::{merge_hashes, MergeResult},
   print::print_count::print_counts,
   transform::transfer_values::transfer_values,

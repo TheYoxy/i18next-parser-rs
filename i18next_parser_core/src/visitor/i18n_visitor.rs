@@ -1,47 +1,20 @@
-//! This module contains the visitor that will parse the AST and extract the i18n keys.
 use std::{collections::HashMap, path::PathBuf};
 
 use color_eyre::owo_colors::OwoColorize;
-use log::{debug, error, trace, warn};
-use oxc_ast::{
-  ast::{Argument, CallExpression, Expression, IdentifierReference, ObjectPropertyKind, Program, Statement, *},
-  visit::walk,
-  Visit,
+use log::{debug, trace, warn};
+use oxc_ast::ast::{
+  Argument, CallExpression, Expression, IdentifierReference, JSXAttributeItem, JSXAttributeName, JSXAttributeValue,
+  JSXChild, JSXElement, JSXElementName, JSXExpression, ObjectExpression, ObjectPropertyKind, Program, Statement,
 };
-use oxc_span::GetSpan;
 use serde_json::Value;
 use tracing::{instrument, span};
 
-use crate::{helper::clean_multi_line_code::clean_multi_line_code, is_empty::IsEmpty};
+use crate::{clean_multi_line_code, Entry, IsEmpty};
 
 /// This type alias represents the options for i18next.
 /// It is a HashMap where the key is a String representing the option name,
 /// and the value is an Option<`String`> representing the option value.
-type I18NextOptions = HashMap<String, Option<String>>;
-
-/// This struct represents an entry in the i18n system.
-///
-/// # Fields
-///
-/// * `key` - The key of the entry.
-/// * `value` - The value found for the key.
-/// * `namespace` - The namespace found for the key.
-/// * `i18next_options` - All i18next options found in the file.
-/// * `has_count` - A boolean indicating whether the key has a count (if plural).
-#[derive(Debug, Default)]
-#[allow(dead_code)]
-pub struct Entry {
-  /// the key of the entry
-  pub key: String,
-  /// the value found for the key
-  pub value: Option<String>,
-  /// the namespace found for the key
-  pub namespace: Option<String>,
-  /// all i18next options found in the file
-  pub i18next_options: Option<I18NextOptions>,
-  /// the count found for the key (if plural)
-  pub has_count: bool,
-}
+pub type I18NextOptions = HashMap<String, Option<String>>;
 
 /// This struct represents the options for the I18NVisitor.
 ///
@@ -72,7 +45,7 @@ pub struct I18NVisitor<'a> {
   /// the options for the I18NVisitor
   pub options: VisitorOptions,
   /// the current namespace while parsing a file
-  current_namespace: Option<String>,
+  pub(super) current_namespace: Option<String>,
 }
 
 /// The visitor implementation that will search for translations inside javascript code
@@ -227,7 +200,7 @@ impl<'a> I18NVisitor<'a> {
   /// # Returns
   ///
   /// The namespace found in the function
-  fn extract_namespace(&mut self, name: &str, expr: &CallExpression<'a>) {
+  pub(super) fn extract_namespace(&mut self, name: &str, expr: &CallExpression<'a>) {
     let arg = match name {
       "useTranslation" | "withTranslation" => expr.arguments.first(),
       "getFixedT" => expr.arguments.get(1),
@@ -304,7 +277,7 @@ impl<'a> I18NVisitor<'a> {
   /// # Returns
   ///
   /// A boolean indicating whether the prop exists
-  fn has_prop(&self, elem: &JSXElement<'_>, attribute_name: &str) -> bool {
+  pub(super) fn has_prop(&self, elem: &JSXElement<'_>, attribute_name: &str) -> bool {
     elem.opening_element.attributes.iter().any(|elem| {
       match elem {
         JSXAttributeItem::Attribute(attribute) => {
@@ -342,7 +315,7 @@ impl<'a> I18NVisitor<'a> {
   /// # Returns
   ///
   /// The value of the prop
-  fn get_prop_value(&self, elem: &JSXElement<'_>, attribute_name: &str) -> Option<String> {
+  pub(super) fn get_prop_value(&self, elem: &JSXElement<'_>, attribute_name: &str) -> Option<String> {
     _ = span!(tracing::Level::TRACE, "get_prop_value", attribute_name = attribute_name).enter();
     elem
       .opening_element
@@ -393,7 +366,7 @@ impl<'a> I18NVisitor<'a> {
   }
 
   /// Convert the children of a tag to a string
-  fn elem_to_string(&self, childs: &[NodeChild]) -> String {
+  pub(super) fn elem_to_string(&self, childs: &[NodeChild]) -> String {
     childs
       .iter()
       .enumerate()
@@ -419,7 +392,7 @@ impl<'a> I18NVisitor<'a> {
       .concat()
   }
 
-  fn parse_children(childs: &oxc_allocator::Vec<JSXChild<'a>>) -> Vec<NodeChild> {
+  pub(super) fn parse_children(childs: &oxc_allocator::Vec<JSXChild<'a>>) -> Vec<NodeChild> {
     childs
       .iter()
       .map(|child| {
@@ -527,7 +500,7 @@ impl<'a> I18NVisitor<'a> {
   }
 
   #[instrument(skip(self))]
-  fn read_t_args(
+  pub(super) fn read_t_args(
     &mut self,
     args: (Option<&Argument<'a>>, Option<&Argument<'a>>),
   ) -> (Option<String>, Option<I18NextOptions>) {
@@ -591,7 +564,7 @@ impl<'a> I18NVisitor<'a> {
 }
 
 /// This enum represents the children of a tag.
-enum NodeChild {
+pub(super) enum NodeChild {
   /// The children is a text.
   Text(String),
   /// The children is a tag
@@ -611,7 +584,7 @@ impl IsEmpty for NodeChild {
 }
 
 /// This struct represents a tag.
-struct NodeTag {
+pub(super) struct NodeTag {
   /// The children of the tag.
   children: Option<Vec<NodeChild>>,
   /// The name of the tag.
@@ -622,93 +595,10 @@ struct NodeTag {
   self_closing: bool,
 }
 
-impl<'a> Visit<'a> for I18NVisitor<'a> {
-  fn visit_call_expression(&mut self, expr: &CallExpression<'a>) {
-    if let Some(name) = expr.callee_name() {
-      self.extract_namespace(name, expr);
-      if name == "t" {
-        let key = if let Some(arg) = expr.arguments.first() {
-          match arg {
-            Argument::StringLiteral(str) => {
-              trace!("t Arg: {:?}", str.bright_black().italic());
-              str.value.to_string()
-            },
-            Argument::TemplateLiteral(template) => {
-              trace!("t Arg: {:?}", template.bright_black().italic());
-              todo!("Handle template literal")
-            },
-            Argument::BinaryExpression(bin) => {
-              trace!("t Arg: {:?}", bin.bright_black().italic());
-              todo!("Handle binary expression")
-            },
-            _ => {
-              error!("Unknown argument type: {arg:?}");
-              todo!("Handle argument {arg:?}")
-            },
-          }
-        } else {
-          warn!("No key provided, skipping entry");
-          return;
-        };
-        trace!("Key: {}", key.italic().cyan());
-        let (value, i18next_options) = self.read_t_args((expr.arguments.get(1), expr.arguments.get(2)));
-
-        let options = i18next_options.as_ref();
-        let namespace = self.current_namespace.clone().or(options.and_then(|o| o.get("namespace").cloned().flatten()));
-        let has_count = match options {
-          Some(opt) => opt.get("count").is_some(),
-          None => false,
-        };
-        for stmt in self.program.body.iter() {
-          if stmt.span() == expr.span {
-            debug!("Statement: {stmt:?}");
-          }
-        }
-
-        self.entries.push(Entry { key, value, namespace, has_count, i18next_options });
-      };
-    }
-    walk::walk_call_expression(self, expr);
-  }
-
-  fn visit_jsx_element(&mut self, elem: &JSXElement<'a>) {
-    let component_functions = ["Trans"];
-    let name = if let JSXElementName::Identifier(id) = &elem.opening_element.name { Some(&id.name) } else { None };
-    #[allow(unused_variables)]
-    if let Some(name) = name {
-      if component_functions.contains(&name.as_str()) {
-        let key = self.get_prop_value(elem, "i18nKey");
-        let ns = self.get_prop_value(elem, "ns");
-        let default_value = self.get_prop_value(elem, "defaults");
-        let count = self.has_prop(elem, "count");
-        let options = self.get_prop_value(elem, "i18n");
-
-        trace!("Childrens: {:?}", elem.children);
-        let node_as_string = {
-          let content = Self::parse_children(&elem.children);
-          self.elem_to_string(&content)
-        };
-        trace!("Element as string: {node_as_string:?}");
-        let default_value = default_value.unwrap_or(node_as_string);
-
-        if let Some(key) = key {
-          self.entries.push(Entry {
-            key,
-            value: if default_value.is_empty() { None } else { Some(default_value) },
-            namespace: ns,
-            has_count: count,
-            i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
-          });
-        }
-      }
-    }
-    walk::walk_jsx_element(self, elem);
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use oxc_allocator::Allocator;
+  use oxc_ast::Visit;
   use oxc_parser::Parser;
   use oxc_span::SourceType;
 

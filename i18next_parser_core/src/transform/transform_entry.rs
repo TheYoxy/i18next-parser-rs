@@ -10,7 +10,7 @@ use crate::{
     dot_path_to_hash::{dot_path_to_hash, Conflict},
     get_char_diff::get_char_diff,
   },
-  visitor::Entry,
+  Entry,
 };
 
 pub fn transform_entry(

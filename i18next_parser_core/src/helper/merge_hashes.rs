@@ -21,7 +21,6 @@ fn get_singular_form(key: &str, plural_separator: &str) -> String {
   plural_regex.replace(key, "").to_string()
 }
 
-
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MergeResult {
   /// The merged hash

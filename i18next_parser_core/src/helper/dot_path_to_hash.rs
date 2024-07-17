@@ -3,7 +3,7 @@ use color_eyre::owo_colors::OwoColorize;
 use log::{debug, trace, warn};
 use serde_json::{Map, Value};
 
-use crate::{config::Config, visitor::Entry};
+use crate::{Config, Entry};
 
 /// Enum representing the type of conflict that can occur when converting a dot path to a hash.
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]

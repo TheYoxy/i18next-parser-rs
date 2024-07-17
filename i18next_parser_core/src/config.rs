@@ -214,3 +214,45 @@ mod tests {
     assert_eq!(value, "lf".into());
   }
 }
+#[cfg(test)]
+mod config_tests {
+
+  use super::*;
+
+  #[test_log::test]
+  fn config_default_values_are_correct() {
+    let config = Config::default();
+    assert_eq!(config.working_dir, PathBuf::from("."));
+    assert_eq!(config.locales, vec!["en"]);
+    assert!(config.input.contains(&"src/**/*.{ts,tsx}".into()));
+    assert_eq!(config.output, ["locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR));
+    assert!(!config.verbose);
+  }
+
+  #[test_log::test]
+  fn config_new_sets_working_dir_and_verbose() {
+    let working_dir = "/tmp";
+    let verbose = true;
+    let config = Config::new(working_dir, verbose).unwrap();
+    assert_eq!(config.working_dir, PathBuf::from(working_dir));
+    assert!(config.verbose);
+  }
+
+  #[test_log::test]
+  fn config_get_output_constructs_correct_path() {
+    let config = Config {
+      working_dir: PathBuf::from("/tmp"),
+      output: "locales/$LOCALE/$NAMESPACE.json".to_string(),
+      ..Config::default()
+    };
+    let expected_output = "/tmp/locales/$LOCALE/$NAMESPACE.json";
+    assert_eq!(config.get_output(), expected_output);
+  }
+
+  #[test_log::test]
+  fn config_new_handles_invalid_working_dir() {
+    let working_dir = "\0"; // Invalid path
+    let verbose = false;
+    assert!(Config::new(working_dir, verbose).is_ok());
+  }
+}

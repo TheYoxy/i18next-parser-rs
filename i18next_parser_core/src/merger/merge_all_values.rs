@@ -7,7 +7,7 @@ use crate::{
   log_time,
   merger::merge_results::{merge_results, MergeResults},
   transform::transform_entries::{transform_entries, TransformEntriesResult},
-  visitor::Entry,
+  Entry,
 };
 
 /// Merges all translation values across different locales based on the provided entries and configuration.
@@ -98,7 +98,7 @@ mod tests {
   use serde_json::json;
 
   use super::*;
-  use crate::{config::Config, helper::merge_hashes::MergeResult, visitor::Entry};
+  use crate::{config::Config, helper::merge_hashes::MergeResult, Entry};
 
   #[test]
   fn merge_all_values_simple_case() {

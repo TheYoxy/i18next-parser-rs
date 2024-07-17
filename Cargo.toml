@@ -1,5 +1,6 @@
 [workspace]
 members = ["i18next_parser", "i18next_parser_core", "cldr_pluralrules_parser", "make_pluralrules", "intl_pluralrules"]
+default-members = ["i18next_parser", "i18next_parser_core", "intl_pluralrules"]
 resolver = "2"
 
 [profile.dev]

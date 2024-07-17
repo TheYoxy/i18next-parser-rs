@@ -24,3 +24,39 @@ macro_rules! log_time {
     result
   }};
 }
+#[cfg(test)]
+mod log_time_tests {
+  use std::{thread, time::Duration};
+
+  /// Verifies that the log_time macro logs execution time for a fast function.
+  #[test]
+  fn logs_execution_time_for_fast_function() {
+    let fast_function = || {
+      thread::sleep(Duration::from_millis(5));
+      42
+    };
+    let result = log_time!("fast_function", fast_function());
+    assert_eq!(result, 42);
+  }
+
+  /// Verifies that the log_time macro logs execution time for a slow function.
+  #[test]
+  fn logs_execution_time_for_slow_function() {
+    let slow_function = || {
+      thread::sleep(Duration::from_millis(100));
+      "slow"
+    };
+    let result = log_time!("slow_function", slow_function());
+    assert_eq!(result, "slow");
+  }
+
+  /// Verifies that the log_time macro correctly handles a function that panics.
+  #[test]
+  #[should_panic(expected = "Intentional panic")]
+  fn handles_panic_within_function() {
+    let panic_function = || {
+      panic!("Intentional panic");
+    };
+    log_time!("panic_function", panic_function());
+  }
+}
