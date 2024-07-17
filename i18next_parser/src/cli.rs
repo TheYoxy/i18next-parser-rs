@@ -1,21 +1,16 @@
 //! This module provides the CLI for the i18n system.
-use std::{env, path::PathBuf};
+use std::path::PathBuf;
 
 use anstyle::Style;
 use clap::{builder::Styles, command, Parser};
 use clap_complete::Shell;
 use color_eyre::eyre::eyre;
 use i18next_parser_core::{
-  config::Config, file::write_to_file, generate_types, log_time, merger::merge_all_values::merge_all_values,
-  parser::parse_directory::parse_directory, print::print_config::print_config,
+  generate_types, log_time, merge_all_values, parse_directory, print_config, write_to_file, Config,
 };
 use log::{info, trace};
 
-/// Get the default log path
-fn get_default_log_path() -> PathBuf {
-  env::current_dir().unwrap()
-}
-
+/// Create the style used by the CLI
 fn make_style() -> Styles {
   Styles::plain()
     .header(Style::new().bold())
@@ -27,7 +22,7 @@ fn make_style() -> Styles {
 #[command(version, about, author, long_about= None, styles=make_style())]
 pub struct Cli {
   /// The path to extract the translations from
-  #[arg(value_name = "PATH", default_value = get_default_log_path().into_os_string(), global = true, value_hint = clap::ValueHint::DirPath)]
+  #[arg(value_name = "PATH", default_value = ".", global = true, value_hint = clap::ValueHint::DirPath)]
   path: PathBuf,
 
   /// Should the output to be verbose
@@ -45,6 +40,7 @@ pub struct Cli {
 }
 
 impl Cli {
+  /// Get if the shell should be generated
   pub fn generate_shell(&self) -> Option<Shell> {
     self.generate_shell
   }
@@ -72,14 +68,11 @@ impl Runnable for Cli {
 
         merged
       });
-      #[cfg(feature = "generate_types")]
-      if self.generate_types {
-        log_time!("Generating types", { generate_types::generate_types(&merged, config) })
+      if cfg!(feature = "generate_types") && self.generate_types {
+        log_time!("Generating types", { generate_types(&merged, config) })
       } else {
         Ok(())
       }
-      #[cfg(not(feature = "generate_types"))]
-      Ok(())
     })
   }
 }
@@ -91,7 +84,7 @@ mod tests {
   #[test_log::test]
   fn should_parse_cli() {
     let cli = Cli::parse();
-    assert_eq!(cli.path, get_default_log_path());
+    assert_eq!(cli.path, PathBuf::from("."));
     assert!(!cli.verbose);
   }
 }

@@ -10,6 +10,47 @@ use crate::{
   visitor::Entry,
 };
 
+/// Merges all translation values across different locales based on the provided entries and configuration.
+///
+/// This function processes a vector of `Entry` objects, each representing a translation entry, and merges
+/// them into a structured format suitable for writing to JSON files. The merging process is influenced by
+/// the configuration specified in `config`, particularly the locales to be considered.
+///
+/// # Arguments
+///
+/// * `entries` - A vector of `Entry` objects representing the translation entries to be merged.
+/// * `config` - A reference to a `Config` object containing the configuration settings for the merging process,
+///   including the locales to be processed.
+///
+/// # Returns
+///
+/// A `color_eyre::Result` containing either:
+/// - On success: a vector of `MergeResults` objects, each representing the merged results for a specific locale,
+///   including details such as the namespace, locale, paths to the resulting JSON files, and the merged content.
+/// - On failure: an error, typically due to issues with processing the entries or configuration.
+///
+/// # Errors
+///
+/// This function returns an error if:
+/// - No locales are found in the provided configuration.
+/// - An error occurs during the transformation or merging of entries.
+///
+/// # Examples
+///
+/// ```
+/// use i18next_parser_core::{merge_all_values, Config, Entry};
+/// let entries = vec![Entry {
+///   namespace: Some("default".into()),
+///   key: "key".into(),
+///   has_count: false,
+///   value: Some("value".into()),
+///   i18next_options: None,
+/// }];
+/// let config = Config { locales: vec!["en".into()], ..Default::default() };
+///
+/// let result = merge_all_values(entries, &config);
+/// assert!(result.is_ok());
+/// ```
 #[instrument]
 pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<Vec<MergeResults>> {
   log_time!("Preparing entries to write", {
@@ -51,7 +92,6 @@ pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
     Ok(result)
   })
 }
-
 #[cfg(test)]
 mod tests {
   use pretty_assertions::assert_eq;

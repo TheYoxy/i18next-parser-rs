@@ -12,16 +12,48 @@ use crate::{
   transform::transfer_values::transfer_values,
 };
 
+/// Represents the results of merging translation files.
+///
+/// # Fields
+/// - `namespace`: The namespace of the translation, used to categorize translations.
+/// - `locale`: The locale of the translation, representing the language and possibly region.
+/// - `path`: The path to the merged translation file.
+/// - `backup`: The path to the backup of the original translation file before merging.
+/// - `merged`: The result of the merge operation, including counts of new, removed, and unchanged translations.
+/// - `old_catalog`: The original translation data before the merge.
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MergeResults {
+  /// The namespace of the translation, used to categorize translations.
   pub namespace: String,
+  /// The locale of the translation, representing the language and possibly region.
   pub locale: String,
+  /// The path to the merged translation file.
   pub path: PathBuf,
+  /// The path to the backup of the original translation file before merging.
   pub backup: PathBuf,
+  /// The result of the merge operation, including counts of new, removed, and unchanged translations.
   pub merged: MergeResult,
+  /// The original translation data before the merge.
   pub old_catalog: Value,
 }
 
+/// Merges translation data from different sources and produces a `MergeResults` struct.
+///
+/// This function takes the current and new translation data, along with configuration options,
+/// and merges them according to the specified rules. It handles file paths, backup creation,
+/// and logging of the merge process.
+///
+/// # Parameters
+/// - `locale`: The locale of the translations to merge.
+/// - `namespace`: The namespace of the translations to merge.
+/// - `catalog`: The new translation data to merge into the existing data.
+/// - `unique_count`: A map of unique translation keys and their counts.
+/// - `unique_plurals_count`: A map of unique plural translation keys and their counts.
+/// - `is_default`: A flag indicating if the default translations are being merged.
+/// - `config`: The configuration settings for the merge operation.
+///
+/// # Returns
+/// A `MergeResults` struct containing the results of the merge operation.
 pub fn merge_results<C: AsRef<Config>>(
   locale: &str,
   namespace: &str,

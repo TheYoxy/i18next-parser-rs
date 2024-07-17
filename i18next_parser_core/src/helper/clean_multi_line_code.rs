@@ -17,7 +17,7 @@
 /// # Examples
 ///
 /// ```
-/// use i18next_parser_core::helper::clean_multi_line_code::clean_multi_line_code;
+/// use i18next_parser_core::clean_multi_line_code;
 /// let result = clean_multi_line_code("\n \rThis is a test\n \r");
 /// assert_eq!(result, "This is a test");
 /// ```

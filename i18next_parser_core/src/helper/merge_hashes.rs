@@ -21,6 +21,7 @@ fn get_singular_form(key: &str, plural_separator: &str) -> String {
   plural_regex.replace(key, "").to_string()
 }
 
+
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MergeResult {
   /// The merged hash
@@ -59,7 +60,7 @@ pub struct MergeResult {
 ///
 /// ```
 /// use serde_json::json;
-/// use i18next_parser_core::helper::merge_hashes::merge_hashes;
+/// use i18next_parser_core::merge_hashes;
 /// let existing = json!({
 ///   "key1": "value1",
 ///   "key2": "value2"

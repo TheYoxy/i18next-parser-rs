@@ -11,12 +11,7 @@ use i18next_parser::{
   cli::{Cli, Runnable},
   utils::initialize_logging,
 };
-use i18next_parser_core::{
-  config::Config,
-  is_empty::IsEmpty,
-  merger::{merge_all_values::merge_all_values, merge_results::MergeResults},
-  parser::parse_directory::parse_directory,
-};
+use i18next_parser_core::{merge_all_values, parse_directory, Config, IsEmpty, MergeResults};
 use log::debug;
 use pretty_assertions::assert_eq;
 use serde::Serialize;

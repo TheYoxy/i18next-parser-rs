@@ -23,7 +23,6 @@ in
           ./make_pluralrules
           ./Cargo.toml
           ./Cargo.lock
-          ./build.rs
         ]);
     };
     cargoLock.lockFile = ./Cargo.lock;
