@@ -4,11 +4,12 @@ use std::path::PathBuf;
 use anstyle::Style;
 use clap::{builder::Styles, command, Parser};
 use clap_complete::Shell;
-use color_eyre::eyre::eyre;
+use color_eyre::{eyre::eyre, Section, SectionExt};
 use i18next_parser_core::{
   generate_types, log_time, merge_all_values, parse_directory, print_config, write_to_file, Config,
 };
 use log::{info, trace};
+use resolve_path::PathResolveExt;
 
 /// Create the style used by the CLI
 fn make_style() -> Styles {
@@ -60,9 +61,10 @@ impl Runnable for Cli {
 
       print_config(config);
 
-      let file_name = path.file_name().ok_or(eyre!("Invalid path"))?;
+      let path = &path.resolve();
+      let file_name = path.file_name().ok_or(eyre!("Invalid path").note(format!("{path:#?}").header("Path: ")))?;
       let merged = log_time!(format!("Parsing directory {:?}", file_name.yellow()), {
-        let entries = parse_directory(path, config)?;
+        let entries = parse_directory(path.clone(), config)?;
         let merged = merge_all_values(entries, config)?;
         write_to_file(&merged, config)?;
 
