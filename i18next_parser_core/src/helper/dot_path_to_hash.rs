@@ -95,7 +95,11 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, suffix: Option<&str>, con
     .map(|v| v.trim().into())
     .unwrap_or_default();
 
-  debug!("Setting {:?} -> {:?}", path.yellow(), new_value.purple());
+  if let Some(namespace) = &entry.namespace {
+    debug!("Setting [{:?}] {:?} -> {:?}", namespace.cyan(), path.yellow(), new_value.purple());
+  } else {
+    debug!("Setting {:?} -> {:?}", path.yellow(), new_value.purple());
+  };
   inner[last_segment] = Value::String(new_value);
 
   DotPathToHashResult { target: target.clone(), conflict }

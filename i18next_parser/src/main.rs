@@ -42,6 +42,20 @@ fn main() -> color_eyre::Result<()> {
     print_app();
     initialize_panic_handler()?;
     initialize_logging()?;
-    cli.run()
+    let instant = std::time::Instant::now();
+    cli.run().inspect(|_| {
+      use color_eyre::owo_colors::{AnsiColors, OwoColorize};
+      use log::info;
+      let elapsed = instant.elapsed().as_secs_f64() * 1000.0;
+
+      let duration_str = if elapsed < 10.0 {
+        elapsed.color(AnsiColors::Cyan)
+      } else if elapsed < 50.0 {
+        elapsed.color(AnsiColors::Yellow)
+      } else {
+        elapsed.color(AnsiColors::Red)
+      };
+      info!("Translations generated in {duration_str:.2}ms");
+    })
   }
 }

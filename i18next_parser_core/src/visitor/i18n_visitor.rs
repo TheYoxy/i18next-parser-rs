@@ -7,7 +7,7 @@ use oxc_ast::ast::{
   JSXChild, JSXElement, JSXElementName, JSXExpression, ObjectExpression, ObjectPropertyKind, Program, Statement,
 };
 use serde_json::Value;
-use tracing::{instrument, span};
+use tracing::span;
 
 use crate::{clean_multi_line_code, Entry, IsEmpty};
 
@@ -231,7 +231,6 @@ impl<'a> I18NVisitor<'a> {
   /// # Returns
   ///
   /// The i18next options found in the object
-  #[instrument(skip(self))]
   fn parse_i18next_option(&self, obj: &oxc_allocator::Box<ObjectExpression>) -> I18NextOptions {
     use color_eyre::owo_colors::OwoColorize;
 
@@ -246,20 +245,43 @@ impl<'a> I18NVisitor<'a> {
         match prop {
           ObjectPropertyKind::ObjectProperty(kv) => {
             let name = kv.key.name().unwrap();
-            if name == "defaultValue" || name == "count" || name == "namespace" {
-              let key = name.blue();
-              trace!("Parsing key {key} {} from {}", idx.cyan(), self.file_path.display().yellow());
-              let value = self.parse_expression_as_string(&kv.value);
-              trace!("Parsed {key}: {parsed_value:?} <- {value:?}", parsed_value = value.yellow(), value = kv.value,);
 
-              kv.key.name().map(|name| (name.to_string(), value))
-            } else {
-              debug!("Couldn't parse {}", name.yellow());
-              None
+            let parse = || {
+              trace!(
+                "Parsing key {key} {idx} from {path}",
+                key = name.blue(),
+                idx = idx.cyan(),
+                path = self.file_path.display().yellow()
+              );
+              let value = self.parse_expression_as_string(&kv.value);
+              trace!(
+                "Parsed {key}: {parsed_value:?} <- {value:?}",
+                key = name.blue(),
+                parsed_value = value.yellow(),
+                value = kv.value
+              );
+              value
+            };
+
+            match name.to_string().as_str() {
+              "defaultValue" | "count" | "namespace" => {
+                let value = parse();
+                kv.key.name().map(|name| (name.to_string(), value))
+              },
+              "ns" => {
+                let value = parse();
+                Some(("namespace".into(), value))
+              },
+              _ => {
+                debug!("Couldn't parse {}", name.yellow());
+                None
+              },
             }
           },
           ObjectPropertyKind::SpreadProperty(_) => {
-            warn!("Unsupported spread property");
+            if cfg!(debug_assertions) {
+              warn!("Unsupported spread property in {file}", file = self.file_path.display().yellow());
+            }
             None
           },
         }
@@ -499,7 +521,6 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
-  #[instrument(skip(self))]
   pub(super) fn read_t_args(
     &mut self,
     args: (Option<&Argument<'a>>, Option<&Argument<'a>>),
@@ -949,5 +970,25 @@ mod tests {
     let source_text = r#"const el = <Trad ns="ns" i18nKey="dialog.title"><i>Reset password</i></Trad>;"#;
     let keys = parse(source_text);
     assert_eq!(keys.len(), 0);
+  }
+
+  #[test_log::test]
+  fn should_parse_t_without_default_value_and_namespace() {
+    let source_text = r#"const title = t("toast.title", {ns: "namespace"});"#;
+    let keys = parse(source_text);
+
+    assert_eq!(keys.len(), 1);
+    let el = keys.first().unwrap();
+    el.assert_eq("toast.title", Some("namespace".to_string()), None);
+  }
+
+  #[test_log::test]
+  fn should_parse_t_with_default_value_and_namespace() {
+    let source_text = r#"const title = t("toast.title", "nns", {ns: "namespace"});"#;
+    let keys = parse(source_text);
+
+    assert_eq!(keys.len(), 1);
+    let el = keys.first().unwrap();
+    el.assert_eq("toast.title", Some("namespace".to_string()), Some("nns".to_string()));
   }
 }

@@ -51,7 +51,7 @@ use crate::{
 /// let result = merge_all_values(entries, &config);
 /// assert!(result.is_ok());
 /// ```
-#[instrument]
+#[instrument(skip_all, err, target = "instrument")]
 pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<Vec<MergeResults>> {
   log_time!("Preparing entries to write", {
     let locales = &config.locales;

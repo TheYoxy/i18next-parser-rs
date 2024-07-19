@@ -6,11 +6,9 @@ use oxc_allocator::Allocator;
 use oxc_ast::Visit;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
-use tracing::instrument;
 
 use crate::{log_time, visitor::I18NVisitor, Entry};
 
-#[instrument(skip(path), err)]
 pub fn parse_file<P>(path: P) -> color_eyre::Result<Vec<Entry>>
 where
   P: AsRef<Path>,

@@ -5,10 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.4] - 2024-07-18
+## [0.2.5] - 2024-07-19
 ### Details
 #### Bug Fixes
-- Unable to get filename when "." path is used by @TheYoxy
+- Removed user panic on unsupported properties by @TheYoxy
+- Extracting correct namespace value from t function by @TheYoxy
+
+#### Features
+- Added instrumentation feature for debugging by @TheYoxy
+
+## [0.2.4] - 2024-07-18
+### Details
+#### Miscellaneous Tasks
+- Bumped version to 0.2.4 by @TheYoxy
 
 ## [0.2.3] - 2024-07-17
 ### Details
@@ -114,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tempdir for testing by @TheYoxy
 - Added test to validate that the value isn't overriden when existing by @TheYoxy
 
+[0.2.5]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.4..0.2.5
 [0.2.4]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.3..0.2.4
 [0.2.3]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.2..0.2.3
 [0.2.2]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.1..0.2.2

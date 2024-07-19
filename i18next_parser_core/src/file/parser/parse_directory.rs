@@ -1,8 +1,8 @@
-use std::{num::NonZero, path::PathBuf};
+use std::{num::NonZero, path::PathBuf, time::Instant};
 
 use color_eyre::{
   eyre::{bail, eyre},
-  owo_colors::OwoColorize,
+  owo_colors::{CssColors, OwoColorize},
 };
 use ignore::DirEntry;
 use log::{debug, info};
@@ -10,20 +10,29 @@ use tracing::instrument;
 
 use crate::{config::Config, file::parser::parse_file::parse_file, log_time, Entry};
 
-#[instrument(skip(filter))]
 fn parse_directory_mono_thread(filter: &[DirEntry]) -> Vec<Entry> {
   filter
     .iter()
     .filter_map(move |entry| {
       let entry_path = entry.path();
-      tracing::info!(target: "file_read", "{file}", file = entry_path.display());
-      parse_file(entry_path).ok()
+      let now = Instant::now();
+      let ret = parse_file(entry_path).ok();
+      let elapsed = now.elapsed().as_secs_f64() * 1000.0;
+      match &ret {
+        Some(r) if !r.is_empty() => {
+          let len = r.len();
+            tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.display(), count = format!("{len} translations").italic().color(CssColors::Gray) ,format = format!("({elapsed:.2}ms)").bright_black());
+        },
+        _ => {
+            tracing::info!(target: "file_read", "{file} {format}", file = entry_path.display().italic().color(CssColors::Gray), format = format!("({elapsed:.2}ms)").bright_black());
+        }
+      }
+      ret
     })
     .flatten()
     .collect()
 }
 
-#[instrument(skip(filter, parallelism))]
 fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry]) -> Vec<Entry> {
   let len = filter.len();
   let items_per_threads = len / parallelism;
@@ -40,7 +49,7 @@ fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry]) -> V
 }
 
 /// Parse a directory and return a list of entries.
-#[instrument(skip(path, config))]
+#[instrument(skip_all, err, target = "instrument")]
 pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -> color_eyre::Result<Vec<Entry>> {
   let path = &path.into();
   let config = config.as_ref();

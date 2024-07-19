@@ -45,6 +45,7 @@ resolve-path = "0.1.0"
 [features]
 default = ["generate_types"]
 generate_types = ["i18next_parser_core/generate_types"]
+instrument = []
 
 [dev-dependencies]
 pretty_assertions = "1"
