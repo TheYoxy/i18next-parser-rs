@@ -66,11 +66,11 @@ pub fn initialize_logging() -> color_eyre::Result<()> {
     .with_target(false)
     .with_ansi(true)
     .event_format(InfoFormatter)
+    .with_filter(EnvFilter::from_default_env())
     .with_filter(filter_fn(|meta| {
       let level = *meta.level();
       level <= Level::DEBUG
-    }))
-    .with_filter(EnvFilter::from_default_env());
+    }));
 
   let layer_trace = tracing_subscriber::fmt::layer()
     .with_writer(std::io::stderr)

@@ -14,45 +14,83 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
     if let Some(name) = expr.callee_name() {
       self.extract_namespace(name, expr);
       if name == "t" {
-        let key = if let Some(arg) = expr.arguments.first() {
-          match arg {
-            Argument::StringLiteral(str) => {
-              trace!("t Arg: {:?}", str.bright_black().italic());
-              str.value.to_string()
-            },
-            Argument::TemplateLiteral(template) => {
+        let key = match expr.arguments.first() {
+          Some(Argument::StringLiteral(str)) => {
+            trace!("t Arg: {:?}", str.bright_black().italic());
+            Some(str.value.to_string().clone())
+          },
+          Some(Argument::TemplateLiteral(template)) => {
+            if cfg!(debug_assertions) {
               trace!("t Arg: {:?}", template.bright_black().italic());
+              trace!("t quasis: {:?}", template.quasis);
+              trace!("t expressions: {:?}", template.expressions);
               todo!("Handle template literal")
-            },
-            Argument::BinaryExpression(bin) => {
+            } else {
+              warn!("Template literal are not supported for now");
+              None
+            }
+          },
+          Some(Argument::BinaryExpression(bin)) => {
+            if cfg!(debug_assertions) {
               trace!("t Arg: {:?}", bin.bright_black().italic());
               todo!("Handle binary expression")
-            },
-            _ => {
-              error!("Unknown argument type: {arg:?}");
-              todo!("Handle argument {arg:?}")
-            },
-          }
-        } else {
-          warn!("No key provided, skipping entry");
-          return;
-        };
-        trace!("Key: {}", key.italic().cyan());
-        let (value, i18next_options) = self.read_t_args((expr.arguments.get(1), expr.arguments.get(2)));
+            } else {
+              warn!("Binary expression are not supported for now");
+              None
+            }
+          },
 
-        let options = i18next_options.as_ref();
-        let namespace = self.current_namespace.clone().or(options.and_then(|o| o.get("namespace").cloned().flatten()));
-        let has_count = match options {
-          Some(opt) => opt.get("count").is_some(),
-          None => false,
+          Some(Argument::CallExpression(call)) => {
+            if cfg!(debug_assertions) {
+              trace!("t Arg: {:?}", call.bright_black().italic());
+              trace!("t callee: {:?}", call.callee);
+              call.common_js_require().inspect(|req| trace!("t require: {}", req.value.to_string()));
+              call.callee_name().inspect(|name| trace!("t callee name: {}", name));
+              trace!("t arguments: {:?}", call.arguments);
+              for (idx, arg) in call.arguments.iter().enumerate() {
+                trace!("t argument: {idx} {:?}", arg);
+              }
+
+              todo!("Handle call expression")
+            } else {
+              warn!("Call expression are not supported for now");
+              None
+            }
+          },
+          Some(arg) => {
+            if cfg!(debug_assertions) {
+              error!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
+              todo!("Handle argument {arg:?} in {}", self.file_path.display().yellow())
+            } else {
+              warn!("Unknown argument type {arg:?}");
+              None
+            }
+          },
+          None => {
+            warn!("No key provided, skipping entry");
+            None
+          },
         };
-        for stmt in self.program.body.iter() {
-          if stmt.span() == expr.span {
-            debug!("Statement: {stmt:?}");
+
+        if let Some(key) = key {
+          trace!("Key: {}", key.italic().cyan());
+          let (value, i18next_options) = self.read_t_args((expr.arguments.get(1), expr.arguments.get(2)));
+
+          let options = i18next_options.as_ref();
+          let namespace =
+            self.current_namespace.clone().or(options.and_then(|o| o.get("namespace").cloned().flatten()));
+          let has_count = match options {
+            Some(opt) => opt.get("count").is_some(),
+            None => false,
+          };
+          for stmt in self.program.body.iter() {
+            if stmt.span() == expr.span {
+              debug!("Statement: {stmt:?}");
+            }
           }
+
+          self.entries.push(Entry { key, value, namespace, has_count, i18next_options });
         }
-
-        self.entries.push(Entry { key, value, namespace, has_count, i18next_options });
       };
     }
     walk::walk_call_expression(self, expr);
