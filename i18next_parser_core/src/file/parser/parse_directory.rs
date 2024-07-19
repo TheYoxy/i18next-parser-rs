@@ -10,7 +10,6 @@ use tracing::instrument;
 
 use crate::{config::Config, file::parser::parse_file::parse_file, log_time, Entry};
 
-#[instrument(skip(filter))]
 fn parse_directory_mono_thread(filter: &[DirEntry]) -> Vec<Entry> {
   filter
     .iter()
@@ -22,7 +21,7 @@ fn parse_directory_mono_thread(filter: &[DirEntry]) -> Vec<Entry> {
       match &ret {
         Some(r) if !r.is_empty() => {
           let len = r.len();
-            tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.display(), count = format!("{len} translations").italic().bright_black(),format = format!("({elapsed:.2}ms)").bright_black());
+            tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.display(), count = format!("{len} translations").italic().color(CssColors::Gray) ,format = format!("({elapsed:.2}ms)").bright_black());
         },
         _ => {
             tracing::info!(target: "file_read", "{file} {format}", file = entry_path.display().italic().color(CssColors::Gray), format = format!("({elapsed:.2}ms)").bright_black());
@@ -34,7 +33,6 @@ fn parse_directory_mono_thread(filter: &[DirEntry]) -> Vec<Entry> {
     .collect()
 }
 
-#[instrument(skip(filter, parallelism))]
 fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry]) -> Vec<Entry> {
   let len = filter.len();
   let items_per_threads = len / parallelism;
@@ -51,7 +49,7 @@ fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry]) -> V
 }
 
 /// Parse a directory and return a list of entries.
-#[instrument(skip(path, config))]
+#[instrument(skip_all, err, target = "instrument")]
 pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -> color_eyre::Result<Vec<Entry>> {
   let path = &path.into();
   let config = config.as_ref();

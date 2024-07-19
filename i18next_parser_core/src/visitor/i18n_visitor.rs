@@ -7,7 +7,7 @@ use oxc_ast::ast::{
   JSXChild, JSXElement, JSXElementName, JSXExpression, ObjectExpression, ObjectPropertyKind, Program, Statement,
 };
 use serde_json::Value;
-use tracing::{instrument, span};
+use tracing::span;
 
 use crate::{clean_multi_line_code, Entry, IsEmpty};
 
@@ -231,7 +231,6 @@ impl<'a> I18NVisitor<'a> {
   /// # Returns
   ///
   /// The i18next options found in the object
-  #[instrument(skip(self))]
   fn parse_i18next_option(&self, obj: &oxc_allocator::Box<ObjectExpression>) -> I18NextOptions {
     use color_eyre::owo_colors::OwoColorize;
 
@@ -522,7 +521,6 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
-  #[instrument(skip(self))]
   pub(super) fn read_t_args(
     &mut self,
     args: (Option<&Argument<'a>>, Option<&Argument<'a>>),

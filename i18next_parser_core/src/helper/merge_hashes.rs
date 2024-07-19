@@ -99,19 +99,6 @@ pub fn merge_hashes(
   let mut reset_count = 0;
   let mut existing = existing_values.as_object().map_or_else(Map::new, |v| v.clone());
 
-  // if source.is_none() {
-  //   debug!("No source provided, returning existing hash as is. {:?}", existing.cyan());
-  //   return MergeResult {
-  //     new: Value::Object(existing),
-  //     old: Value::Object(Map::new()),
-  //     reset: Value::Object(Map::new()),
-  //     merge_count: 0,
-  //     pull_count: 0,
-  //     old_count: 0,
-  //     reset_count: 0,
-  //   };
-  // }
-
   let key_separator = &config.key_separator;
   let plural_separator = &config.plural_separator;
   let reset_values_map = reset_values.and_then(|v| v.as_object()).map_or_else(Map::new, |v| v.clone());
@@ -169,7 +156,7 @@ pub fn merge_hashes(
           reset_count += 1;
         },
         Some(target_value) => {
-          trace!("Replacing key: {} from {} to {}", key.purple(), target_value.cyan(), value.cyan());
+          debug!("Replacing key: {} from {} to {}", key.purple(), target_value.cyan(), value.cyan());
           *target_value = value.clone();
           merge_count += 1;
         },
@@ -198,7 +185,8 @@ pub fn merge_hashes(
       trace!("Existing: {:?}", existing.cyan());
     }
   } else {
-    debug!("No source provided, returning existing hash as is. {:?}", existing.cyan());
+    debug!("No source provided, returning existing hash as is.");
+    trace!("Existing: {:?}", existing.cyan());
   }
 
   MergeResult {

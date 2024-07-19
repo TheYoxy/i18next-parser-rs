@@ -1,62 +1,98 @@
 //! Collection of utility functions and constants used throughout the project.
 
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use color_eyre::{eyre::Context, owo_colors::OwoColorize};
+use tracing::{Event, Level, Subscriber};
+use tracing_error::ErrorLayer;
+use tracing_subscriber::{
+  filter::filter_fn,
+  fmt,
+  fmt::{format::FmtSpan, FormatEvent, FormatFields},
+  layer::SubscriberExt,
+  registry::LookupSpan,
+  util::SubscriberInitExt,
+  EnvFilter, Layer,
+};
+
+struct InfoFormatter;
+impl<S, N> FormatEvent<S, N> for InfoFormatter
+where
+  S: Subscriber + for<'a> LookupSpan<'a>,
+  N: for<'a> FormatFields<'a> + 'static,
+{
+  fn format_event(
+    &self,
+    ctx: &fmt::FmtContext<'_, S, N>,
+    mut writer: fmt::format::Writer,
+    event: &Event,
+  ) -> std::fmt::Result {
+    // Based on https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/trait.FormatEvent.html#examples
+    // Without the unused parts
+    let metadata = event.metadata();
+    let level = *metadata.level();
+
+    let target = metadata.target();
+    if target == "file_read" {
+      write!(writer, "{} ", " [read] ".bright_green())?;
+    } else if level == Level::ERROR {
+      write!(writer, "{} ", " [err ] ".red())?;
+    } else if level == Level::WARN {
+      write!(writer, "{} ", " [warn] ".yellow())?;
+    } else if level == Level::INFO {
+      write!(writer, "{} ", " [info] ".blue())?;
+    } else {
+      write!(writer, "{} ", "~".cyan())?;
+    }
+
+    ctx.field_format().format_fields(writer.by_ref(), event)?;
+
+    if level != Level::INFO {
+      if let (Some(file), Some(line)) = (metadata.file(), metadata.line()) {
+        write!(writer, " @ {}:{}", file, line)?;
+      }
+    }
+
+    writeln!(writer)?;
+    Ok(())
+  }
+}
+struct SpanFormatter;
+impl<S, N> FormatEvent<S, N> for SpanFormatter
+where
+  S: Subscriber + for<'a> LookupSpan<'a>,
+  N: for<'a> FormatFields<'a> + 'static,
+{
+  fn format_event(
+    &self,
+    ctx: &fmt::FmtContext<'_, S, N>,
+    mut writer: fmt::format::Writer,
+    event: &Event,
+  ) -> std::fmt::Result {
+    // Based on https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/trait.FormatEvent.html#examples
+    // Without the unused parts
+    let metadata = event.metadata();
+    let level = *metadata.level();
+    if level == Level::ERROR {
+      write!(writer, "{} ", " [err ] ".red())?;
+    } else if level == Level::WARN {
+      write!(writer, "{} ", " [warn] ".yellow())?;
+    } else if level == Level::INFO {
+      write!(writer, "{} ", " [info] ".blue())?;
+    } else {
+      write!(writer, "{} ", "~".cyan())?;
+    }
+
+    ctx.field_format().format_fields(writer.by_ref(), event)?;
+
+    if let (Some(file), Some(line)) = (metadata.file(), metadata.line()) {
+      write!(writer, " @ {}:{}", file, line)?;
+    }
+
+    writeln!(writer)?;
+    Ok(())
+  }
+}
 
 pub fn initialize_logging() -> color_eyre::Result<()> {
-  use color_eyre::{eyre::Context, owo_colors::OwoColorize};
-  use tracing::{Event, Level, Subscriber};
-  use tracing_error::ErrorLayer;
-  use tracing_subscriber::{
-    filter::filter_fn,
-    fmt,
-    fmt::{FormatEvent, FormatFields},
-    registry::LookupSpan,
-    EnvFilter, Layer,
-  };
-
-  struct InfoFormatter;
-  impl<S, N> FormatEvent<S, N> for InfoFormatter
-  where
-    S: Subscriber + for<'a> LookupSpan<'a>,
-    N: for<'a> FormatFields<'a> + 'static,
-  {
-    fn format_event(
-      &self,
-      ctx: &fmt::FmtContext<'_, S, N>,
-      mut writer: fmt::format::Writer,
-      event: &Event,
-    ) -> std::fmt::Result {
-      // Based on https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/trait.FormatEvent.html#examples
-      // Without the unused parts
-      let metadata = event.metadata();
-      let level = *metadata.level();
-
-      let target = metadata.target();
-      if target == "file_read" {
-        write!(writer, "{} ", " [read] ".bright_green())?;
-      } else if level == Level::ERROR {
-        write!(writer, "{} ", " [err ] ".red())?;
-      } else if level == Level::WARN {
-        write!(writer, "{} ", " [warn] ".yellow())?;
-      } else if level == Level::INFO {
-        write!(writer, "{} ", " [info] ".blue())?;
-      } else {
-        write!(writer, "{} ", "~".cyan())?;
-      }
-
-      ctx.field_format().format_fields(writer.by_ref(), event)?;
-
-      if level != Level::INFO {
-        if let (Some(file), Some(line)) = (metadata.file(), metadata.line()) {
-          write!(writer, " @ {}:{}", file, line)?;
-        }
-      }
-
-      writeln!(writer)?;
-      Ok(())
-    }
-  }
-
   let file_subscriber = tracing_subscriber::fmt::layer()
     .compact()
     .without_time()
@@ -72,6 +108,20 @@ pub fn initialize_logging() -> color_eyre::Result<()> {
       level <= Level::DEBUG
     }));
 
+  let span_subscriber = tracing_subscriber::fmt::layer()
+    .compact()
+    .with_writer(std::io::stderr)
+    .with_file(true)
+    .with_line_number(true)
+    .with_target(true)
+    .with_ansi(true)
+    .with_span_events(FmtSpan::CLOSE)
+    .event_format(SpanFormatter)
+    .with_filter(filter_fn(|meta| {
+      let target = meta.target();
+      cfg!(feature = "instrument") && target == "instrument"
+    }));
+
   let layer_trace = tracing_subscriber::fmt::layer()
     .with_writer(std::io::stderr)
     .without_time()
@@ -83,6 +133,7 @@ pub fn initialize_logging() -> color_eyre::Result<()> {
   tracing_subscriber::registry()
     .with(file_subscriber)
     .with(layer_trace)
+    .with(span_subscriber)
     .with(ErrorLayer::default())
     .try_init()
     .with_context(|| "initializing logging")

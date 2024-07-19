@@ -19,7 +19,7 @@ use crate::{
 };
 
 /// Write all entries to the specific file based on its namespace
-#[instrument(skip(values, config), err)]
+#[instrument(skip_all, err, target = "instrument")]
 pub fn write_to_file<T: AsRef<Config>>(values: &[MergeResults], config: T) -> color_eyre::Result<()> {
   let config = config.as_ref();
   log_time!("Writing files", {
@@ -32,7 +32,6 @@ pub fn write_to_file<T: AsRef<Config>>(values: &[MergeResults], config: T) -> co
   })
 }
 
-#[instrument(skip(path, backup, merged, old_catalog, config), err)]
 fn write_files<T: AsRef<Config>>(
   path: &PathBuf,
   backup: &PathBuf,
