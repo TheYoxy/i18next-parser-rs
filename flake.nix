@@ -2,8 +2,7 @@
   description = "A Rust library for parsing i18next translation files";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs = {
@@ -15,43 +14,52 @@
   outputs = {
     self,
     nixpkgs,
-    flake-utils,
     rust-overlay,
-    ...
   }: let
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
+    forAllSystems = nixpkgs.lib.genAttrs systems;
     overlays = [
       rust-overlay.overlays.default
       (final: _prev: {
         rustToolchain = final.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
       })
     ];
-  in
-    flake-utils.lib.eachDefaultSystem (system: let
+  in {
+    formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
+
+    devShells = forAllSystems (system: let
+      pkgs = import nixpkgs {inherit system overlays;};
+    in {
+      default = with pkgs;
+        mkShell {
+          buildInputs = [
+            pkg-config
+            rustToolchain
+          ];
+        };
+    });
+
+    packages = forAllSystems (system: let
       pkgs = import nixpkgs {inherit system overlays;};
       rustPlatform = pkgs.makeRustPlatform {
         cargo = pkgs.rustToolchain;
         rustc = pkgs.rustToolchain;
       };
+      rev = self.shortRev or self.dirtyShortRev or "dirty";
     in {
-      formatter = pkgs.alejandra;
-
-      devShells = {
-        default = with pkgs;
-          mkShell {
-            buildInputs = [
-              pkg-config
-#              rustToolchain
-            ];
-          };
+      i18next-parser = pkgs.callPackage ./packages.nix {
+        inherit rev rustPlatform;
       };
-
-      packages = let
-        rev = self.shortRev or self.dirtyShortRev or "dirty";
-      in rec {
-        i18next-parser = pkgs.callPackage ./packages.nix {
-          inherit rev rustPlatform;
-        };
-        default = i18next-parser;
-      };
+      default = self.packages.${system}.i18next-parser;
     });
+
+    checks = forAllSystems (system: {
+      inherit (self.packages.${system}) i18next-parser;
+    });
+  };
 }
