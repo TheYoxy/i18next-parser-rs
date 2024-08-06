@@ -39,7 +39,7 @@
         mkShell {
           buildInputs = [
             pkg-config
-            rustToolchain
+#            rustToolchain
           ];
         };
     });

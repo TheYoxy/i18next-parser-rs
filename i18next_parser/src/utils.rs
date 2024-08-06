@@ -10,7 +10,8 @@ use tracing_subscriber::{
   layer::SubscriberExt,
   registry::LookupSpan,
   util::SubscriberInitExt,
-  EnvFilter, Layer,
+  EnvFilter,
+  Layer,
 };
 
 struct InfoFormatter;
@@ -33,6 +34,8 @@ where
     let target = metadata.target();
     if target == "file_read" {
       write!(writer, "{} ", " [read] ".bright_green())?;
+    } else if target == "instrument_log" && cfg!(feature = "instrument") {
+      write!(writer, "{} ", " [instr] ".bright_yellow())?;
     } else if level == Level::ERROR {
       write!(writer, "{} ", " [err ] ".red())?;
     } else if level == Level::WARN {
@@ -55,6 +58,7 @@ where
     Ok(())
   }
 }
+
 struct SpanFormatter;
 impl<S, N> FormatEvent<S, N> for SpanFormatter
 where
@@ -69,20 +73,11 @@ where
   ) -> std::fmt::Result {
     // Based on https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/trait.FormatEvent.html#examples
     // Without the unused parts
-    let metadata = event.metadata();
-    let level = *metadata.level();
-    if level == Level::ERROR {
-      write!(writer, "{} ", " [err ] ".red())?;
-    } else if level == Level::WARN {
-      write!(writer, "{} ", " [warn] ".yellow())?;
-    } else if level == Level::INFO {
-      write!(writer, "{} ", " [info] ".blue())?;
-    } else {
-      write!(writer, "{} ", "~".cyan())?;
-    }
+    write!(writer, " {}  ", "[time]".on_bright_cyan())?;
 
     ctx.field_format().format_fields(writer.by_ref(), event)?;
 
+    let metadata = event.metadata();
     if let (Some(file), Some(line)) = (metadata.file(), metadata.line()) {
       write!(writer, " @ {}:{}", file, line)?;
     }

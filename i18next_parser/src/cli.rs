@@ -6,7 +6,13 @@ use clap::{builder::Styles, command, Parser};
 use clap_complete::Shell;
 use color_eyre::{eyre::eyre, Section, SectionExt};
 use i18next_parser_core::{
-  generate_types, log_time, merge_all_values, parse_directory, print_config, write_to_file, Config,
+  generate_types,
+  log_time,
+  merge_all_values,
+  parse_directory,
+  print_config,
+  write_to_file,
+  Config,
 };
 use log::{info, trace};
 use resolve_path::PathResolveExt;

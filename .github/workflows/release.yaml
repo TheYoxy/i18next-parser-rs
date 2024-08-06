@@ -40,10 +40,10 @@ jobs:
           branch: master
           commit_author: ${{ steps.last-commit.outputs.author }}
           commit_message: "chore: bumped version to ${{ steps.version.outputs.version }}\n\nOld message: ${{ steps.last-commit.outputs.message }}"
-          file_pattern: 'CHANGELOG.md */Cargo.toml'
+          file_pattern: "CHANGELOG.md */Cargo.toml"
           tagging_message: ${{ steps.version.outputs.version }}
-          commit_options: '--amend --no-edit'
-          push_options: '--force-with-lease'
+          commit_options: "--amend --no-edit"
+          push_options: "--force-with-lease"
           skip_fetch: true
       - name: Trigger tag
         run: gh workflow run tag.yaml --ref ${{ steps.version.outputs.version }}

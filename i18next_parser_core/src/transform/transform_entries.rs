@@ -41,13 +41,13 @@ pub fn transform_entries(
   let mut unique_count = HashMap::new();
   let mut unique_plurals_count = HashMap::new();
 
-  let value = entries.iter().try_fold(Value::Object(Default::default()), |value, entry| {
+  let value = entries.iter().try_fold(Value::Object(Default::default()), |mut value, entry| {
     return if entry.has_count {
       let suffixes = PluralResolver::default().get_suffixes(locale);
       match suffixes {
         Ok(suffixes) => {
-          suffixes.iter().try_fold(value, |value, suffix| {
-            transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, Some(suffix))
+          suffixes.iter().try_fold(value, |mut value, suffix| {
+            transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &mut value, config, Some(suffix))
           })
         },
         Err(e) => {
@@ -56,7 +56,7 @@ pub fn transform_entries(
         },
       }
     } else {
-      transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &value, config, None)
+      transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &mut value, config, None)
     };
   })?;
 

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use color_eyre::{eyre::bail, owo_colors::OwoColorize};
-use log::{trace, warn};
+use log::warn;
 use serde_json::Value;
 
 use crate::{
@@ -13,11 +13,12 @@ use crate::{
   Entry,
 };
 
+/// Transforms an entry into a JSON object.
 pub fn transform_entry(
   entry: &Entry,
   unique_count: &mut HashMap<String, usize>,
   unique_plurals_count: &mut HashMap<String, usize>,
-  value: &Value,
+  value: &mut Value,
   options: &Config,
   suffix: Option<&str>,
 ) -> color_eyre::Result<Value> {
@@ -30,7 +31,6 @@ pub fn transform_entry(
   }
 
   let result = dot_path_to_hash(entry, value, suffix, options);
-  trace!("Result: {} <- {}", value.cyan(), result.target.cyan());
 
   match result.conflict {
     Some(Conflict::Key(key)) => {
@@ -57,7 +57,7 @@ pub fn transform_entry(
     },
   }
 
-  Ok(result.target)
+  Ok(result.target.clone())
 }
 
 #[cfg(test)]
@@ -77,10 +77,10 @@ mod tests {
     };
     let mut unique_count = HashMap::new();
     let mut unique_plurals_count = HashMap::new();
-    let value = Value::Object(Default::default());
+    let mut value = Value::Object(Default::default());
     let options = Default::default();
 
-    let result = transform_entry(&entry, &mut unique_count, &mut unique_plurals_count, &value, &options, None);
+    let result = transform_entry(&entry, &mut unique_count, &mut unique_plurals_count, &mut value, &options, None);
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), json!({"default": {"key1": "value1"}}));

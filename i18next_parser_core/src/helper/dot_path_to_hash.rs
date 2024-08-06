@@ -4,6 +4,7 @@ use log::{debug, trace, warn};
 use serde_json::{Map, Value};
 
 use crate::{Config, Entry};
+use crate::helper::skip_last::SkipLast;
 
 /// Enum representing the type of conflict that can occur when converting a dot path to a hash.
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -14,8 +15,8 @@ pub enum Conflict {
 
 /// Struct representing the result of converting a dot path to a hash.
 #[derive(Debug)]
-pub struct DotPathToHashResult {
-  pub target: Value,
+pub struct DotPathToHashResult<'a> {
+  pub target: &'a Value,
   pub conflict: Option<Conflict>,
 }
 
@@ -31,8 +32,12 @@ pub struct DotPathToHashResult {
 /// # Returns
 ///
 /// * A DotPathToHashResult object.
-pub fn dot_path_to_hash(entry: &Entry, target: &Value, suffix: Option<&str>, config: &Config) -> DotPathToHashResult {
-  let mut target = target.clone();
+pub fn dot_path_to_hash<'a>(
+  entry: &Entry,
+  target: &'a mut Value,
+  suffix: Option<&str>,
+  config: &Config,
+) -> DotPathToHashResult<'a> {
   let separator = &config.key_separator;
 
   if entry.key.is_empty() {
@@ -66,7 +71,7 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, suffix: Option<&str>, con
   let segments: Vec<&str> = path.split(separator).collect();
   trace!("Val {:?} {:?} {:?}", &target.yellow(), entry.key.purple(), entry.value.cyan());
 
-  let (old_value, mut conflict, inner, last_segment) = lookup_by_key(&mut target, &segments);
+  let (old_value, mut conflict, inner, last_segment) = lookup_by_key(target, &segments);
 
   let new_value: String = entry
     .value
@@ -102,26 +107,7 @@ pub fn dot_path_to_hash(entry: &Entry, target: &Value, suffix: Option<&str>, con
   };
   inner[last_segment] = Value::String(new_value);
 
-  DotPathToHashResult { target: target.clone(), conflict }
-}
-
-use std::iter::Peekable;
-
-struct SkipLastIterator<I: Iterator>(Peekable<I>);
-impl<I: Iterator> Iterator for SkipLastIterator<I> {
-  type Item = I::Item;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    let item = self.0.next();
-    self.0.peek().map(|_| item.unwrap())
-  }
-}
-trait SkipLast: Iterator + Sized {
-  fn skip_last(self) -> SkipLastIterator<Self> {
-    SkipLastIterator(self.peekable())
-  }
-}
-impl<I: Iterator> SkipLast for I {
+  DotPathToHashResult { target, conflict }
 }
 
 /// Lookup a value in a JSON object by key.
@@ -194,17 +180,17 @@ mod tests {
       i18next_options: None,
       has_count: true,
     };
-    let target = json!({
+    let mut target = json!({
       "namespace": {
         "key": "existing_value"
       }
     });
     let config = Default::default();
 
-    let result = dot_path_to_hash(&entry, &target, None, &config);
+    let result = dot_path_to_hash(&entry, &mut target, None, &config);
 
     assert_eq!(
-      result.target,
+      *result.target,
       json!({
         "namespace": {
           "key": "default_value"
@@ -224,12 +210,12 @@ mod tests {
       i18next_options: None,
       has_count: true,
     };
-    let target = json!({});
+    let mut target = json!({});
     let config = Default::default();
 
-    let result = dot_path_to_hash(&entry, &target, None, &config);
+    let result = dot_path_to_hash(&entry, &mut target, None, &config);
 
-    assert_eq!(result.target, json!({}));
+    assert_eq!(*result.target, json!({}));
     assert!(result.conflict.is_none());
   }
 
@@ -242,13 +228,13 @@ mod tests {
       i18next_options: None,
       has_count: true,
     };
-    let target = json!({});
+    let mut target = json!({});
     let config = Default::default();
 
-    let result = dot_path_to_hash(&entry, &target, None, &config);
+    let result = dot_path_to_hash(&entry, &mut target, None, &config);
 
     assert_eq!(
-      result.target,
+      *result.target,
       json!({
           "nonexistent": {
               "key": "default_value"
@@ -267,17 +253,17 @@ mod tests {
       i18next_options: None,
       has_count: true,
     };
-    let target = json!({
+    let mut target = json!({
         "namespace": {
             "key": "existing_value"
         }
     });
     let config = Default::default();
 
-    let result = dot_path_to_hash(&entry, &target, None, &config);
+    let result = dot_path_to_hash(&entry, &mut target, None, &config);
 
     assert_eq!(
-      result.target,
+      *result.target,
       json!({
           "namespace": {
               "key": "default_value"
@@ -296,17 +282,17 @@ mod tests {
       i18next_options: None,
       has_count: true,
     };
-    let target = json!({
+    let mut target = json!({
         "namespace": {
             "key1": "default_value"
         }
     });
     let config = Default::default();
 
-    let result = dot_path_to_hash(&entry, &target, None, &config);
+    let result = dot_path_to_hash(&entry, &mut target, None, &config);
 
     assert_eq!(
-      result.target,
+      *result.target,
       json!({
           "namespace": {
               "key1": "default_value",
@@ -326,17 +312,17 @@ mod tests {
       i18next_options: None,
       has_count: true,
     };
-    let target = json!({
+    let mut target = json!({
         "namespace": {
             "key_suffix": "existing_value"
         }
     });
     let config = Default::default();
 
-    let result = dot_path_to_hash(&entry, &target, Some("_suffix"), &config);
+    let result = dot_path_to_hash(&entry, &mut target, Some("_suffix"), &config);
 
     assert_eq!(
-      result.target,
+      *result.target,
       json!({
           "namespace": {
               "key_suffix": "default_value"
