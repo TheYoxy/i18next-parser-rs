@@ -3,8 +3,21 @@ use std::{collections::HashMap, path::PathBuf};
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, trace, warn};
 use oxc_ast::ast::{
-  Argument, CallExpression, Expression, IdentifierReference, JSXAttributeItem, JSXAttributeName, JSXAttributeValue,
-  JSXChild, JSXElement, JSXElementName, JSXExpression, ObjectExpression, ObjectPropertyKind, Program, Statement,
+  Argument,
+  CallExpression,
+  Expression,
+  IdentifierReference,
+  JSXAttributeItem,
+  JSXAttributeName,
+  JSXAttributeValue,
+  JSXChild,
+  JSXElement,
+  JSXElementName,
+  JSXExpression,
+  ObjectExpression,
+  ObjectPropertyKind,
+  Program,
+  Statement,
 };
 use serde_json::Value;
 use tracing::span;
@@ -12,7 +25,8 @@ use tracing::span;
 use crate::{
   clean_multi_line_code,
   visitor::node_child::{NodeChild, NodeTag},
-  Entry, IsEmpty,
+  Entry,
+  IsEmpty,
 };
 
 /// This type alias represents the options for i18next.
@@ -912,12 +926,12 @@ mod tests {
       assert_eq!(first.value, Some("a<1>c<1>z</1></1>{d}<3></3>".into()));
     }
 
-
     #[test_log::test]
     #[should_panic] // todo: fix this test
     fn should_skips_dynamic_children() {
       // language=javascript
-      let source_text = "<Trans>My dogs are named: <ul i18nIsDynamicList>{['rupert', 'max'].map(dog => (<li>{dog}</li>))}</ul></Trans>";
+      let source_text =
+        "<Trans>My dogs are named: <ul i18nIsDynamicList>{['rupert', 'max'].map(dog => (<li>{dog}</li>))}</ul></Trans>";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 0);
       let first = keys.first().unwrap();

@@ -512,11 +512,14 @@ mod tests {
         },
       })
     );
-    assert_eq!(result.reset, json!({
-      "key1": {
-        "key2": true,
-      },
-    }));
+    assert_eq!(
+      result.reset,
+      json!({
+        "key1": {
+          "key2": true,
+        },
+      })
+    );
     assert_eq!(result.reset_count, 1);
   }
 

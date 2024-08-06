@@ -10,7 +10,8 @@ use tracing_subscriber::{
   layer::SubscriberExt,
   registry::LookupSpan,
   util::SubscriberInitExt,
-  EnvFilter, Layer,
+  EnvFilter,
+  Layer,
 };
 
 struct InfoFormatter;
