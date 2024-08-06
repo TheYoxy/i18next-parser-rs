@@ -1,6 +1,6 @@
 [package]
 name = "i18next_parser_core"
-version = "0.2.2"
+version = "0.2.7"
 edition = "2021"
 authors = ["TheYoxy <floryansimar@gmail.com>"]
 license = "MIT"
