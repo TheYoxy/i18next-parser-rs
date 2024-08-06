@@ -96,8 +96,9 @@ impl<'a> I18NVisitor<'a> {
       Expression::StringLiteral(str) => Some(json!(str.value.to_string())),
       Expression::NumericLiteral(num) => Some(json!(num.value.to_string())),
       Expression::BooleanLiteral(bool) => Some(json!(bool.value.to_string())),
-      // Expression::Identifier(identifier) => self.find_identifier_value_as_string(identifier),
-      // Expression::TSSatisfiesExpression(expr) => self.parse_expression_as_string(&expr.expression),
+      Expression::Identifier(identifier) => self.find_identifier_value(identifier),
+      Expression::TSSatisfiesExpression(expr) => self.parse_expression(&expr.expression),
+      Expression::TSAsExpression(expression) => self.parse_expression(&expression.expression),
       _ => {
         debug!("Unsupported expression: {expr:?}");
         None
@@ -130,8 +131,13 @@ impl<'a> I18NVisitor<'a> {
       Expression::StringLiteral(str) => Some(str.value.to_string()),
       Expression::NumericLiteral(num) => Some(num.value.to_string()),
       Expression::BooleanLiteral(bool) => Some(bool.value.to_string()),
+      Expression::TSAsExpression(expression) => self.parse_expression_as_string(&expression.expression),
       _ => {
-        warn!("Unsupported expression: {expr:?}");
+        if cfg!(debug_assertions) {
+          warn!("Unsupported expression (str): {expr:?}");
+        } else {
+          warn!("Unsupported expression: {expr:?}");
+        }
         None
       },
     }

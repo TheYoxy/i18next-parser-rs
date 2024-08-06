@@ -1,4 +1,4 @@
-use color_eyre::eyre::eyre;
+use color_eyre::{eyre::eyre, owo_colors::OwoColorize};
 use serde_json::Value;
 use tracing::instrument;
 
@@ -53,6 +53,7 @@ use crate::{
 /// ```
 #[instrument(skip_all, err, target = "instrument")]
 pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Result<Vec<MergeResults>> {
+  tracing::info!(target: "instrument_log", "Merging {} entries across locales", entries.len().cyan());
   log_time!("Preparing entries to write", {
     let locales = &config.locales;
     let default_locale = &config.locales.first().ok_or(eyre!("No locales found in the configuration."))?;

@@ -3,3 +3,4 @@ pub mod clean_multi_line_code;
 pub mod dot_path_to_hash;
 pub mod get_char_diff;
 pub mod merge_hashes;
+mod skip_last;
