@@ -5,7 +5,7 @@ use super::{operands::PluralOperands, PluralCategory};
 pub type PluralRule = fn(&PluralOperands) -> PluralCategory;
 pub static CLDR_VERSION: usize = 45;
 macro_rules! langid {
-  ($ lang : expr , $ script : expr , $ region : expr) => {{
+  ($lang:expr, $script:expr, $region:expr) => {{
     unsafe { LanguageIdentifier::from_raw_parts_unchecked($lang, $script, $region, None) }
   }};
 }

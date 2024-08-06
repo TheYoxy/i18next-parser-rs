@@ -72,7 +72,7 @@ pub struct MergeResult {
 /// let config = Default::default();
 /// let reset_values = None;
 ///
-/// let result = merge_hashes(&existing, source, reset_values, "", false, &config);
+/// let result = merge_hashes( source,&existing, reset_values, "", false, &config);
 ///
 /// assert_eq!(
 ///   result.new,
@@ -84,8 +84,8 @@ pub struct MergeResult {
 /// );
 /// ```
 pub fn merge_hashes(
-  existing_values: &Value,
   source: Option<&Value>,
+  existing_values: &Value,
   reset_values: Option<&Value>,
   full_key_prefix: &str,
   reset_and_flag: bool,
@@ -110,8 +110,8 @@ pub fn merge_hashes(
         Some(target_value) if target_value.is_object() && value.is_object() => {
           debug!("Merging nested key: {}", key.yellow());
           let nested_result = merge_hashes(
-            target_value,
             Some(value),
+            target_value,
             reset_values_map.get(key),
             &format!("{full_key_prefix}{key}{key_separator}"),
             reset_and_flag,
@@ -126,11 +126,12 @@ pub fn merge_hashes(
             Value::Object(old_map) if !old_map.is_empty() => {
               old.insert(key.clone(), old_map.into());
             },
-            Value::Object(old_map) => {
-              old = old_map;
-            },
+            Value::Object(_) => {},
             _ => {
               error!("Old map is not an object: {:?}", nested_result.old);
+              if cfg!(debug_assertions) {
+                panic!("Old map is not an object: {:?}", nested_result.old);
+              }
             },
           }
 
@@ -138,13 +139,19 @@ pub fn merge_hashes(
             Value::Object(reset_map) if !reset_map.is_empty() => {
               reset.insert(key.clone(), reset_map.into());
             },
-            Value::Object(reset_map) => {
-              reset = reset_map;
-            },
+            Value::Object(_) => {},
             _ => {
               error!("reset map is not an object: {:?}", nested_result.reset);
+              if cfg!(debug_assertions) {
+                panic!("reset map is not an object: {:?}", nested_result.reset);
+              }
             },
           }
+        },
+        Some(_) if !value.is_string() && !value.is_array() => {
+          debug!("Replacing key: {} with {}", key.purple(), value.cyan());
+          old.insert(key.clone(), value.clone());
+          old_count += 1;
         },
         Some(target_value)
           if reset_and_flag && !is_plural(key) && value != target_value || reset_values_map.contains_key(key) =>
@@ -164,8 +171,15 @@ pub fn merge_hashes(
           debug!("Pulling key: {}", key.purple());
           let singular_key = get_singular_form(key, plural_separator);
           let plural_match = key != &singular_key;
-          let context_match = singular_key.contains('_');
-          let raw_key = singular_key.replace('_', "");
+
+          const CONTEXT_SEPARATOR: char = '_';
+          let regex = Regex::new(
+            format!("\\{context_separator}([^\\{context_separator}]+)?$", context_separator = CONTEXT_SEPARATOR)
+              .as_str(),
+          )
+          .unwrap();
+          let context_match = regex.is_match(&singular_key);
+          let raw_key = regex.replace(&singular_key, "").to_string();
 
           if (context_match && existing.contains_key(&raw_key))
             || (plural_match && has_related_plural_key(&format!("{}{}", singular_key, plural_separator), &existing))
@@ -202,10 +216,312 @@ pub fn merge_hashes(
 
 #[cfg(test)]
 mod tests {
-
+  use pretty_assertions::assert_eq;
   use serde_json::json;
 
   use super::*;
+
+  fn default_merge_hashes(source: &Value, target: &Value) -> MergeResult {
+    merge_hashes(Some(source), target, None, "", false, &Default::default())
+  }
+
+  #[test]
+  fn should_replaces_empty_target_keys_with_source() {
+    let source = json!({ "key1": "value1" });
+    let target = json!({ "key1": ""});
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(result.new, source, "the new hash is not as expected");
+    assert_eq!(result.old, json!({}), "the old hash is not as expected");
+    assert_eq!(result.merge_count, 1, "the merge count is not as expected");
+    assert_eq!(result.pull_count, 0, "the pull count is not as expected");
+    assert_eq!(result.old_count, 0, "the old count is not as expected");
+  }
+
+  #[test]
+  fn should_not_replace_empty_target_with_source_if_it_is_a_hash() {
+    let source = json!({ "key1": { "key11": "value1" } });
+    let target = json!({ "key1": "" });
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(result.new, json!({ "key1": "" }), "the new hash is not as expected");
+    assert_eq!(result.old, json!({ "key1": { "key11": "value1" } }), "the old hash is not as expected");
+    assert_eq!(result.merge_count, 0);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 1);
+  }
+
+  #[test]
+  fn should_keeps_target_keys_not_in_source() {
+    let source = json!({"key1": "value1"});
+    let target = json!({"key1": "", "key2": ""});
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(result.new, json!({ "key1": "value1", "key2": "" }), "the new hash is not as expected");
+    assert_eq!(result.old, json!({}), "the old hash is not as expected");
+    assert_eq!(result.merge_count, 1);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 0);
+  }
+
+  #[test]
+  fn should_stores_into_old_the_keys_from_source_that_are_not_in_target() {
+    let source = json!({"key1": "value1", "key2": "value2"});
+    let target = json!({"key1": ""});
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(result.new, json!({ "key1": "value1" }), "the new hash is not as expected");
+    assert_eq!(result.old, json!({ "key2": "value2"}), "the old hash is not as expected");
+    assert_eq!(result.merge_count, 1);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 1);
+  }
+
+  #[test]
+  fn should_copies_source_keys_to_target_regardless_of_presence_when_keep_removed_is_enabled() {
+    let source = json!({
+          "key1": "value1",
+          "key2": "value2",
+          "key4": { "key41": "value41" },
+    });
+    let target = json!({ "key1": "", "key3": "" });
+
+    let result =
+      merge_hashes(Some(&source), &target, None, "", false, &Config { keep_removed: true, ..Default::default() });
+
+    assert_eq!(
+      result.new,
+      json!({
+        "key1": "value1",
+        "key2": "value2",
+        "key3": "",
+        "key4": { "key41": "value41" },
+      })
+    );
+    assert_eq!(result.old, json!({}));
+    assert_eq!(result.merge_count, 1);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 2);
+  }
+
+  #[test]
+  fn should_copies_nested_source_keys_to_target_regardless_of_presence_when_keep_removed_is_enabled() {
+    let source = json!({
+          "key1": "value1",
+          "key2": "value2",
+          "key4": { "key41": "value41" },
+    });
+    let target = json!({ "key1": "", "key3": "", "key4": { "key42": "" }});
+
+    let result =
+      merge_hashes(Some(&source), &target, None, "", false, &Config { keep_removed: true, ..Default::default() });
+
+    assert_eq!(
+      result.new,
+      json!({
+        "key1": "value1",
+        "key2": "value2",
+        "key3": "",
+        "key4": { "key41": "value41", "key42": "" },
+      })
+    );
+    assert_eq!(result.old, json!({}));
+    assert_eq!(result.merge_count, 1);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 2);
+  }
+
+  #[test]
+  fn should_restore_plural_keys_when_the_singular_one_exists() {
+    let source = json!({ "key1_one": "", "key1_other": "value1" });
+    let target = json!({ "key1_one": "" });
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(result.new, json!({ "key1_one": "", "key1_other": "value1" }));
+    assert_eq!(result.old, json!({}));
+    assert_eq!(result.merge_count, 1);
+    assert_eq!(result.pull_count, 1);
+    assert_eq!(result.old_count, 0);
+  }
+
+  #[test]
+  fn should_not_restore_plural_keys_when_the_singulare_one_does_not() {
+    let source = json!({ "key1_one": "", "key1_other": "value1" });
+    let target = json!({ "key2": "" });
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(result.new, json!({"key2" : ""}));
+    assert_eq!(result.old, json!({ "key1_one": "", "key1_other": "value1" }));
+    assert_eq!(result.merge_count, 0);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 2);
+  }
+
+  #[test]
+  fn should_restores_context_keys_when_the_singular_one_exists() {
+    let source = json!({ "key1": "", "key1_context": "value1" });
+    let target = json!({ "key1": "" });
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(result.new, json!({ "key1": "", "key1_context": "value1" }));
+    assert_eq!(result.old, json!({}));
+    assert_eq!(result.merge_count, 1);
+    assert_eq!(result.pull_count, 1);
+    assert_eq!(result.old_count, 0);
+  }
+
+  #[test]
+  fn should_not_restores_context_keys_when_the_singular_one_does_not() {
+    let source = json!({ "key1": "", "key1_context": "value1" });
+    let target = json!({ "key2": "" });
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(result.new, json!({ "key2": ""}));
+    assert_eq!(result.old, json!({ "key1": "", "key1_context": "value1" }));
+    assert_eq!(result.merge_count, 0);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 2);
+  }
+
+  #[test]
+  fn should_works_with_deep_objects() {
+    let source = json!({
+      "key1": "value1",
+      "key2": {
+        "key21": "value21",
+        "key22": {
+          "key221": "value221",
+          "key222": "value222",
+        },
+        "key23": "value23",
+      },
+      "key4": {
+        "key41": "value41",
+      },
+    });
+    let target = json!({
+      "key1": "",
+      "key2": {
+        "key21": "",
+        "key22": {
+          "key222": "",
+          "key223": "",
+        },
+        "key24": "",
+      },
+      "key3": "",
+      "key4": {
+        "key41": "value41",
+      },
+    });
+
+    let result = default_merge_hashes(&source, &target);
+
+    assert_eq!(
+      result.new,
+      json!({
+        "key1": "value1",
+        "key2": {
+          "key21": "value21",
+          "key22": {
+            "key222": "value222",
+            "key223": "",
+          },
+          "key24": "",
+        },
+        "key3": "",
+        "key4": {
+          "key41": "value41",
+        },
+      })
+    );
+    assert_eq!(
+      result.old,
+      json!({
+        "key2": {
+          "key22": {
+            "key221": "value221",
+          },
+          "key23": "value23",
+        },
+      })
+    );
+    assert_eq!(result.merge_count, 4);
+    assert_eq!(result.pull_count, 0);
+    assert_eq!(result.old_count, 2);
+  }
+
+  #[test]
+  fn should_resets_and_flags_keys_if_the_reset_and_flag_value_is_set() {
+    let source = json!({ "key1": "key1", "key2": "key2" });
+    let target = json!({ "key1": "changedKey1", "key2": "key2" });
+
+    let result = merge_hashes(Some(&source), &target, None, "", true, &Default::default());
+
+    assert_eq!(result.new, json!({ "key1": "changedKey1", "key2": "key2" }));
+    assert_eq!(result.old, json!({ "key1": "key1" }));
+    assert_eq!(result.reset, json!({ "key1": true }));
+    assert_eq!(result.reset_count, 1);
+  }
+
+  #[test]
+  fn should_resets_and_flags_keys_if_the_reset_and_flag_value_is_set_with_nested() {
+    let source = json!({
+      "key1": {
+        "key2": "key2",
+      },
+      "key3": {
+        "key4": "key4",
+      },
+    });
+    let target = json!({
+      "key1": {
+        "key2": "changedKey2",
+      },
+      "key3": {
+        "key4": "key4",
+      },
+    });
+
+    let result = merge_hashes(Some(&source), &target, None, "", true, &Default::default());
+
+    assert_eq!(
+      result.new,
+      json!({
+        "key1": {
+          "key2": "changedKey2",
+        },
+        "key3": {
+          "key4": "key4",
+        },
+      })
+    );
+    assert_eq!(
+      result.old,
+      json!({
+        "key1": {
+          "key2": "key2",
+        },
+      })
+    );
+    assert_eq!(
+      result.reset,
+      json!({
+        "key1": {
+          "key2": true,
+        },
+      })
+    );
+    assert_eq!(result.reset_count, 1);
+  }
 
   #[test]
   fn test_merge_hashes_no_source() {
@@ -216,7 +532,7 @@ mod tests {
     let config = Default::default();
     let reset_values = None;
 
-    let result = merge_hashes(&existing, None, reset_values, "", false, &config);
+    let result = merge_hashes(None, &existing, reset_values, "", false, &config);
 
     assert_eq!(result.new, existing);
     assert_eq!(result.old, json!({}));
@@ -241,7 +557,7 @@ mod tests {
     let config = Default::default();
     let reset_values = None;
 
-    let result = merge_hashes(&existing, source, reset_values, "", false, &config);
+    let result = merge_hashes(source, &existing, reset_values, "", false, &config);
 
     assert_eq!(
       result.new,
@@ -278,7 +594,7 @@ mod tests {
     let config = Config { keep_removed: true, ..Default::default() };
     let reset_values = None;
 
-    let result = merge_hashes(&existing, source, reset_values, "", false, &config);
+    let result = merge_hashes(source, &existing, reset_values, "", false, &config);
 
     assert_eq!(
       result.new,

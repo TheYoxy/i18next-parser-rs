@@ -1,5 +1,6 @@
 mod entry;
 mod i18n_visitor;
+mod node_child;
 pub(crate) mod visit;
 
 pub use entry::Entry;

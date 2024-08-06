@@ -3,6 +3,7 @@ use serde_json::Value;
 
 /// Trait to check if a `serde_json::Value` is empty.
 pub trait IsEmpty {
+  /// Check if the value is empty.
   fn is_empty(&self) -> bool;
 }
 
