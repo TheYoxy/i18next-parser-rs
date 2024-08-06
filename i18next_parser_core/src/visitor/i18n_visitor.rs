@@ -842,6 +842,132 @@ mod tests {
     use super::*;
 
     #[test_log::test]
+    fn should_extract_default_value_from_string_litteral_prop() {
+      // language=javascript
+      let source_text = "<Trans i18nKey='first' defaults='test-value'>should be ignored</Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys, vec![Entry::new_with_value("first", "test-value")]);
+    }
+
+    #[test_log::test]
+    fn should_extract_default_value_from_interpolated_string_prop() {
+      // language=javascript
+      let source_text = "<Trans i18nKey='first' defaults={'test-value'}>should be ignored</Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys, vec![Entry::new_with_value("first", "test-value")]);
+    }
+
+    #[test_log::test]
+    fn should_extract_key_from_self_closing() {
+      // language=javascript
+      let source_text = "<Trans i18nKey='first' />";
+      let keys = parse(source_text);
+      assert_eq!(keys, vec![Entry::empty("first")]);
+    }
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_format_interpolations_correctly() {
+      // language=javascript
+      let source_text = "<Trans count={count}>{{ key: property, format: 'number' }}</Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys, vec![Entry::new_with_value("{{key, number}}", "{{key, number}}")]);
+    }
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_strip_invalid_interpolations() {
+      // language=javascript
+      let source_text = "<Trans count={count}>before{{ key1, key2 }}after</Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys, vec![Entry::new_with_value("beforeafter", "beforeafter")]);
+    }
+
+    #[test_log::test]
+    fn should_not_add_empty_for_self_closing_tags() {
+      // language=javascript
+      let source_text = "<Trans count={count}/>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 0);
+      assert_eq!(keys, vec![]);
+    }
+
+    #[test_log::test]
+    fn should_not_add_empty_for_empty_tags() {
+      // language=javascript
+      let source_text = "<Trans count={count}></Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 0);
+      assert_eq!(keys, vec![]);
+    }
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_erases_tags_from_content() {
+      // language=javascript
+      let source_text = "<Trans>a<b test={'</b>'}>c<c>z</c></b>{d}<br stuff={y}/></Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 0);
+      let first = keys.first().unwrap();
+      assert_eq!(first.value, Some("a<1>c<1>z</1></1>{d}<3></3>".into()));
+    }
+
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_skips_dynamic_children() {
+      // language=javascript
+      let source_text = "<Trans>My dogs are named: <ul i18nIsDynamicList>{['rupert', 'max'].map(dog => (<li>{dog}</li>))}</ul></Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 0);
+      let first = keys.first().unwrap();
+      assert_eq!(first.value, Some("My dogs are named: <1></1>".into()));
+    }
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_handle_spread_attributes() {
+      // language=javascript
+      let source_text = "<Trans>My dog is named: <span {...styles}>Spot</span></Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 0);
+      let first = keys.first().unwrap();
+      assert_eq!(first.value, Some("My dog is named: <1>Spot</1>".into()));
+    }
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_erases_comment_expressions() {
+      // language=javascript
+      let source_text = "<Trans>{/* some comment */}Some Content</Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 0);
+      let first = keys.first().unwrap();
+      assert_eq!(first.value, Some("Some Content".into()));
+    }
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_handles_jsx_fragments() {
+      // language=javascript
+      let source_text = "<><Trans i18nKey='first' /></>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 0);
+      assert_eq!(keys, vec![Entry::empty("first")]);
+    }
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_interpolates_literal_string_values() {
+      // language=javascript
+      let source_text = "<Trans>Some{' '}Interpolated {'Content'}</Trans>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 0);
+      let first = keys.first().unwrap();
+      assert_eq!(first.value, Some("Some Interpolated Content".into()));
+    }
+
+    #[test_log::test]
     fn should_parse_jsx_with_ns_defined_in_variable() {
       // language=javascript
       let source_text = "const ns = 'ns'; const el = <Trans ns={ns} i18nKey='dialog.title'>Reset password</Trans>;";
