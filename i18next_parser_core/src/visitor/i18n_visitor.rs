@@ -636,7 +636,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_options_and_ns_defined_in_variable() {
       // language=javascript
-      let source_text = r#"const ns = "ns"; const title = t("toast.title", undefined, {namespace: ns});"#;
+      let source_text = "const ns = 'ns'; const title = t('toast.title', undefined, {namespace: ns});";
       let keys = parse(source_text);
 
       assert_eq!(keys.len(), 1);
@@ -646,7 +646,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_key_only() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title");"#;
+      let source_text = "const title = t('toast.title');";
       let keys = parse(source_text);
 
       assert_eq!(keys.len(), 1);
@@ -656,7 +656,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_options() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title", "default_value", {namespace: "ns"});"#;
+      let source_text = "const title = t('toast.title', 'default_value', {namespace: 'ns'});";
       let keys = parse(source_text);
 
       assert_eq!(keys.len(), 1);
@@ -666,7 +666,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_default_value() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title", "nns");"#;
+      let source_text = "const title = t('toast.title', 'nns');";
       let keys = parse(source_text);
 
       assert_eq!(keys.len(), 1);
@@ -677,7 +677,7 @@ mod tests {
     fn should_parse_get_fixed_t_with_ns() {
       // language=javascript
       let source_text =
-        r#"const ns = "ns"; const t = await i18next.getFixedT(locale, ns); const title = t("toast.title"); "#;
+        "const ns = 'ns'; const t = await i18next.getFixedT(locale, ns); const title = t('toast.title'); ";
 
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
@@ -687,7 +687,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_default_value_and_ns_defined_in_variable() {
       // language=javascript
-      let source_text = r#"const ns = "ns"; const title = t("toast.title", "default title", { namespace: ns });"#;
+      let source_text = "const ns = 'ns'; const title = t('toast.title', 'default title', { namespace: ns });";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("toast.title", "default title", "ns")]);
@@ -696,7 +696,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_no_options() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title");"#;
+      let source_text = "const title = t('toast.title');";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
@@ -705,7 +705,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_empty_options() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title", undefined, {});"#;
+      let source_text = "const title = t('toast.title', undefined, {});";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
@@ -715,7 +715,7 @@ mod tests {
     fn should_parse_t_with_multiple_keys() {
       // language=javascript
       let source_text =
-        r#"const title1 = t("toast.title1"); const title2 = t("toast.title2"); const title3 = t("toast.title3");"#;
+        "const title1 = t('toast.title1'); const title2 = t('toast.title2'); const title3 = t('toast.title3');";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 3);
       assert_eq!(keys, vec![Entry::empty("toast.title1"), Entry::empty("toast.title2"), Entry::empty("toast.title3")]);
@@ -725,7 +725,7 @@ mod tests {
     fn should_parse_t_with_same_key_multiple_times() {
       // language=javascript
       let source_text =
-        r#"const title1 = t("toast.title"); const title2 = t("toast.title"); const title3 = t("toast.title");"#;
+        "const title1 = t('toast.title'); const title2 = t('toast.title'); const title3 = t('toast.title');";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 3);
       assert_eq!(keys, vec![Entry::empty("toast.title"), Entry::empty("toast.title"), Entry::empty("toast.title")]);
@@ -734,7 +734,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_value() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title", {defaultValue: 'Attempt {{num}}', num: 0});"#;
+      let source_text = "const title = t('toast.title', {defaultValue: 'Attempt {{num}}', num: 0});";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new_with_value("toast.title", "Attempt {{num}}")]);
@@ -743,7 +743,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_count_literal_spread() {
       // language=javascript
-      let source_text = r#"const count = 1; const title = t("toast.title", undefined, { count });"#;
+      let source_text = "const count = 1; const title = t('toast.title', undefined, { count });";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
@@ -754,7 +754,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_count_literal() {
       // language=javascript
-      let source_text = r#"const count = 1; const title = t("toast.title", undefined, {count: count});"#;
+      let source_text = "const count = 1; const title = t('toast.title', undefined, {count: count});";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
@@ -765,7 +765,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_count_numeric() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title", undefined, {count: 1});"#;
+      let source_text = "const title = t('toast.title', undefined, {count: 1});";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
@@ -776,7 +776,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_count_arg() {
       // language=javascript
-      let source_text = r#"const title = (count: number) => t("toast.title", undefined, {count: count});"#;
+      let source_text = "const title = (count: number) => t('toast.title', undefined, {count: count});";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
@@ -787,7 +787,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_count_arg_spread() {
       // language=javascript
-      let source_text = r#"const title = (count: number) => t("toast.title", undefined, {count});"#;
+      let source_text = "const title = (count: number) => t('toast.title', undefined, {count});";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
@@ -798,7 +798,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_without_default_value_and_namespace() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title", {ns: "namespace"});"#;
+      let source_text = "const title = t('toast.title', {ns: 'namespace'});";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
@@ -807,7 +807,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_default_value_and_namespace() {
       // language=javascript
-      let source_text = r#"const title = t("toast.title", "nns", {ns: "namespace"});"#;
+      let source_text = "const title = t('toast.title', 'nns', {ns: 'namespace'});";
       let keys = parse(source_text);
 
       assert_eq!(keys.len(), 1);
@@ -821,10 +821,20 @@ mod tests {
     #[test_log::test]
     fn should_extract_keys_from_render_props() {
       // language=javascript
-      let source_text = r#"<Translation>{(t) => <>{t("first", "Main")}{t("second")}</>}</Translation>"#;
+      let source_text = "<Translation>{(t) => <>{t('first', 'Main')}{t('second')}</>}</Translation>";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 2);
       assert_eq!(keys, vec![Entry::new_with_value("first", "Main"), Entry::empty("second")]);
+    }
+
+    #[test_log::test]
+    #[should_panic] // todo: fix this test
+    fn should_extract_ns_from_translation_with_render_prop() {
+      // language=javascript
+      let source_text = "<Translation ns='foo'>{(t) => t('first')}</Translation>";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new_with_ns("first", "foo")]);
     }
   }
 
@@ -834,7 +844,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_ns_defined_in_variable() {
       // language=javascript
-      let source_text = r#"const ns = "ns"; const el = <Trans ns={ns} i18nKey="dialog.title">Reset password</Trans>; "#;
+      let source_text = "const ns = 'ns'; const el = <Trans ns={ns} i18nKey='dialog.title'>Reset password</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
@@ -843,7 +853,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_ns() {
       // language=javascript
-      let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password</Trans>;"#;
+      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
@@ -852,7 +862,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_template_translated() {
       // language=javascript
-      let source_text = r#"const Comp = () => <i>Reset password</i>; const el = <Trans ns="ns" i18nKey="dialog.title"><Comp>Reset password</Comp></Trans>;"#;
+      let source_text = "const Comp = () => <i>Reset password</i>; const el = <Trans ns='ns' i18nKey='dialog.title'><Comp>Reset password</Comp></Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "<0>Reset password</0>", "ns")]);
@@ -862,7 +872,7 @@ mod tests {
     fn should_parse_jsx_with_nested_template() {
       // language=javascript
       let source_text =
-        r#"const attempt = 0; const el = <Trans ns="ns" i18nKey="dialog.title">Reset password {{attempt}}</Trans>;"#;
+        "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password {{attempt}}</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]);
@@ -871,7 +881,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_nested_template_object() {
       // language=javascript
-      let source_text = r#"const attempt = 0; const el = <Trans ns="ns" i18nKey="dialog.title">Reset password {{ attempt: attempt + 1 }}</Trans>;"#;
+      let source_text = "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password {{ attempt: attempt + 1 }}</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]);
@@ -880,7 +890,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_nested_template_object_and_text_after() {
       // language=javascript
-      let source_text = r#"const attempt = 0; const el = <Trans ns="ns" i18nKey="dialog.title">Attempt {{ attempt: attempt + 1 }} on 10</Trans>;"#;
+      let source_text = "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Attempt {{ attempt: attempt + 1 }} on 10</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Attempt {{attempt}} on 10", "ns")]);
@@ -889,7 +899,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_self_closing_element() {
       // language=javascript
-      let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password<br /></Trans>;"#;
+      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password<br /></Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password<1></1>", "ns")]);
@@ -898,7 +908,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_template_removed_when_unspecified() {
       // language=javascript
-      let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title"><i>Reset password</i></Trans>;"#;
+      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title'><i>Reset password</i></Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "<0>Reset password</0>", "ns")]);
@@ -907,7 +917,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_template_kept() {
       // language=javascript
-      let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title"><i>Reset password</i></Trans>;"#;
+      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title'><i>Reset password</i></Trans>;";
       let keys = parse_with_options(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "<i>Reset password</i>", "ns")]);
@@ -916,7 +926,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_and_return_nothing_on_bad_components() {
       // language=javascript
-      let source_text = r#"const el = <Trad ns="ns" i18nKey="dialog.title"><i>Reset password</i></Trad>;"#;
+      let source_text = "const el = <Trad ns='ns' i18nKey='dialog.title'><i>Reset password</i></Trad>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 0);
     }
@@ -925,7 +935,7 @@ mod tests {
     fn should_parse_jsx_with_count_identifier() {
       // language=javascript
       let source_text =
-        r#"const count = 2; const el = <Trans ns="ns" i18nKey="dialog.title" count={count}>Reset password</Trans>;"#;
+        "const count = 2; const el = <Trans ns='ns' i18nKey='dialog.title' count={count}>Reset password</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
@@ -936,7 +946,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_count_numeral() {
       // language=javascript
-      let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title" count={2}>Reset password</Trans>;"#;
+      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' count={2}>Reset password</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
@@ -947,7 +957,8 @@ mod tests {
     #[test_log::test]
     fn should_parse_jsx_with_count_double_reference() {
       // language=javascript
-      let source_text = r#"const a = 2; const b = a; const el = <Trans ns="ns" i18nKey="dialog.title" count={b}>Reset password</Trans>;"#;
+      let source_text =
+        "const a = 2; const b = a; const el = <Trans ns='ns' i18nKey='dialog.title' count={b}>Reset password</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
@@ -960,7 +971,7 @@ mod tests {
     fn should_parse_jsx_with_count_from_arg() {
       // language=javascript
       let source_text =
-        r#"const el = (count: number) => <Trans ns="ns" i18nKey="dialog.title" count={count}>Reset password</Trans>;"#;
+        "const el = (count: number) => <Trans ns='ns' i18nKey='dialog.title' count={count}>Reset password</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
