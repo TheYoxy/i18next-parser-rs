@@ -86,11 +86,11 @@ pub fn merge_results<C: AsRef<Config>>(
   trace!("Value: {:?} -> {:?}", value.cyan(), old_value.cyan());
 
   let full_key_prefix = format!("{}{}", namespace, config.key_separator);
-  let merged = merge_hashes(catalog, value.as_ref(), old_value, &full_key_prefix, is_default, config);
-  let old_merged = merge_hashes(&merged.new, old_value, None, &full_key_prefix, false, &Config {
-    keep_removed: false,
-    ..Default::default()
-  });
+  let merged = merge_hashes(value.as_ref(), catalog, old_value, &full_key_prefix, is_default, config);
+  let old_merged = merge_hashes(old_value, &merged.new, None, &full_key_prefix, false, &Config {
+      keep_removed: false,
+      ..Default::default()
+    });
   let old_catalog = transfer_values(&merged.old, &old_merged.old);
   if config.verbose {
     print_counts(locale, namespace, unique_count, unique_plurals_count, &merged, &old_merged, config);
