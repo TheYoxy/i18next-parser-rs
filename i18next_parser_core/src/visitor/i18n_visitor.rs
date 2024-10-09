@@ -636,7 +636,7 @@ impl<'a> I18NVisitor<'a> {
     };
     trace!("Namespace from key: {namespace:?}", namespace = ns_from_key.italic().cyan());
 
-    let namespace = current_namespace.clone().or(ns_from_options).or(ns_from_key);
+    let namespace = ns_from_key.or(ns_from_options).or(current_namespace.clone());
     trace!("Namespace: {namespace:?}", namespace = namespace.italic().cyan());
     (key, namespace)
   }
@@ -852,6 +852,25 @@ mod tests {
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
       let el = keys.first().unwrap();
       assert!(el.has_count);
+    }
+
+    #[test_log::test]
+    fn should_parse_t_with_namespace_from_name_first_with_t() {
+      // language=javascript
+      let source_text =
+        "const t = useTranslation('other_override'); const title = t('namespace:toast.title', {ns: 'override'});";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
+    }
+
+    #[test_log::test]
+    fn should_parse_t_with_namespace_from_name_first() {
+      // language=javascript
+      let source_text = "const title = t('namespace:toast.title', {ns: 'override'});";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
     }
 
     #[test_log::test]
