@@ -5,15 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.10] - 2024-08-10
+### Details
+#### Miscellaneous Tasks
+- Using correct tag name for releases by [@TheYoxy](https://github.com/TheYoxy)
+
+## [0.2.9] - 2024-08-10
+### Details
+#### Miscellaneous Tasks
+- Bumped version to 0.2.9 by [@TheYoxy](https://github.com/TheYoxy)
+
+## [0.2.8] - 2024-08-06
+### Details
+#### Miscellaneous Tasks
+- Bumped version to 0.2.8 by [@TheYoxy](https://github.com/TheYoxy)
+
 ## [0.2.7] - 2024-08-06
 ### Details
 #### Features
-- Changed file_pattern to update cargo.toml files by @TheYoxy
+- Changed file_pattern to update cargo.toml files by [@TheYoxy](https://github.com/TheYoxy)
+
+#### Miscellaneous Tasks
+- Bumped version to 0.2.7 by [@TheYoxy](https://github.com/TheYoxy)
+
+#### Performance
+- Removed unnecessary clone to improve performance by [@TheYoxy](https://github.com/TheYoxy)
+
+#### Styling
+- Applied new rustfmt rules by [@TheYoxy](https://github.com/TheYoxy)
+
+#### Testing
+- Flatten test implementation by [@TheYoxy](https://github.com/TheYoxy)
+- Replaced double quotes by single quotes in js code by [@TheYoxy](https://github.com/TheYoxy)
+- Added test cases for visitor from i18next-parser by [@TheYoxy](https://github.com/TheYoxy)
+- Added test cases for merge_hashes by [@TheYoxy](https://github.com/TheYoxy)
 
 ## [0.2.6] - 2024-07-25
 ### Details
+#### Features
+- Added more detailled time to generate by [@TheYoxy](https://github.com/TheYoxy)
+
 #### Miscellaneous Tasks
-- Bumped version to 0.2.6 by @TheYoxy
+- Bumped version to 0.2.6 by [@TheYoxy](https://github.com/TheYoxy)
 
 ## [0.2.5] - 2024-07-19
 ### Details
@@ -136,6 +169,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tempdir for testing by [@TheYoxy](https://github.com/TheYoxy)
 - Added test to validate that the value isn't overriden when existing by [@TheYoxy](https://github.com/TheYoxy)
 
+[0.2.10]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.9..0.2.10
+[0.2.9]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.8..0.2.9
+[0.2.8]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.7..0.2.8
 [0.2.7]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.6..0.2.7
 [0.2.6]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.5..0.2.6
 [0.2.5]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.4..0.2.5
