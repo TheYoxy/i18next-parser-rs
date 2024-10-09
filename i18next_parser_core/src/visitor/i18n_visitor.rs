@@ -25,6 +25,7 @@ use tracing::span;
 use crate::{
   clean_multi_line_code,
   visitor::node_child::{NodeChild, NodeTag},
+  Config,
   Entry,
   IsEmpty,
 };
@@ -38,10 +39,19 @@ pub type I18NextOptions = HashMap<String, Option<String>>;
 ///
 /// # Fields
 ///
+/// * `namespace_separator` - The spearator to use for the namespace inside a key.
 /// * `trans_keep_basic_html_nodes_for` - An optional vector of strings representing the basic HTML nodes to be kept for translation.
 #[derive(Debug, Default)]
 pub struct VisitorOptions {
+  pub namespace_separator: Option<String>,
   pub trans_keep_basic_html_nodes_for: Option<Vec<String>>,
+}
+
+impl VisitorOptions {
+  pub fn new<C: AsRef<Config>>(config: C) -> Self {
+    let config = config.as_ref();
+    VisitorOptions { namespace_separator: Some(config.namespace_separator.clone()), ..Default::default() }
+  }
 }
 
 /// This struct represents the I18NVisitor which is used to parse the AST and extract the i18n keys.
@@ -69,12 +79,12 @@ pub struct I18NVisitor<'a> {
 /// The visitor implementation that will search for translations inside javascript code
 impl<'a> I18NVisitor<'a> {
   /// Creates a new \[`CountASTNodes`\].
-  pub fn new<Path: Into<PathBuf>>(program: &'a Program<'a>, file_path: Path) -> Self {
+  pub fn new<Path: Into<PathBuf>, C: AsRef<Config>>(program: &'a Program<'a>, file_path: Path, config: C) -> Self {
     I18NVisitor {
       program,
       file_path: file_path.into(),
       entries: Default::default(),
-      options: Default::default(),
+      options: VisitorOptions::new(config),
       current_namespace: Default::default(),
     }
   }
@@ -602,18 +612,6 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
-  fn parse_option_and_default_value(
-    &mut self,
-    obj: &oxc_allocator::Box<'_, ObjectExpression<'_>>,
-  ) -> (I18NextOptions, Option<String>) {
-    let i18next_options = self.parse_i18next_option(obj);
-    let default_value = i18next_options.get("defaultValue").cloned().flatten();
-    if let Some(value) = i18next_options.get("defaultValue") {
-      trace!("translation value found in i18next options: {value:?}");
-    }
-    (i18next_options, default_value)
-  }
-
   /// Get the namespace for an entry
   ///
   /// # Arguments
@@ -621,13 +619,15 @@ impl<'a> I18NVisitor<'a> {
   /// * `key` - The key to get the namespace for
   /// * `options` - The options to get the namespace from
   pub(super) fn get_namespace(&self, options: Option<&I18NextOptions>, key: &str) -> (String, Option<String>) {
+    let separator = self.options.namespace_separator.as_deref().unwrap_or(":");
+    trace!("Namespace separator: {separator:?}", separator = separator.italic().cyan());
     let current_namespace = &self.current_namespace;
     trace!("Current namespace: {namespace:?}", namespace = current_namespace.italic().cyan());
     let ns_from_options = options.and_then(|o| o.get("namespace").cloned().flatten());
     trace!("Namespace from options: {namespace:?}", namespace = ns_from_options.italic().cyan());
 
-    let (key, ns_from_key) = if key.contains(':') {
-      let mut split = key.split(':');
+    let (key, ns_from_key) = if key.contains(separator) {
+      let mut split = key.split(separator);
       let ns = split.next().map(|v| v.to_string());
       let key = split.next().map(|v| v.to_string()).unwrap();
       (key, ns)
@@ -639,6 +639,18 @@ impl<'a> I18NVisitor<'a> {
     let namespace = current_namespace.clone().or(ns_from_options).or(ns_from_key);
     trace!("Namespace: {namespace:?}", namespace = namespace.italic().cyan());
     (key, namespace)
+  }
+
+  fn parse_option_and_default_value(
+    &mut self,
+    obj: &oxc_allocator::Box<'_, ObjectExpression<'_>>,
+  ) -> (I18NextOptions, Option<String>) {
+    let i18next_options = self.parse_i18next_option(obj);
+    let default_value = i18next_options.get("defaultValue").cloned().flatten();
+    if let Some(value) = i18next_options.get("defaultValue") {
+      trace!("translation value found in i18next options: {value:?}");
+    }
+    (i18next_options, default_value)
   }
 }
 
@@ -658,7 +670,7 @@ mod tests {
 
     let program = ret.program;
 
-    let mut visitor = I18NVisitor::new(&program, "file.tsx");
+    let mut visitor = I18NVisitor::new(&program, "file.tsx", Config::default());
     visitor.visit_program(&program);
     visitor.entries
   }
@@ -670,7 +682,7 @@ mod tests {
 
     let program = ret.program;
 
-    let mut visitor = I18NVisitor::new(&program, "file.tsx");
+    let mut visitor = I18NVisitor::new(&program, "file.tsx", Config::default());
     visitor.options.trans_keep_basic_html_nodes_for =
       Some(vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]);
     visitor.visit_program(&program);

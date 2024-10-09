@@ -10,13 +10,13 @@ use tracing::instrument;
 
 use crate::{config::Config, file::parser::parse_file::parse_file, log_time, Entry};
 
-fn parse_directory_mono_thread(filter: &[DirEntry]) -> Vec<Entry> {
+fn parse_directory_mono_thread<C: AsRef<Config>>(filter: &[DirEntry], config: C) -> Vec<Entry> {
   filter
     .iter()
     .filter_map(move |entry| {
       let entry_path = entry.path();
       let now = Instant::now();
-      let ret = parse_file(entry_path).ok();
+      let ret = parse_file(entry_path, &config).ok();
       let elapsed = now.elapsed().as_secs_f64() * 1000.0;
       match &ret {
         Some(r) if !r.is_empty() => {
@@ -33,7 +33,7 @@ fn parse_directory_mono_thread(filter: &[DirEntry]) -> Vec<Entry> {
     .collect()
 }
 
-fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry]) -> Vec<Entry> {
+fn parse_directory_thread<'a>(parallelism: NonZero<usize>, filter: &'a [DirEntry], config: &'a Config) -> Vec<Entry> {
   let len = filter.len();
   let items_per_threads = len / parallelism;
   let chunk_size = (len + items_per_threads - 1) / items_per_threads; // ceil(len / n)
@@ -44,7 +44,14 @@ fn parse_directory_thread(parallelism: NonZero<usize>, filter: &[DirEntry]) -> V
   vectors
     .iter()
     .cloned()
-    .flat_map(|filter| std::thread::spawn(move || parse_directory_mono_thread(&filter)).join().unwrap())
+    .flat_map(|filter| {
+      std::thread::spawn({
+        let config = config.clone();
+        move || parse_directory_mono_thread(&filter, config)
+      })
+      .join()
+      .unwrap()
+    })
     .collect::<Vec<_>>()
 }
 
@@ -95,9 +102,9 @@ pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -
       info!("Reading {} files", len.blue());
       let entries = if len > parallelism.get() {
         debug!("Using {parallelism} threads to read the directory {directory_name}");
-        parse_directory_thread(parallelism, &filter)
+        parse_directory_thread(parallelism, &filter, config)
       } else {
-        parse_directory_mono_thread(&filter)
+        parse_directory_mono_thread(&filter, config)
       };
 
       Ok(entries)
