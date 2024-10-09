@@ -73,12 +73,11 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
         };
 
         if let Some(key) = key {
-          trace!("Key: {}", key.italic().cyan());
+          trace!("Key: {key}", key = key.italic().cyan());
           let (value, i18next_options) = self.read_t_args((expr.arguments.get(1), expr.arguments.get(2)));
 
           let options = i18next_options.as_ref();
-          let namespace =
-            self.current_namespace.clone().or(options.and_then(|o| o.get("namespace").cloned().flatten()));
+          let (key, namespace) = self.get_namespace(options, &key);
           let has_count = match options {
             Some(opt) => opt.get("count").is_some(),
             None => false,

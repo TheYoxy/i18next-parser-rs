@@ -613,6 +613,33 @@ impl<'a> I18NVisitor<'a> {
     }
     (i18next_options, default_value)
   }
+
+  /// Get the namespace for an entry
+  ///
+  /// # Arguments
+  ///
+  /// * `key` - The key to get the namespace for
+  /// * `options` - The options to get the namespace from
+  pub(super) fn get_namespace(&self, options: Option<&I18NextOptions>, key: &str) -> (String, Option<String>) {
+    let current_namespace = &self.current_namespace;
+    trace!("Current namespace: {namespace:?}", namespace = current_namespace.italic().cyan());
+    let ns_from_options = options.and_then(|o| o.get("namespace").cloned().flatten());
+    trace!("Namespace from options: {namespace:?}", namespace = ns_from_options.italic().cyan());
+
+    let (key, ns_from_key) = if key.contains(':') {
+      let mut split = key.split(':');
+      let ns = split.next().map(|v| v.to_string());
+      let key = split.next().map(|v| v.to_string()).unwrap();
+      (key, ns)
+    } else {
+      (key.to_string(), None)
+    };
+    trace!("Namespace from key: {namespace:?}", namespace = ns_from_key.italic().cyan());
+
+    let namespace = current_namespace.clone().or(ns_from_options).or(ns_from_key);
+    trace!("Namespace: {namespace:?}", namespace = namespace.italic().cyan());
+    (key, namespace)
+  }
 }
 
 #[cfg(test)]
@@ -813,6 +840,15 @@ mod tests {
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
       let el = keys.first().unwrap();
       assert!(el.has_count);
+    }
+
+    #[test_log::test]
+    fn should_parse_t_with_namespace_from_name() {
+      // language=javascript
+      let source_text = "const title = t('namespace:toast.title');";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
     }
 
     #[test_log::test]
