@@ -25,6 +25,7 @@ use tracing::span;
 use crate::{
   clean_multi_line_code,
   visitor::node_child::{NodeChild, NodeTag},
+  Config,
   Entry,
   IsEmpty,
 };
@@ -38,10 +39,19 @@ pub type I18NextOptions = HashMap<String, Option<String>>;
 ///
 /// # Fields
 ///
+/// * `namespace_separator` - The spearator to use for the namespace inside a key.
 /// * `trans_keep_basic_html_nodes_for` - An optional vector of strings representing the basic HTML nodes to be kept for translation.
 #[derive(Debug, Default)]
 pub struct VisitorOptions {
+  pub namespace_separator: Option<String>,
   pub trans_keep_basic_html_nodes_for: Option<Vec<String>>,
+}
+
+impl VisitorOptions {
+  pub fn new<C: AsRef<Config>>(config: C) -> Self {
+    let config = config.as_ref();
+    VisitorOptions { namespace_separator: Some(config.namespace_separator.clone()), ..Default::default() }
+  }
 }
 
 /// This struct represents the I18NVisitor which is used to parse the AST and extract the i18n keys.
@@ -69,12 +79,12 @@ pub struct I18NVisitor<'a> {
 /// The visitor implementation that will search for translations inside javascript code
 impl<'a> I18NVisitor<'a> {
   /// Creates a new \[`CountASTNodes`\].
-  pub fn new<Path: Into<PathBuf>>(program: &'a Program<'a>, file_path: Path) -> Self {
+  pub fn new<Path: Into<PathBuf>, C: AsRef<Config>>(program: &'a Program<'a>, file_path: Path, config: C) -> Self {
     I18NVisitor {
       program,
       file_path: file_path.into(),
       entries: Default::default(),
-      options: Default::default(),
+      options: VisitorOptions::new(config),
       current_namespace: Default::default(),
     }
   }
@@ -602,6 +612,35 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
+  /// Get the namespace for an entry
+  ///
+  /// # Arguments
+  ///
+  /// * `key` - The key to get the namespace for
+  /// * `options` - The options to get the namespace from
+  pub(super) fn get_namespace(&self, options: Option<&I18NextOptions>, key: &str) -> (String, Option<String>) {
+    let separator = self.options.namespace_separator.as_deref().unwrap_or(":");
+    trace!("Namespace separator: {separator:?}", separator = separator.italic().cyan());
+    let current_namespace = &self.current_namespace;
+    trace!("Current namespace: {namespace:?}", namespace = current_namespace.italic().cyan());
+    let ns_from_options = options.and_then(|o| o.get("namespace").cloned().flatten());
+    trace!("Namespace from options: {namespace:?}", namespace = ns_from_options.italic().cyan());
+
+    let (key, ns_from_key) = if key.contains(separator) {
+      let mut split = key.split(separator);
+      let ns = split.next().map(|v| v.to_string());
+      let key = split.next().map(|v| v.to_string()).unwrap();
+      (key, ns)
+    } else {
+      (key.to_string(), None)
+    };
+    trace!("Namespace from key: {namespace:?}", namespace = ns_from_key.italic().cyan());
+
+    let namespace = current_namespace.clone().or(ns_from_options).or(ns_from_key);
+    trace!("Namespace: {namespace:?}", namespace = namespace.italic().cyan());
+    (key, namespace)
+  }
+
   fn parse_option_and_default_value(
     &mut self,
     obj: &oxc_allocator::Box<'_, ObjectExpression<'_>>,
@@ -631,7 +670,7 @@ mod tests {
 
     let program = ret.program;
 
-    let mut visitor = I18NVisitor::new(&program, "file.tsx");
+    let mut visitor = I18NVisitor::new(&program, "file.tsx", Config::default());
     visitor.visit_program(&program);
     visitor.entries
   }
@@ -643,7 +682,7 @@ mod tests {
 
     let program = ret.program;
 
-    let mut visitor = I18NVisitor::new(&program, "file.tsx");
+    let mut visitor = I18NVisitor::new(&program, "file.tsx", Config::default());
     visitor.options.trans_keep_basic_html_nodes_for =
       Some(vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]);
     visitor.visit_program(&program);
@@ -813,6 +852,15 @@ mod tests {
       assert_eq!(keys, vec![Entry::empty("toast.title")]);
       let el = keys.first().unwrap();
       assert!(el.has_count);
+    }
+
+    #[test_log::test]
+    fn should_parse_t_with_namespace_from_name() {
+      // language=javascript
+      let source_text = "const title = t('namespace:toast.title');";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
     }
 
     #[test_log::test]
