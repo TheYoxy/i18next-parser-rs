@@ -39,7 +39,9 @@
         mkShell {
           buildInputs = [
             pkg-config
-#            rustToolchain
+            samply
+            git-cliff
+            #            rustToolchain
           ];
         };
     });

@@ -5,10 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.13] - 2024-11-13
+### Details
+#### Miscellaneous Tasks
+- Added profiling configuration by [@TheYoxy](https://github.com/TheYoxy)
+- Added changelog link into readme by [@TheYoxy](https://github.com/TheYoxy)
+
+#### Refactor
+- Removed any usage of regex for type generation by [@TheYoxy](https://github.com/TheYoxy)
+- Removed unnecessary collection in merge_hashed by [@TheYoxy](https://github.com/TheYoxy)
+- Show read and run timings on -v flage by [@TheYoxy](https://github.com/TheYoxy)
+- Added file location on unsupported oxc expression by [@TheYoxy](https://github.com/TheYoxy)
+
 ## [0.2.12] - 2024-10-09
 ### Details
 #### Bug Fixes
 - Using correct namespace parsing order by [@TheYoxy](https://github.com/TheYoxy)
+
+#### Miscellaneous Tasks
+- Bumped version to 0.2.12 by [@TheYoxy](https://github.com/TheYoxy)
 
 ## [0.2.11] - 2024-10-09
 ### Details
@@ -183,6 +198,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tempdir for testing by [@TheYoxy](https://github.com/TheYoxy)
 - Added test to validate that the value isn't overriden when existing by [@TheYoxy](https://github.com/TheYoxy)
 
+[0.2.13]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.12..0.2.13
 [0.2.12]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.11..0.2.12
 [0.2.11]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.10..0.2.11
 [0.2.10]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.9..0.2.10

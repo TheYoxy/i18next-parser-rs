@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, error, trace, warn};
 use oxc_ast::{
@@ -5,9 +7,33 @@ use oxc_ast::{
   visit::walk,
   Visit,
 };
-use oxc_span::GetSpan;
+use oxc_span::{GetSpan, Span};
 
 use crate::{visitor::I18NVisitor, Entry};
+
+#[cfg(debug_assertions)]
+fn print_error_location(span: &Span, file_path: &PathBuf) {
+  let content = std::fs::read_to_string(file_path).unwrap();
+  let (start, remaining) = content.split_at(span.start.try_into().unwrap());
+  let (content, end) = remaining.split_at(span.size().try_into().unwrap());
+  let (previous, previous_content) = start.split_at(start.rfind('\n').unwrap());
+  let (_, last_line) = previous.split_at(previous.rfind('\n').unwrap());
+  let (next_content, next) = end.split_at(end.rfind('\n').unwrap());
+  let (next_line, _) = next.split_at(next.rfind('\n').unwrap());
+  let line = start.chars().fold(0, |i, c| if c == '\n' { i + 1 } else { i });
+
+  error!("Location: ");
+  error!("{line}: {last_line}", last_line = last_line.replace('\n', ""));
+  let line = line + 1;
+  error!(
+    "{line}: {previous_content}{content}{next_content}",
+    previous_content = previous_content.replace('\n', ""),
+    content = content.italic().red().underline(),
+    next_content = next_content.replace('\n', ""),
+  );
+  let line = line + 1;
+  error!("{line}: {next_line}", next_line = next_line.replace('\n', ""));
+}
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
   fn visit_call_expression(&mut self, expr: &CallExpression<'a>) {
@@ -24,6 +50,8 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
               trace!("t Arg: {:?}", template.bright_black().italic());
               trace!("t quasis: {:?}", template.quasis);
               trace!("t expressions: {:?}", template.expressions);
+
+              print_error_location(&template.span, &self.file_path);
               todo!("Handle template literal")
             } else {
               warn!("Template literal are not supported for now");
@@ -33,6 +61,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           Some(Argument::BinaryExpression(bin)) => {
             if cfg!(debug_assertions) {
               trace!("t Arg: {:?}", bin.bright_black().italic());
+              print_error_location(&bin.span, &self.file_path);
               todo!("Handle binary expression")
             } else {
               warn!("Binary expression are not supported for now");
@@ -50,6 +79,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
               for (idx, arg) in call.arguments.iter().enumerate() {
                 trace!("t argument: {idx} {:?}", arg);
               }
+              print_error_location(&call.span, &self.file_path);
 
               todo!("Handle call expression")
             } else {
@@ -60,6 +90,8 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           Some(arg) => {
             if cfg!(debug_assertions) {
               error!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
+              print_error_location(&arg.span(), &self.file_path);
+
               todo!("Handle argument {arg:?} in {}", self.file_path.display().yellow())
             } else {
               warn!("Unknown argument type {arg:?}");
