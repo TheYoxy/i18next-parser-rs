@@ -41,19 +41,18 @@ fn main() -> color_eyre::Result<()> {
   } else {
     print_app();
     initialize_panic_handler()?;
-    initialize_logging()?;
+    initialize_logging(&cli.verbose)?;
     let instant = std::time::Instant::now();
     cli.run().inspect(|_| {
       use color_eyre::owo_colors::OwoColorize;
-      use log::info;
       let elapsed = instant.elapsed().as_secs_f64() * 1000.0;
 
       if elapsed < 100.0 {
-        info!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.green());
+        eprintln!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.green());
       } else if elapsed < 500.0 {
-        info!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.yellow());
+        eprintln!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.yellow());
       } else {
-        info!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.red().bold());
+        eprintln!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.red().bold());
       };
     })
   }

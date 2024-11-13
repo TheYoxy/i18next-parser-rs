@@ -34,7 +34,7 @@ pub struct Cli {
 
   /// Should the output to be verbose
   #[arg(short, long, default_value = "false", global = true)]
-  verbose: bool,
+  pub verbose: bool,
   /// Should generate types
   #[arg(short, long, default_value = "false", global = true)]
   #[cfg(feature = "generate_types")]

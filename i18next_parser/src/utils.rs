@@ -14,6 +14,64 @@ use tracing_subscriber::{
   Layer,
 };
 
+struct VerboseFilter {
+  verbose: bool,
+}
+fn verbose_filter(verbose: bool) -> VerboseFilter {
+  VerboseFilter { verbose }
+}
+impl<S> tracing_subscriber::layer::Filter<S> for VerboseFilter {
+  /// Returns `true` if this layer is interested in a span or event with the
+  /// given [`Metadata`] in the current [`Context`], similarly to
+  /// [`Subscriber::enabled`].
+  ///
+  /// If this returns `false`, the span or event will be disabled _for the
+  /// wrapped [`Layer`]_. Unlike [`Layer::enabled`], the span or event will
+  /// still be recorded if any _other_ layers choose to enable it. However,
+  /// the layer [filtered] by this filter will skip recording that span or
+  /// event.
+  ///
+  /// If all layers indicate that they do not wish to see this span or event,
+  /// it will be disabled.
+  ///
+  /// [`metadata`]: tracing_core::Metadata
+  /// [`Subscriber::enabled`]: tracing_core::Subscriber::enabled
+  /// [filtered]: crate::filter::Filtered
+  fn enabled(&self, _meta: &tracing::Metadata<'_>, _cx: &tracing_subscriber::layer::Context<'_, S>) -> bool {
+    self.verbose
+  }
+}
+
+struct UserInfoFormatter;
+impl<S, N> FormatEvent<S, N> for UserInfoFormatter
+where
+  S: Subscriber + for<'a> LookupSpan<'a>,
+  N: for<'a> FormatFields<'a> + 'static,
+{
+  fn format_event(
+    &self,
+    ctx: &fmt::FmtContext<'_, S, N>,
+    mut writer: fmt::format::Writer,
+    event: &Event<'_>,
+  ) -> std::fmt::Result {
+    // Based on https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/trait.FormatEvent.html#examples
+    // Without the unused parts
+    let metadata = event.metadata();
+
+    let target = metadata.target();
+    if target == "file_read" {
+      write!(writer, "{} ", " [read] ".bright_green())?;
+    } else if target == "count" {
+    } else {
+      return Ok(());
+    }
+
+    ctx.field_format().format_fields(writer.by_ref(), event)?;
+    writeln!(writer)?;
+    Ok(())
+  }
+}
+
 struct InfoFormatter;
 impl<S, N> FormatEvent<S, N> for InfoFormatter
 where
@@ -32,8 +90,8 @@ where
     let level = *metadata.level();
 
     let target = metadata.target();
-    if target == "file_read" {
-      write!(writer, "{} ", " [read] ".bright_green())?;
+    if target == "file_read" || target == "count" {
+      return Ok(());
     } else if target == "instrument_log" && cfg!(feature = "instrument") {
       write!(writer, "{} ", " [instr] ".bright_yellow())?;
     } else if level == Level::ERROR {
@@ -87,7 +145,7 @@ where
   }
 }
 
-pub fn initialize_logging() -> color_eyre::Result<()> {
+pub fn initialize_logging(verbose: &bool) -> color_eyre::Result<()> {
   let file_subscriber = tracing_subscriber::fmt::layer()
     .compact()
     .without_time()
@@ -102,6 +160,17 @@ pub fn initialize_logging() -> color_eyre::Result<()> {
       let level = *meta.level();
       level <= Level::DEBUG
     }));
+
+  let user_info_subscriber = tracing_subscriber::fmt::layer()
+    .compact()
+    .without_time()
+    .with_file(false)
+    .with_line_number(false)
+    .with_writer(std::io::stderr)
+    .with_target(false)
+    .with_ansi(true)
+    .event_format(UserInfoFormatter)
+    .with_filter(verbose_filter(*verbose));
 
   let span_subscriber = tracing_subscriber::fmt::layer()
     .compact()
@@ -129,6 +198,7 @@ pub fn initialize_logging() -> color_eyre::Result<()> {
     .with(file_subscriber)
     .with(layer_trace)
     .with(span_subscriber)
+    .with(user_info_subscriber)
     .with(ErrorLayer::default())
     .try_init()
     .with_context(|| "initializing logging")
