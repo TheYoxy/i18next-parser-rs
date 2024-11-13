@@ -2,6 +2,7 @@
 
 This project aims to be a fully compatible rewrite of [i18next-parser](https://github.com/i18next/i18next-parser)
 
+[Changelog](./CHANGELOG.md)
 ## Cli
 Here is the cli definition:
 ```bash
