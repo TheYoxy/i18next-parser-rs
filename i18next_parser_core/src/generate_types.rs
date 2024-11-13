@@ -2,22 +2,24 @@
 use std::{fmt::Display, fs, path::MAIN_SEPARATOR_STR};
 
 use log::{info, trace};
-use regex::Regex;
 
 use crate::{config::Config, merger::merge_results::MergeResults};
 
 /// Converts a string to camel case.
 fn camelize(s: &str) -> String {
-  let re = Regex::new(r"^([A-Z])|[\s\-_](\w)").unwrap();
-
-  re.replace_all(s, |caps: &regex::Captures| {
-    if let Some(m) = caps.get(2) {
-      m.as_str().to_uppercase()
-    } else {
-      caps.get(1).unwrap().as_str().to_lowercase()
-    }
-  })
-  .to_string()
+  s.chars()
+    .fold((String::new(), true, true), |(acc, is_first, at_separator), c| {
+      if !c.is_alphanumeric() {
+        (acc, is_first, true)
+      } else if is_first {
+        (acc + &c.to_ascii_lowercase().to_string(), false, false)
+      } else if at_separator {
+        (acc + &c.to_ascii_uppercase().to_string(), false, false)
+      } else {
+        (acc + &c.to_ascii_lowercase().to_string(), false, false)
+      }
+    })
+    .0
 }
 
 /// Represents the value of an entry in the generated types.
@@ -62,7 +64,7 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
     .collect::<Vec<_>>();
 
   let get_name_property = |name: &str| {
-    if Regex::new(r"\W").unwrap().is_match(name) {
+    if name.chars().any(|char| !char.is_alphanumeric()) {
       format!("'{}'", name)
     } else {
       name.to_string()
