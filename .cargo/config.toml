@@ -3,3 +3,6 @@ regenerate-data = "run -p make_pluralrules -- -i ./cldr_data/cldr_pluralrules_ca
 regenerate-fixtures-33 = "run -p make_pluralrules -- -i ./crates/make_pluralrules/tests/fixtures/cldr_pluralrules_cardinals_33.json -i ./crates/make_pluralrules/tests/fixtures/cldr_pluralrules_ordinals_33.json -o ./crates/make_pluralrules/tests/fixtures/cldr_pluralrules_33.rs -u"
 regenerate-fixtures-45 = "run -p make_pluralrules -- -i ./crates/make_pluralrules/tests/fixtures/cldr_pluralrules_cardinals_45.json -i ./crates/make_pluralrules/tests/fixtures/cldr_pluralrules_ordinals_45.json -o ./crates/make_pluralrules/tests/fixtures/cldr_pluralrules_45.rs -u"
 regenerate-fixtures-within = "run -p make_pluralrules -- -i ./crates/make_pluralrules/tests/fixtures/cldr_pluralrules_within_test.json -o ./crates/make_pluralrules/tests/fixtures/cldr_pluralrules_within_test.rs -u"
+[profile.profiling]
+inherits = "release"
+debug = true
