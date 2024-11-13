@@ -19,7 +19,7 @@ use serde_json::{json, Value};
 use tempdir::TempDir;
 
 fn setup_test<T: Into<PathBuf> + Clone>(path: T) -> color_eyre::Result<(T, Config)> {
-  let _ = initialize_logging();
+  let _ = initialize_logging(&false);
 
   let mut config = Config::new(path.clone(), false)?;
   config.locales = vec!["en".into(), "fr".into()];
@@ -97,7 +97,7 @@ fn create_file<P: AsRef<Path>, V: ?Sized + Serialize>(path: P, value: &V) -> col
 
 #[test]
 fn should_not_override_current_values() {
-  let _ = initialize_logging();
+  let _ = initialize_logging(&false);
   let dir = TempDir::new("translations").unwrap();
   let mut map = HashMap::new();
 
