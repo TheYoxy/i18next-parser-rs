@@ -7,15 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.13] - 2024-11-13
 ### Details
+#### Bug Fixes
+- Function doesn't exists in release mode by [@TheYoxy](https://github.com/TheYoxy)
+
 #### Miscellaneous Tasks
 - Added profiling configuration by [@TheYoxy](https://github.com/TheYoxy)
 - Added changelog link into readme by [@TheYoxy](https://github.com/TheYoxy)
+- Bumped version to 0.2.13 by [@TheYoxy](https://github.com/TheYoxy)
+- Upgraded deps to latest version by [@TheYoxy](https://github.com/TheYoxy)
+- Improved README.md by [@TheYoxy](https://github.com/TheYoxy)
 
 #### Refactor
 - Removed any usage of regex for type generation by [@TheYoxy](https://github.com/TheYoxy)
 - Removed unnecessary collection in merge_hashed by [@TheYoxy](https://github.com/TheYoxy)
 - Show read and run timings on -v flage by [@TheYoxy](https://github.com/TheYoxy)
 - Added file location on unsupported oxc expression by [@TheYoxy](https://github.com/TheYoxy)
+
+#### Styling
+- Corrected clippy issues by [@TheYoxy](https://github.com/TheYoxy)
+
+#### Testing
+- Adding missing arugment for integration testing by [@TheYoxy](https://github.com/TheYoxy)
+- Correct camelize tests by [@TheYoxy](https://github.com/TheYoxy)
 
 ## [0.2.12] - 2024-10-09
 ### Details

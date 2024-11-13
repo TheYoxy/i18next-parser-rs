@@ -42,7 +42,7 @@ pub fn transform_entries(
   let mut unique_plurals_count = HashMap::new();
 
   let value = entries.iter().try_fold(Value::Object(Default::default()), |mut value, entry| {
-    return if entry.has_count {
+    if entry.has_count {
       let suffixes = PluralResolver::default().get_suffixes(locale);
       match suffixes {
         Ok(suffixes) => {
@@ -57,7 +57,7 @@ pub fn transform_entries(
       }
     } else {
       transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &mut value, config, None)
-    };
+    }
   })?;
 
   Ok(TransformEntriesResult { unique_count, unique_plurals_count, value, locale: locale.to_string() })

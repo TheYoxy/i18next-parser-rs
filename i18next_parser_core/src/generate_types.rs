@@ -133,10 +133,16 @@ mod tests {
   use crate::merger::merge_results::MergeResults;
 
   #[test_log::test]
+  fn camelize_transforms_strings_to_lowercase_correctly() {
+    assert_eq!(camelize("testString"), "teststring");
+    assert_eq!(camelize("TESTSTRING"), "teststring");
+    assert_eq!(camelize("T-ESTSTRING"), "tEststring");
+  }
+
+  #[test_log::test]
   fn camelize_transforms_strings_correctly() {
     assert_eq!(camelize("hello_world"), "helloWorld");
     assert_eq!(camelize("Hello-World"), "helloWorld");
-    assert_eq!(camelize("testString"), "testString");
   }
 
   #[test_log::test]

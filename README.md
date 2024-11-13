@@ -28,39 +28,11 @@ Options:
           Print version
 ```
 
-### Format
-as is, only the i18next v4 format is supported.
-
-### Options
-
-```json
-{
-  "contextSeparator": "_",
-  "createOldCatalogs": true,
-  "defaultNamespace": "default",
-  "indentation": 2,
-  "keepRemoved": false,
-  "keySeparator": ".",
-  "lineEnding": "lf",
-  "locales": ["en", "fr"],
-  "namespaceSeparator": ":",
-  "output": "public/locales/$LOCALE/$NAMESPACE.json",
-  "pluralSeparator": "_",
-  "input": ["app/**/*.{js,jsx,ts,tsx}"],
-  "sort": true,
-  "verbose": false,
-  "failOnWarnings": true,
-  "failOnUpdate": false,
-  "customValueTemplate": null,
-  "resetDefaultValueLocale": null
-}
-```
-
-### --generate-types
+### Arguments
+#### --generate-types | -g
 `-g` option provides a way to generate a `.d.ts` file used to get automatic auto completion from typescript types.
 
 This file will be named `react-i18next.resources.d.ts` and will be located at the `PATH` provided location.
-
 
 example:
 ```typescript
@@ -91,3 +63,31 @@ declare global {
     | 'translation';
 }
 ```
+
+### Options
+
+```json
+{
+  "contextSeparator": "_",
+  "createOldCatalogs": true,
+  "defaultNamespace": "default",
+  "indentation": 2,
+  "keepRemoved": false,
+  "keySeparator": ".",
+  "lineEnding": "lf",
+  "locales": ["en", "fr"],
+  "namespaceSeparator": ":",
+  "output": "public/locales/$LOCALE/$NAMESPACE.json",
+  "pluralSeparator": "_",
+  "input": ["app/**/*.{js,jsx,ts,tsx}"],
+  "sort": true,
+  "verbose": false,
+  "failOnWarnings": true,
+  "failOnUpdate": false,
+  "customValueTemplate": null,
+  "resetDefaultValueLocale": null
+}
+```
+
+### Format
+as is, only the i18next v4 format is supported.
