@@ -1,5 +1,4 @@
 use color_eyre::{eyre::eyre, owo_colors::OwoColorize};
-use serde_json::Value;
 use tracing::instrument;
 
 use crate::{
@@ -57,34 +56,31 @@ pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
   log_time!("Preparing entries to write", {
     let locales = &config.locales;
     let default_locale = &config.locales.first().ok_or(eyre!("No locales found in the configuration."))?;
-    let results = locales
-      .iter()
-      .map(|locale| transform_entries(&entries, locale, config))
-      .collect::<color_eyre::Result<Vec<_>>>()?;
 
-    let result = results
+    let result = locales
       .iter()
-      .filter_map(|entry| {
-        let TransformEntriesResult { unique_count, unique_plurals_count, value, locale } = entry;
-
-        if let Value::Object(catalog) = value {
-          let result = catalog
-            .iter()
-            .map(|(namespace, catalog)| {
-              merge_results(
-                locale,
-                namespace,
-                catalog,
-                unique_count,
-                unique_plurals_count,
-                locale == *default_locale,
-                config,
-              )
-            })
-            .collect::<Vec<_>>();
-          Some(result)
-        } else {
-          None
+      .filter_map(|locale| {
+        let entry = transform_entries(&entries, locale, config);
+        match entry {
+          Ok(TransformEntriesResult { unique_count, unique_plurals_count, value, locale }) if value.is_object() => {
+            let catalog = value.as_object().unwrap();
+            let result = catalog
+              .iter()
+              .map(|(namespace, catalog)| {
+                merge_results(
+                  &locale,
+                  namespace,
+                  catalog,
+                  &unique_count,
+                  &unique_plurals_count,
+                  locale == **default_locale,
+                  config,
+                )
+              })
+              .collect::<Vec<_>>();
+            Some(result)
+          },
+          _ => None,
         }
       })
       .flatten()
@@ -93,6 +89,7 @@ pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
     Ok(result)
   })
 }
+
 #[cfg(test)]
 mod tests {
   use pretty_assertions::assert_eq;

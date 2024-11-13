@@ -72,7 +72,7 @@ pub struct MergeResult {
 /// let config = Default::default();
 /// let reset_values = None;
 ///
-/// let result = merge_hashes( source,&existing, reset_values, "", false, &config);
+/// let result = merge_hashes(source, &existing, reset_values, "", false, &config);
 ///
 /// assert_eq!(
 ///   result.new,
