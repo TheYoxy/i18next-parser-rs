@@ -36,7 +36,7 @@ fn parse_directory_mono_thread<C: AsRef<Config>>(filter: &[DirEntry], config: C)
 fn parse_directory_thread<'a>(parallelism: NonZero<usize>, filter: &'a [DirEntry], config: &'a Config) -> Vec<Entry> {
   let len = filter.len();
   let items_per_threads = len / parallelism;
-  let chunk_size = (len + items_per_threads - 1) / items_per_threads; // ceil(len / n)
+  let chunk_size = len.div_ceil(items_per_threads); // ceil(len / n)
 
   let vectors = (0..items_per_threads)
     .map(|i| filter.iter().skip(i * chunk_size).take(chunk_size).cloned().collect::<Vec<_>>())
