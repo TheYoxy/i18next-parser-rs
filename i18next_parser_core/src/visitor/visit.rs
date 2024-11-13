@@ -1,18 +1,17 @@
-use std::path::PathBuf;
-
 use color_eyre::owo_colors::OwoColorize;
-use log::{debug, error, trace, warn};
+use log::{debug, trace, warn};
 use oxc_ast::{
   ast::{Argument, CallExpression, JSXElement, JSXElementName},
   visit::walk,
   Visit,
 };
-use oxc_span::{GetSpan, Span};
+use oxc_span::GetSpan;
 
 use crate::{visitor::I18NVisitor, Entry};
 
 #[cfg(debug_assertions)]
-fn print_error_location(span: &Span, file_path: &PathBuf) {
+fn print_error_location(span: &oxc_span::Span, file_path: &std::path::PathBuf) {
+  use log::error;
   let content = std::fs::read_to_string(file_path).unwrap();
   let (start, remaining) = content.split_at(span.start.try_into().unwrap());
   let (content, end) = remaining.split_at(span.size().try_into().unwrap());
@@ -46,54 +45,65 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             Some(str.value.to_string().clone())
           },
           Some(Argument::TemplateLiteral(template)) => {
-            if cfg!(debug_assertions) {
-              trace!("t Arg: {:?}", template.bright_black().italic());
-              trace!("t quasis: {:?}", template.quasis);
-              trace!("t expressions: {:?}", template.expressions);
-
+            trace!("t Arg: {:?}", template.bright_black().italic());
+            trace!("t quasis: {:?}", template.quasis);
+            trace!("t expressions: {:?}", template.expressions);
+            #[cfg(debug_assertions)]
+            {
               print_error_location(&template.span, &self.file_path);
               todo!("Handle template literal")
-            } else {
+            }
+            #[cfg(not(debug_assertions))]
+            {
               warn!("Template literal are not supported for now");
               None
             }
           },
           Some(Argument::BinaryExpression(bin)) => {
-            if cfg!(debug_assertions) {
-              trace!("t Arg: {:?}", bin.bright_black().italic());
+            trace!("t Arg: {:?}", bin.bright_black().italic());
+            #[cfg(debug_assertions)]
+            {
               print_error_location(&bin.span, &self.file_path);
               todo!("Handle binary expression")
-            } else {
+            }
+            #[cfg(not(debug_assertions))]
+            {
               warn!("Binary expression are not supported for now");
               None
             }
           },
 
           Some(Argument::CallExpression(call)) => {
-            if cfg!(debug_assertions) {
-              trace!("t Arg: {:?}", call.bright_black().italic());
-              trace!("t callee: {:?}", call.callee);
-              call.common_js_require().inspect(|req| trace!("t require: {}", req.value.to_string()));
-              call.callee_name().inspect(|name| trace!("t callee name: {}", name));
-              trace!("t arguments: {:?}", call.arguments);
-              for (idx, arg) in call.arguments.iter().enumerate() {
-                trace!("t argument: {idx} {:?}", arg);
-              }
+            trace!("t Arg: {:?}", call.bright_black().italic());
+            trace!("t callee: {:?}", call.callee);
+            call.common_js_require().inspect(|req| trace!("t require: {}", req.value.to_string()));
+            call.callee_name().inspect(|name| trace!("t callee name: {}", name));
+            trace!("t arguments: {:?}", call.arguments);
+            for (idx, arg) in call.arguments.iter().enumerate() {
+              trace!("t argument: {idx} {:?}", arg);
+            }
+            #[cfg(debug_assertions)]
+            {
               print_error_location(&call.span, &self.file_path);
 
               todo!("Handle call expression")
-            } else {
+            }
+            #[cfg(not(debug_assertions))]
+            {
               warn!("Call expression are not supported for now");
               None
             }
           },
           Some(arg) => {
-            if cfg!(debug_assertions) {
-              error!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
+            #[cfg(debug_assertions)]
+            {
+              log::error!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
               print_error_location(&arg.span(), &self.file_path);
 
               todo!("Handle argument {arg:?} in {}", self.file_path.display().yellow())
-            } else {
+            }
+            #[cfg(not(debug_assertions))]
+            {
               warn!("Unknown argument type {arg:?}");
               None
             }
