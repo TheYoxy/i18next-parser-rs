@@ -41,8 +41,7 @@
             pkg-config
             samply
             git-cliff
-            #            rustToolchain
-          ];
+          ] ++ (if stdenv.hostPlatform.isLinux then [rustToolchain] else []); 
         };
     });
 
