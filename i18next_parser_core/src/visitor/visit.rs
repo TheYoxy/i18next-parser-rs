@@ -139,7 +139,21 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
 
   fn visit_jsx_element(&mut self, elem: &JSXElement<'a>) {
     let component_functions = ["Trans"];
-    let name = if let JSXElementName::Identifier(id) = &elem.opening_element.name { Some(&id.name) } else { None };
+    let name = match &elem.opening_element.name {
+      JSXElementName::Identifier(id) => Some(&id.name),
+      JSXElementName::IdentifierReference(id) => Some(&id.name),
+      _ => {
+        #[cfg(debug_assertions)]
+        {
+          print_error_location(&elem.span, &self.file_path);
+          todo!("Handle template literal");
+        }
+        #[cfg(not(debug_assertions))]
+        {
+          None
+        }
+      },
+    };
     if let Some(name) = name {
       if component_functions.contains(&name.as_str()) {
         let key = self.get_prop_value(elem, "i18nKey");

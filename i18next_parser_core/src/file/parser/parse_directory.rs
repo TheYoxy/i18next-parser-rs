@@ -1,49 +1,47 @@
 use std::{path::PathBuf, time::Instant};
 
 use color_eyre::{
-  eyre::{bail, eyre},
+  eyre::bail,
   owo_colors::{CssColors, OwoColorize},
 };
 use log::debug;
 
-use crate::{config::Config, file::parser::parse_file::parse_file, log_time, Entry};
+use crate::{config::Config, file::parser::parse_file::parse_file, Entry};
 
 /// Parse a directory and return a list of entries.
 #[tracing::instrument(skip_all, err, target = "instrument")]
 pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -> color_eyre::Result<Vec<Entry>> {
   let path = &path.into();
+  if !path.exists() {
+    bail!("Directory {path:?} does not exist");
+  } else {
+    debug!("Parsing directory {}", path.display().yellow());
+  }
+
   let config = config.as_ref();
-  debug!("Creating globset from {:?}", &config.input);
+  debug!("Creating glob set from {:?}", &config.input.cyan());
 
   let glob = {
     let mut builder = globset::GlobSetBuilder::new();
     for input in &config.input {
       let join = path.join(input);
       let glob = join.to_str().unwrap();
-      builder.add(globset::Glob::new(glob)?);
+      let glob = globset::GlobBuilder::new(glob)
+        .literal_separator(true)
+        .empty_alternates(false)
+        .case_insensitive(true)
+        .build()?;
+      builder.add(glob);
     }
     builder.build()?
   };
 
-  if path.exists() {
-    debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
-  } else {
-    bail!("Directory {path:?} does not exist");
-  }
-
-  for path in path.read_dir()? {
-    let Ok(path) = path else { continue };
-    debug!("Reading directory {} to find {:?}", path.path().display().yellow(), &config.input);
-  }
-
-  let directory_name =
-    path.file_name().and_then(|s| s.to_str()).ok_or(eyre!("Unable to get filename of path {path:?}"))?;
-
-  log_time!(format!("Reading directory {}", directory_name.yellow()), { Ok(read_directory(path, config, &glob)) })
+  Ok(read_directory(path, config, &glob))
 }
 
+#[tracing::instrument(skip_all, target = "instrument")]
 fn read_directory(path: &PathBuf, config: &Config, glob: &globset::GlobSet) -> Vec<Entry> {
-  debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
+  debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input.cyan());
   let values = ignore::WalkBuilder::new(path)
     .standard_filters(true)
     .build()
