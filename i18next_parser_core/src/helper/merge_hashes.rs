@@ -228,7 +228,6 @@ pub fn merge_hashes(
   }
 }
 
-#[inline]
 fn replace_suffix(input: &str) -> Option<&str> {
   // Find the last underscore in the string
   if let Some(pos) = input.rfind('_') {
