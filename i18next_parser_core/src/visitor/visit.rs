@@ -140,7 +140,6 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
   fn visit_jsx_element(&mut self, elem: &JSXElement<'a>) {
     let component_functions = ["Trans"];
     let name = if let JSXElementName::Identifier(id) = &elem.opening_element.name { Some(&id.name) } else { None };
-    #[allow(unused_variables)]
     if let Some(name) = name {
       if component_functions.contains(&name.as_str()) {
         let key = self.get_prop_value(elem, "i18nKey");
