@@ -44,27 +44,27 @@ pub fn dot_path_to_hash<'a>(
   }
 
   let path = {
-    let base_path = entry
-      .namespace
-      .clone()
-      .or(Some(config.default_namespace.clone()))
-      .map(|ns| format!("{ns}{separator}{key}", key = entry.key))
-      .unwrap();
-    let mut path =
-      base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
+    let ns = match entry.namespace {
+      Some(ref ns) => ns,
+      None => &config.default_namespace,
+    };
+    let path = format!("{ns}{separator}{key}", key = entry.key)
+      .replace(r#"\\n"#, "\\n")
+      .replace(r#"\\r"#, "\\r")
+      .replace(r#"\\t"#, "\\t")
+      .replace(r#"\\\\"#, "\\");
 
-    if let Some(suffix) = suffix {
-      path += suffix;
-    }
+    let path = if let Some(suffix) = suffix { path + suffix } else { path };
     trace!("Path: {:?}", path.purple());
 
     if path.ends_with(separator) {
       trace!("Removing trailing separator from path: {:?}", path.purple());
-      path = path[..path.len() - separator.len()].into();
+      let path = path[..path.len() - separator.len()].to_string();
       trace!("New path: {:?}", path.purple());
+      path
+    } else {
+      path
     }
-
-    path
   };
 
   let segments: Vec<&str> = path.split(separator).collect();
@@ -74,29 +74,29 @@ pub fn dot_path_to_hash<'a>(
 
   let new_value: String = entry
     .value
-    .clone()
+    .as_ref()
     .map(|new_value| {
-      if let Some(old_value) = old_value {
+      let value = if let Some(old_value) = old_value {
         trace!("Values {:?} -> {:?}", old_value.purple(), new_value.purple());
-        if old_value != new_value && !old_value.is_empty() {
+        if old_value != *new_value && !old_value.is_empty() {
           if new_value.is_empty() {
             trace!("new value is empty, keeping old value {old_value:?}");
             old_value
           } else {
             warn!("Conflict: {:?} -> {:?} -> {:?}", path.yellow().italic(), old_value.purple(), new_value.purple());
             conflict = Some(Conflict::Value(old_value, new_value.clone()));
-            new_value
+            new_value.clone()
           }
         } else {
           trace!("Old value is empty or match new value, assigning new value {:?}", new_value.purple());
-          new_value
+          new_value.clone()
         }
       } else {
         trace!("No old value, assigning new value {:?}", new_value.purple());
-        new_value
-      }
+        new_value.clone()
+      };
+      value.trim().into()
     })
-    .map(|v| v.trim().into())
     .unwrap_or_default();
 
   if let Some(namespace) = &entry.namespace {
