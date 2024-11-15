@@ -17,6 +17,7 @@ use oxc_ast::ast::{
   ObjectExpression,
   ObjectPropertyKind,
   Program,
+  PropertyKind,
   Statement,
 };
 use serde_json::Value;
@@ -539,18 +540,19 @@ impl<'a> I18NVisitor<'a> {
 
         let value = if let Some(format_props) = format_props {
           let text = non_format_props.first().and_then(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default();
-          if let ObjectPropertyKind::ObjectProperty(obj) = format_props {
-            obj.init.as_ref().and_then(|init| {
-              match &init {
+          debug!("--- Text: {text:?}", text = text.bright_black().italic());
+          debug!("--- Format: {format_props:?}", format_props = format_props.bright_black().italic());
+          match format_props {
+            ObjectPropertyKind::ObjectProperty(obj) if obj.kind == PropertyKind::Init => {
+              match &obj.value {
                 Expression::StringLiteral(str) => Some(format!("{}, {}", text, str.value)),
                 _ => {
                   warn!("The format property should be a string literal");
                   None
                 },
               }
-            })
-          } else {
-            None
+            },
+            _ => None,
           }
         } else {
           non_format_props.first().map(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default()

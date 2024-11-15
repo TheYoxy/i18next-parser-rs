@@ -101,10 +101,11 @@ fn should_not_override_current_values() {
   let dir = TempDir::new("translations").unwrap();
   let mut map = HashMap::new();
 
-  let raw_en = json!({ "dialog": { "title": "Reset" }});
+  let raw_en = json!({ "dialog": { "title": "[en] Reset" }});
   map.insert("en", raw_en);
   map.insert("fr", json!({ "dialog": { "title": "[fr] Reset" }}));
   fn create_files(dir: &TempDir, map: &HashMap<&str, Value>) -> color_eyre::Result<()> {
+    // language=jsx
     let source_text = r#"const el = <Trans ns="ns" i18nKey="dialog.title">Reset password</Trans>;"#;
     let dir_path = dir.path();
     let file_path = dir_path.join("src/main.tsx");
@@ -113,16 +114,12 @@ fn should_not_override_current_values() {
     file.write_all(source_text.as_bytes())?;
     debug!("{} written", file_path.display().yellow());
 
-    let locales: Vec<String> = vec!["en".into(), "fr".into()];
+    let locales = map.keys().map(|k| k.to_string()).collect::<Vec<_>>();
     for lang in &locales {
       let file = dir_path.join("locales").join(lang).join("ns.json");
       let raw_val = map.get(lang.as_str()).ok_or(eyre!("Unable to get {} value", lang.yellow()))?;
       create_file(file, raw_val)?;
     }
-
-    let fr = dir_path.join("locales/fr/ns.json");
-    let raw_fr = json!({ "dialog": { "title": "[fr] Reset" }});
-    create_file(fr, &raw_fr)?;
 
     let config = Config {
       locales,
@@ -139,6 +136,11 @@ fn should_not_override_current_values() {
   create_files(&dir, &map).unwrap();
   let args = ["", "-v", dir.path().to_str().unwrap()];
   let cli = Cli::parse_from(args);
+
+  debug!("------------------------");
+  debug!("Running cli: {:?}", cli);
+  debug!("------------------------");
+
   cli.run().unwrap();
 
   let en: Value = {

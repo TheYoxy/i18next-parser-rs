@@ -37,12 +37,18 @@
     in {
       default = with pkgs;
         mkShell {
-          buildInputs = [
-            pkg-config
-            samply
-            git-cliff
-            #            rustToolchain
-          ];
+          buildInputs =
+            [
+              pkg-config
+              samply
+              git-cliff
+              hyperfine
+            ]
+            ++ (
+              if stdenv.hostPlatform.isLinux
+              then [rustToolchain]
+              else []
+            );
         };
     });
 

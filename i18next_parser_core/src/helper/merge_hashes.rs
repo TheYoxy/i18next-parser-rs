@@ -1,7 +1,6 @@
 //! This module contains the merge_hashes function that merges two JSON objects (hashes) together.
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, error, trace};
-use regex::Regex;
 use serde_json::{Map, Value};
 
 use crate::config::Config;
@@ -16,9 +15,26 @@ fn has_related_plural_key(raw_key: &str, source: &Map<String, Value>) -> bool {
   PLURAL_SUFFIXES.iter().any(|suffix| source.contains_key(&format!("{}{}", raw_key, suffix)))
 }
 
-fn get_singular_form(key: &str, plural_separator: &str) -> String {
-  let plural_regex = Regex::new(&format!(r"(\{}(?:zero|one|two|few|many|other))$", plural_separator)).unwrap();
-  plural_regex.replace(key, "").to_string()
+fn get_singular_form<'a>(key: &'a str, plural_separator: &'a str) -> &'a str {
+  // Define the list of suffixes to remove
+  let suffixes = [
+    format!("{}zero", plural_separator),
+    format!("{}one", plural_separator),
+    format!("{}two", plural_separator),
+    format!("{}few", plural_separator),
+    format!("{}many", plural_separator),
+    format!("{}other", plural_separator),
+  ];
+
+  // Check if the input string ends with any of the suffixes
+  for suffix in &suffixes {
+    if let Some(key) = key.strip_suffix(suffix) {
+      return key;
+    }
+  }
+
+  // If no suffix is found, return the original string
+  key
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -170,29 +186,27 @@ pub fn merge_hashes(
         None => {
           debug!("Pulling key: {}", key.purple());
           let singular_key = get_singular_form(key, plural_separator);
-          let plural_match = key != &singular_key;
+          let plural_match = key != singular_key;
+          let is_plural =
+            plural_match && has_related_plural_key(&format!("{}{}", singular_key, plural_separator), &existing);
 
-          const CONTEXT_SEPARATOR: char = '_';
-          let regex = Regex::new(
-            format!("\\{context_separator}([^\\{context_separator}]+)?$", context_separator = CONTEXT_SEPARATOR)
-              .as_str(),
-          )
-          .unwrap();
-          let context_match = regex.is_match(&singular_key);
-          let raw_key = regex.replace(&singular_key, "").to_string();
-
-          if (context_match && existing.contains_key(&raw_key))
-            || (plural_match && has_related_plural_key(&format!("{}{}", singular_key, plural_separator), &existing))
-          {
-            existing.insert(key.clone(), value.clone());
-            pull_count += 1;
-          } else {
-            if config.keep_removed {
+          match replace_suffix(singular_key) {
+            Some(raw_key) if existing.contains_key(raw_key) || is_plural => {
               existing.insert(key.clone(), value.clone());
-            } else {
-              old.insert(key.clone(), value.clone());
-            }
-            old_count += 1;
+              pull_count += 1;
+            },
+            _ if is_plural => {
+              existing.insert(key.clone(), value.clone());
+              pull_count += 1;
+            },
+            _ => {
+              if config.keep_removed {
+                existing.insert(key.clone(), value.clone());
+              } else {
+                old.insert(key.clone(), value.clone());
+              }
+              old_count += 1;
+            },
           }
         },
       }
@@ -212,6 +226,17 @@ pub fn merge_hashes(
     old_count,
     reset_count,
   }
+}
+
+fn replace_suffix(input: &str) -> Option<&str> {
+  // Find the last underscore in the string
+  if let Some(pos) = input.rfind('_') {
+    // Return the substring up to (but not including) the last underscore
+    return Some(&input[..pos]);
+  }
+
+  // If there's no underscore, return the original string
+  None
 }
 
 #[cfg(test)]

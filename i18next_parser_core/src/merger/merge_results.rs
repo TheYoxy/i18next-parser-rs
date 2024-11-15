@@ -84,7 +84,6 @@ pub fn merge_results<C: AsRef<Config>>(
   let old_value = old_value.as_ref();
 
   trace!("Value: {:?} -> {:?}", value.cyan(), old_value.cyan());
-
   let full_key_prefix = format!("{}{}", namespace, config.key_separator);
   let merged = merge_hashes(value.as_ref(), catalog, old_value, &full_key_prefix, is_default, config);
   let old_merged = merge_hashes(old_value, &merged.new, None, &full_key_prefix, false, &Config {
