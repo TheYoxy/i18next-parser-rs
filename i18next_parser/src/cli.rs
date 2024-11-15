@@ -35,10 +35,11 @@ pub struct Cli {
   /// Should the output to be verbose
   #[arg(short, long, default_value = "false", global = true)]
   pub verbose: bool,
-  /// Should generate types
-  #[arg(short, long, default_value = "false", global = true)]
+
+  /// The path to generate the type file
+  #[arg(short, long, default_value = "None", global = true, value_hint = clap::ValueHint::DirPath)]
   #[cfg(feature = "generate_types")]
-  generate_types: bool,
+  generate_types: Option<String>,
 
   /// Should generate shell completions
   #[arg(long)]
@@ -76,8 +77,9 @@ impl Runnable for Cli {
 
         merged
       });
-      if cfg!(feature = "generate_types") && self.generate_types {
-        log_time!("Generating types", { generate_types(&merged, config) })
+      #[cfg(feature = "generate_types")]
+      if let Some(path) = &self.generate_types {
+        log_time!("Generating types", { generate_types(&merged, config, path) })
       } else {
         Ok(())
       }

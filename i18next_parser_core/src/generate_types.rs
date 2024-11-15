@@ -34,7 +34,11 @@ struct EntryValue<T: Display, P: Display, O: Display> {
 }
 
 /// Generates types for the i18next resources.
-pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> color_eyre::Result<()> {
+pub fn generate_types<C: AsRef<Config>>(
+  entries: &[MergeResults],
+  config: C,
+  generated_file_name: &str,
+) -> color_eyre::Result<()> {
   let config = config.as_ref();
   trace!("Generating types for i18next resources.");
   let default_locale = config
@@ -117,7 +121,6 @@ declare global {{
 "#,
   );
 
-  let generated_file_name = "react-i18next.resources.d.ts";
   let path = &config.working_dir.join(generated_file_name);
   fs::write(path, template)?;
   info!("Generated {}", generated_file_name);
@@ -188,11 +191,12 @@ mod tests {
       },
     ];
 
-    let generation = generate_types(&entries, &config);
+    let filename = "react-i18next.resources.d.ts";
+    let generation = generate_types(&entries, &config, filename);
     assert!(generation.is_ok());
 
     // Check that the generated file exists and contains the expected content.
-    let result = fs::read_to_string(config.working_dir.join("react-i18next.resources.d.ts"));
+    let result = fs::read_to_string(config.working_dir.join(filename));
     assert!(result.is_ok());
     let content = result.unwrap();
     assert_ne!(content.len(), 0, "some content must be generated");
