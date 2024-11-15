@@ -22,19 +22,82 @@
 /// assert_eq!(result, "This is a test");
 /// ```
 pub fn clean_multi_line_code(text: &str) -> String {
-  use regex::Regex;
+  let result = replace_leading_trailing_newlines(text, "");
+  replace_internal_newlines(&result, " ")
+}
 
-  let re_start_end = Regex::new(r"(^([\n\r])\s*)|(([\n\r])\s*$)").unwrap();
-  let re_middle = Regex::new(r"([\n\r])\s*").unwrap();
+/// Function 1: Replace leading and trailing newlines followed by whitespace.
+fn replace_leading_trailing_newlines(input: &str, replacement: &str) -> String {
+  let mut chars = input.chars().peekable();
+  let mut result = String::new();
 
-  let result = re_start_end.replace_all(text, "");
-  let result = re_middle.replace_all(&result, " ");
+  if let Some(&c) = chars.peek() {
+    if c == '\n' || c == '\r' {
+      chars.next();
 
-  result.into_owned()
+      // Skip leading newlines and whitespace
+      while let Some(&c) = chars.peek() {
+        if c == '\n' || c == '\r' || c.is_whitespace() {
+          chars.next();
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  // Collect remaining characters
+  for c in chars {
+    result.push(c);
+  }
+
+  // Trim trailing newlines and whitespace and replace with the replacement text
+  let mut first = true;
+  result = result
+    .trim_end_matches(|c: char| {
+      if first {
+        first = false;
+        c == '\n' || c == '\r'
+      } else {
+        c == '\n' || c == '\r' || c.is_whitespace()
+      }
+    })
+    .to_string();
+
+  // Add replacement text at the beginning and end of the result
+  format!("{}{}{}", replacement, result, replacement)
+}
+
+/// Function 2: Replace standalone newline characters followed by whitespace in the middle of the string.
+fn replace_internal_newlines(input: &str, replacement: &str) -> String {
+  let mut result = String::new();
+  let mut chars = input.chars().peekable();
+
+  while let Some(c) = chars.next() {
+    if c == '\n' || c == '\r' {
+      result.push_str(replacement);
+
+      // Skip any whitespace following the newline character
+      while let Some(&next_c) = chars.peek() {
+        if next_c.is_whitespace() {
+          chars.next();
+        } else {
+          break;
+        }
+      }
+    } else {
+      // Add non-newline characters directly to result
+      result.push(c);
+    }
+  }
+
+  result
 }
 
 #[cfg(test)]
 mod tests {
+  use pretty_assertions::assert_eq;
+
   use super::*;
 
   #[test]
@@ -62,6 +125,23 @@ mod tests {
   fn handles_empty_string() {
     let input = "";
     let expected = "";
+    assert_eq!(clean_multi_line_code(input), expected);
+  }
+
+  #[test]
+  fn parse_keep_end() {
+    assert_eq!(clean_multi_line_code("Attempt "), "Attempt ");
+  }
+
+  #[test]
+  fn parse_keep_start() {
+    assert_eq!(clean_multi_line_code(" on 10"), " on 10");
+  }
+
+  #[test]
+  fn parse_with_args() {
+    let input = "Reset password {{attempt}}";
+    let expected = "Reset password {{attempt}}";
     assert_eq!(clean_multi_line_code(input), expected);
   }
 
