@@ -667,6 +667,7 @@ mod tests {
     let allocator = Allocator::default();
     let source_type = SourceType::from_path("file.tsx").unwrap();
     let ret = Parser::new(&allocator, source_text, source_type).parse();
+    log::info!("Program: {:#?}", ret.program.body);
 
     let program = ret.program;
 
@@ -899,6 +900,44 @@ mod tests {
 
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("toast.title", "nns", "namespace")]);
+    }
+
+    #[test_log::test]
+    fn should_parse_t_with_default_value_and_namespace_2() {
+      // language=javascript
+      let source_text =
+        "const title = t('preview.error.text', 'An error has occurred while generating the preview.\\nPlease try again.', { ns: 'invoice', })";
+      let keys = parse(source_text);
+
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new(
+        "preview.error.text",
+        "An error has occurred while generating the preview.\nPlease try again.",
+        "invoice"
+      )]);
+    }
+
+    #[test_log::test]
+    fn should_parse_t_with_default_value_and_namespace_3() {
+      let source_text = "context.showToast({
+      title: t('preview.error.title', 'Error', { ns: 'invoice' }),
+      text: t('preview.error.text', 'An error has occurred while generating the preview.\\nPlease try again.', {
+        ns: 'invoice',
+      }),
+      variant: 'destructive',
+      iconType: 'invoice',
+    });";
+      let keys = parse(source_text);
+
+      assert_eq!(keys.len(), 2);
+      assert_eq!(keys, vec![
+        Entry::new("preview.error.title", "Error", "invoice"),
+        Entry::new(
+          "preview.error.text",
+          "An error has occurred while generating the preview.\nPlease try again.",
+          "invoice"
+        ),
+      ]);
     }
   }
 

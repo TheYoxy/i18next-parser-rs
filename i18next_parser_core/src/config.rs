@@ -171,9 +171,12 @@ impl Config {
       log::warn!("No configuration file found. Using default configuration.");
     }
 
-    let configuration = builder.build().and_then(|config| config.try_deserialize())?;
+    log::trace!("Building configuration");
+    let configuration = builder.build();
+    log::trace!("Configuration built: {:#?}", configuration);
+    let configuration = configuration.and_then(|config| config.try_deserialize());
     log::trace!("Loaded configuration: {:#?}", configuration);
-    Ok(configuration)
+    configuration
   }
 
   /// Get the output destination for the i18n system.

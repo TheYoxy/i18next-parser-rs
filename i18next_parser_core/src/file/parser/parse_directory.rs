@@ -88,7 +88,10 @@ pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -
   log_time!(format!("Reading directory {}", directory_name.yellow()), {
     debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
     let filter = ignore::WalkBuilder::new(path)
-      .standard_filters(true)
+      .git_ignore(true)
+      .git_global(true)
+      .git_exclude(true)
+      .hidden(false)
       .build()
       .filter_map(Result::ok)
       .filter(|f| glob.is_match(f.path()))
