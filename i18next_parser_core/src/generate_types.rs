@@ -1,11 +1,13 @@
 //! This module is responsible for generating types for the i18next resources.
-use std::{fmt::Display, fs, path::MAIN_SEPARATOR_STR};
+use std::{collections::HashMap, fmt::Display, fs, path::Path};
 
+use color_eyre::owo_colors::OwoColorize;
 use log::{info, trace};
 
 use crate::{config::Config, merger::merge_results::MergeResults};
 
 /// Converts a string to camel case.
+#[inline]
 fn camelize(s: &str) -> String {
   s.chars()
     .fold((String::new(), true, true), |(acc, is_first, at_separator), c| {
@@ -24,9 +26,11 @@ fn camelize(s: &str) -> String {
 
 /// Represents the value of an entry in the generated types.
 #[derive(Debug)]
-struct EntryValue<T: Display, P: Display, O: Display> {
+struct EntryValue<T: Display, P: Display, O: Display, L: Display> {
   /// The visual of the entry.
   display_name: P,
+  /// The locale of the entry.
+  locale: L,
   /// The name of the entry.
   name: O,
   /// The path of the entry.
@@ -37,22 +41,13 @@ struct EntryValue<T: Display, P: Display, O: Display> {
 pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> color_eyre::Result<()> {
   let config = config.as_ref();
   trace!("Generating types for i18next resources.");
-  let default_locale = config
-    .locales
-    .first()
-    .map_or("".to_string(), |p| format!("{}{}{}", MAIN_SEPARATOR_STR, p.as_str(), MAIN_SEPARATOR_STR));
   let result = entries
     .iter()
-    .filter(|entry| {
-      entry
-        .path
-        .strip_prefix(&config.working_dir)
-        .is_ok_and(|s| s.to_str().map_or(false, |p| p.contains(default_locale.as_str())))
-    })
     .map(|entry| {
       EntryValue {
         name: entry.namespace.as_str(),
-        display_name: camelize(entry.namespace.as_str()),
+        display_name: format!("{}_{}", camelize(entry.namespace.as_str()), entry.locale),
+        locale: entry.locale.as_str(),
         path: entry
           .path
           .strip_prefix(&config.working_dir)
@@ -80,17 +75,35 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
     .map(|entry| format!("import type {} from '{}';", entry.display_name, entry.path))
     .collect::<Vec<String>>()
     .join("\n");
-  let resources = result
-    .iter()
-    .map(|entry| format!("{}: typeof {};", get_name_property(entry.name), entry.display_name))
-    .collect::<Vec<String>>()
-    .join("\n      ");
-  let types = result.iter().map(|entry| format!("'{}'", entry.name)).collect::<Vec<String>>().join(" | ");
+
+  let mut resource_map = HashMap::new();
+  for entry in result.iter() {
+    let map_entry = if !resource_map.contains_key(entry.locale) {
+      resource_map.try_insert(entry.locale, vec![]).unwrap()
+    } else {
+      resource_map.get_mut(entry.locale).unwrap()
+    };
+    map_entry.push(format!("{}: typeof {};", get_name_property(entry.name), entry.display_name));
+  }
+
+  let mut resources = String::new();
+  for (key, value) in resource_map {
+    resources += &format!("{}: {{\n{}\n}},\n", key, value.join("\n        "));
+  }
+
+  let mut types = result.iter().map(|entry| format!("'{}'", entry.name)).collect::<Vec<String>>();
+
+  types.sort();
+  types.dedup();
+
+  let types = types.join(" | ");
   let default_namespace = &config.default_namespace;
   let template = format!(
     r#"
-// This file is generated automatically
-// All changes will be lost
+/// This file is generated automatically
+/// All changes will be lost
+/* eslint-disable */
+
 import 'i18next';
 
 {imports}
@@ -114,13 +127,15 @@ declare module 'i18next' {{
 declare global {{
   type Ns = {types};
 }}
+
+export default {{}};
 "#,
   );
 
-  let generated_file_name = "react-i18next.resources.d.ts";
-  let path = &config.working_dir.join(generated_file_name);
+  let path = Path::new(&config.generated_types);
+  log::debug!("Writing {}", path.display().yellow().italic());
   fs::write(path, template)?;
-  info!("Generated {}", generated_file_name);
+  info!("Generated {}", Path::new(path).display());
 
   Ok(())
 }

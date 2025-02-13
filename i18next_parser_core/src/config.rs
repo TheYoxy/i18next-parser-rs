@@ -71,6 +71,9 @@ pub struct Config {
   pub fail_on_update: bool,
   /// An optional string representing the locale to reset the default value in the i18n system.
   pub reset_default_value_locale: Option<String>,
+  /// The path of the generated types
+  #[cfg(feature = "generate_types")]
+  pub generated_types: String,
 }
 
 impl AsRef<Config> for Config {
@@ -101,6 +104,7 @@ impl Default for Config {
       fail_on_warnings: Default::default(),
       fail_on_update: Default::default(),
       reset_default_value_locale: Default::default(),
+      generated_types: PathBuf::from(".").join("react-i18next.resources.d.ts").to_str().unwrap().to_string(),
     }
   }
 }
@@ -118,6 +122,7 @@ impl Config {
     let default_config = Config::default();
     let working_dir: PathBuf = working_dir.into();
     let working_dir_opt: &str = working_dir.as_path().to_str().unwrap();
+
     let mut builder = config::Config::builder()
       .set_default("locales", default_config.locales)?
       .set_default("output", default_config.output)?
@@ -135,6 +140,7 @@ impl Config {
       .set_default("verbose", default_config.verbose)?
       .set_default("fail_on_warnings", default_config.fail_on_warnings)?
       .set_default("fail_on_update", default_config.fail_on_update)?
+      .set_default("generated_types", default_config.generated_types)?
       .set_override("working_dir", working_dir_opt)?;
 
     if verbose {
@@ -174,7 +180,9 @@ impl Config {
     log::trace!("Building configuration");
     let configuration = builder.build();
     log::trace!("Configuration built: {:#?}", configuration);
-    let configuration = configuration.and_then(|config| config.try_deserialize());
+    let configuration = configuration.and_then(|config| config.try_deserialize::<Self>()).map(|config| {
+      Config { generated_types: working_dir.join(config.generated_types).to_str().unwrap().to_string(), ..config }
+    });
     log::trace!("Loaded configuration: {:#?}", configuration);
     configuration
   }

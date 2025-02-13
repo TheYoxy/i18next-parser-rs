@@ -764,7 +764,7 @@ dependencies = [
 
 [[package]]
 name = "i18next-parser"
-version = "0.2.14"
+version = "0.2.15"
 dependencies = [
  "anstyle",
  "better-panic",
@@ -789,7 +789,7 @@ dependencies = [
 
 [[package]]
 name = "i18next_parser_core"
-version = "0.2.14"
+version = "0.2.15"
 dependencies = [
  "color-eyre",
  "config",

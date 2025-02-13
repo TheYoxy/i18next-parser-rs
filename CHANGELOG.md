@@ -5,10 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.15] - 2025-02-13
+### Details
+#### Features
+- Adding generation option for generate_types by [@TheYoxy](https://github.com/TheYoxy)
+
 ## [0.2.14] - 2025-02-03
 ### Details
-#### Bug Fixes
-- Reading hidden directories by default by [@TheYoxy](https://github.com/TheYoxy)
+#### Miscellaneous Tasks
+- Bumped version to 0.2.14 by [@TheYoxy](https://github.com/TheYoxy)
 
 ## [0.2.13] - 2024-11-13
 ### Details
@@ -217,6 +222,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tempdir for testing by [@TheYoxy](https://github.com/TheYoxy)
 - Added test to validate that the value isn't overriden when existing by [@TheYoxy](https://github.com/TheYoxy)
 
+[0.2.15]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.14..0.2.15
 [0.2.14]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.13..0.2.14
 [0.2.13]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.12..0.2.13
 [0.2.12]: https://github.com/TheYoxy/i18next-parser-rs/compare/0.2.11..0.2.12

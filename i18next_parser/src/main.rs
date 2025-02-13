@@ -12,6 +12,16 @@ fn print_completions<G: clap_complete::Generator>(gen: G, cmd: &mut clap::Comman
   }
 }
 
+/// Generate the completions for the given shell
+///
+/// # Arguments
+///
+/// * `shell` - The shell to generate completions for
+///
+/// # Returns
+///
+/// A Result with the completion generation result
+/// The result will be outputted to stdout by default
 fn generate_completion(shell: clap_complete::Shell) -> color_eyre::Result<()> {
   use clap::CommandFactory;
   use log::debug;
