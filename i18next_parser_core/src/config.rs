@@ -41,6 +41,8 @@ pub struct Config {
   pub locales: Vec<String>,
   /// A vector of input sources for the i18n system.
   pub input: Vec<String>,
+  /// A vector of excluded input sources for the i18n system.
+  pub exclude: Vec<String>,
   /// The output destination for the i18n system.
   pub output: String,
   /// The separator used in the context of the i18n system.
@@ -90,6 +92,7 @@ impl Default for Config {
       locales: vec!["en".into()],
       output: ["locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR),
       input: vec!["src/**/*.{ts,tsx}".into()],
+      exclude: vec![],
       context_separator: "_".into(),
       default_namespace: "translation".into(),
       default_value: "".into(),
@@ -127,6 +130,7 @@ impl Config {
       .set_default("locales", default_config.locales)?
       .set_default("output", default_config.output)?
       .set_default("input", default_config.input)?
+      .set_default("exclude", default_config.exclude)?
       .set_default("context_separator", default_config.context_separator)?
       .set_default("default_namespace", default_config.default_namespace)?
       .set_default("default_value", default_config.default_value)?

@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use color_eyre::{eyre::bail, owo_colors::OwoColorize};
 use log::warn;
-use serde_json::Value;
 
 use crate::{
   config::Config,
@@ -10,6 +9,7 @@ use crate::{
     dot_path_to_hash::{dot_path_to_hash, Conflict},
     get_char_diff::get_char_diff,
   },
+  merger::merge_all_values::FoundValue,
   Entry,
 };
 
@@ -18,10 +18,10 @@ pub fn transform_entry(
   entry: &Entry,
   unique_count: &mut HashMap<String, usize>,
   unique_plurals_count: &mut HashMap<String, usize>,
-  value: &mut Value,
   options: &Config,
   suffix: Option<&str>,
-) -> color_eyre::Result<Value> {
+  found_values: &mut FoundValue,
+) -> color_eyre::Result<FoundValue> {
   let namespace = entry.namespace.clone().unwrap_or("default".to_string());
   if !unique_count.contains_key(&namespace) {
     unique_count.insert(namespace.clone(), 0);
@@ -30,23 +30,28 @@ pub fn transform_entry(
     unique_plurals_count.insert(namespace.clone(), 0);
   }
 
-  let result = dot_path_to_hash(entry, value, suffix, options);
+  let conflict = dot_path_to_hash(entry, suffix, options, found_values);
 
-  match result.conflict {
-    Some(Conflict::Key(key)) => {
-      warn!("Found translation key already mapped to a map or parent of new key already mapped to a string: {key}");
-      if options.fail_on_warnings {
-        bail!("Found translation key already mapped to a map or parent of new key already mapped to a string: {key}")
-      }
-    },
+  match conflict {
     Some(Conflict::Value(old, new)) => {
       let separator: &str = options.namespace_separator.as_ref();
-      let diff = get_char_diff(&old, &new);
+      let diff = get_char_diff(&old.value, &new.value);
+      if options.verbose {
+        old.location.print();
+        new.location.print();
+      }
+      if options.fail_on_warnings {
+        bail!(
+          "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}",
+          key = format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
+            .italic(),
+        )
+      }
+
       warn!(
-        "Found same keys with different values: {namespace}{separator}{key}: {diff}",
-        namespace = namespace.bright_yellow(),
-        key = entry.key.blue(),
-        diff = diff
+        "Found same keys with different values: {key}: {diff}",
+        key = format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
+          .italic(),
       );
     },
     _ => {
@@ -57,7 +62,7 @@ pub fn transform_entry(
     },
   }
 
-  Ok(result.target.clone())
+  Ok(found_values.clone())
 }
 
 #[cfg(test)]
@@ -69,6 +74,7 @@ mod tests {
   #[test]
   fn test_transform_entry() {
     let entry = Entry {
+      location: Default::default(),
       namespace: Some("default".to_string()),
       key: "key1".to_string(),
       value: Some("value1".to_string()),

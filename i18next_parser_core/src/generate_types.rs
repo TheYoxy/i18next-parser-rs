@@ -76,6 +76,12 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
     .collect::<Vec<String>>()
     .join("\n");
 
+  let custom_resources = result
+    .iter()
+    .map(|entry| format!("{}: typeof {};", get_name_property(entry.name), entry.display_name))
+    .collect::<Vec<String>>()
+    .join("\n      ");
+
   let mut resource_map = HashMap::new();
   for entry in result.iter() {
     let map_entry = if !resource_map.contains_key(entry.locale) {
@@ -98,6 +104,7 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
 
   let types = types.join(" | ");
   let default_namespace = &config.default_namespace;
+
   let template = format!(
     r#"
 /// This file is generated automatically
@@ -119,8 +126,12 @@ declare module 'i18next' {{
     jsonFormat: 'v4';
     allowObjectInHTMLChildren: false;
     resources: {{
-      {resources}
+      {custom_resources}
     }};
+  }}
+
+  interface Resource {{
+    {resources}
   }}
 }}
 

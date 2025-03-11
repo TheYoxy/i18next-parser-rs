@@ -1,22 +1,35 @@
 //! Module containing the dot_path_to_hash function.
-use color_eyre::owo_colors::OwoColorize;
-use log::{debug, trace, warn};
-use serde_json::{Map, Value};
 
-use crate::{helper::skip_last::SkipLast, Config, Entry};
+use color_eyre::owo_colors::OwoColorize;
+use log::{debug, trace};
+
+use crate::{
+  merger::merge_all_values::{FoundEntry, FoundValue},
+  Config,
+  Entry,
+  Location,
+};
 
 /// Enum representing the type of conflict that can occur when converting a dot path to a hash.
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Conflict {
-  Key(String),
-  Value(String, String),
+  Value(ConflictEntry, ConflictEntry),
 }
 
-/// Struct representing the result of converting a dot path to a hash.
-#[derive(Debug)]
-pub struct DotPathToHashResult<'a> {
-  pub target: &'a Value,
-  pub conflict: Option<Conflict>,
+/// Reprensents a conflict entry.
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+pub struct ConflictEntry {
+  /// The value that conflicts.
+  pub value: String,
+  /// The location of the conflict.
+  pub location: Location,
+}
+
+impl ConflictEntry {
+  /// Default constructor for ConflictEntry.
+  pub fn new(key: String, location: Location) -> Self {
+    Self { value: key, location }
+  }
 }
 
 /// Converts an entry with a dot path to a hash.
@@ -31,19 +44,19 @@ pub struct DotPathToHashResult<'a> {
 /// # Returns
 ///
 /// * A DotPathToHashResult object.
-pub fn dot_path_to_hash<'a>(
+pub fn dot_path_to_hash(
   entry: &Entry,
-  target: &'a mut Value,
   suffix: Option<&str>,
   config: &Config,
-) -> DotPathToHashResult<'a> {
+  found_value: &mut FoundValue,
+) -> Option<Conflict> {
   let separator = &config.key_separator;
 
   if entry.key.is_empty() {
-    return DotPathToHashResult { target, conflict: None };
+    return None;
   }
 
-  let path = {
+  let entry_path = {
     let base_path = entry
       .namespace
       .clone()
@@ -67,24 +80,39 @@ pub fn dot_path_to_hash<'a>(
     path
   };
 
-  let segments: Vec<&str> = path.split(separator).collect();
-  trace!("Val {:?} {:?} {:?}", &target.yellow(), entry.key.purple(), entry.value.cyan());
+  let segments: Vec<&str> = entry_path.split(separator).collect();
+  trace!("Val {:?} {:?}", entry.key.purple(), entry.value.cyan());
+  let mut conflict: Option<Conflict> = None;
 
-  let (old_value, mut conflict, inner, last_segment) = lookup_by_key(target, &segments);
+  let old_value = lookup_by_key(found_value, &segments);
 
   let new_value: String = entry
     .value
     .clone()
     .map(|new_value| {
       if let Some(old_value) = old_value {
+        let old_location = &old_value.location;
+        let old_value = &old_value.value;
         trace!("Values {:?} -> {:?}", old_value.purple(), new_value.purple());
-        if old_value != new_value && !old_value.is_empty() {
+        if *old_value != new_value && !old_value.is_empty() {
           if new_value.is_empty() {
             trace!("new value is empty, keeping old value {old_value:?}");
-            old_value
+            old_value.clone()
           } else {
-            warn!("Conflict: {:?} -> {:?} -> {:?}", path.yellow().italic(), old_value.purple(), new_value.purple());
-            conflict = Some(Conflict::Value(old_value, new_value.clone()));
+            // log::warn!(
+            //   "Conflict: {:?} -> {:?} -> {:?}",
+            //   path.yellow().italic(),
+            //   old_value.purple().italic(),
+            //   new_value.purple()
+            // );
+            conflict = Some(Conflict::Value(
+              ConflictEntry::new(old_value.clone(), old_location.clone()),
+              ConflictEntry::new(new_value.clone(), Location {
+                start: entry.location.start,
+                end: entry.location.end,
+                file: entry.location.file.clone(),
+              }),
+            ));
             new_value
           }
         } else {
@@ -100,47 +128,26 @@ pub fn dot_path_to_hash<'a>(
     .unwrap_or_default();
 
   if let Some(namespace) = &entry.namespace {
-    debug!("Setting [{:?}] {:?} -> {:?}", namespace.cyan(), path.yellow(), new_value.purple());
+    debug!("Setting [{:?}] {:?} -> {:?}", namespace.cyan(), entry_path.yellow(), new_value.purple());
   } else {
-    debug!("Setting {:?} -> {:?}", path.yellow(), new_value.purple());
+    debug!("Setting {:?} -> {:?}", entry_path.yellow(), new_value.purple());
   };
-  inner[last_segment] = Value::String(new_value);
+  found_value.insert(entry_path, FoundEntry { value: new_value, location: Location { ..entry.location.clone() } });
 
-  DotPathToHashResult { target, conflict }
+  conflict
 }
 
 /// Lookup a value in a JSON object by key.
 ///
 /// # Arguments
 ///
-/// * `target`: The target JSON object.
 /// * `segments`: The segments of the key.
 ///
 /// returns: (`Option<String>`, `Option<Conflict>`, &'a mut Value, &'a str) - A tuple containing a mutable reference to the value and an optional conflict.
-fn lookup_by_key<'a>(
-  target: &'a mut Value,
-  segments: &'a [&'a str],
-) -> (Option<String>, Option<Conflict>, &'a mut Value, &'a str) {
-  let mut conflict: Option<Conflict> = None;
-
-  let inner = segments.iter().skip_last().fold(target, |inner, segment| {
-    if !segment.is_empty() {
-      if inner[segment].is_string() {
-        conflict = Some(Conflict::Key(segment.to_string()));
-      }
-      if inner[segment].is_null() || conflict.is_some() {
-        inner[segment] = Value::Object(Map::new());
-      }
-
-      &mut inner[segment]
-    } else {
-      inner
-    }
-  });
-
-  let last_segment = segments[segments.len() - 1];
-  let old_value = inner[last_segment].as_str().map(|s| s.to_owned());
-  (old_value, conflict, inner, last_segment)
+#[inline]
+fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Option<&'a FoundEntry> {
+  let old_value = found_value.get(&segments.join("."));
+  old_value
 }
 
 #[cfg(test)]
@@ -173,6 +180,7 @@ mod tests {
   #[test]
   fn base() {
     let entry = Entry {
+      location: Default::default(),
       namespace: Some("namespace".into()),
       key: "key".into(),
       value: Some("default_value".into()),
@@ -203,6 +211,7 @@ mod tests {
   #[test]
   fn handles_empty_path() {
     let entry = Entry {
+      location: Default::default(),
       namespace: Some("".into()),
       key: "".into(),
       value: Some("default_value".into()),
@@ -221,6 +230,7 @@ mod tests {
   #[test]
   fn handles_nonexistent_path() {
     let entry = Entry {
+      location: Default::default(),
       namespace: Some("nonexistent".into()),
       key: "key".into(),
       value: Some("default_value".into()),
@@ -246,6 +256,7 @@ mod tests {
   #[test]
   fn handles_existing_path() {
     let entry = Entry {
+      location: Default::default(),
       namespace: Some("namespace".into()),
       key: "key".into(),
       value: Some("default_value".into()),
@@ -275,6 +286,7 @@ mod tests {
   #[test]
   fn handle_add_entries() {
     let entry = Entry {
+      location: Default::default(),
       namespace: Some("namespace".into()),
       key: "key2".into(),
       value: Some("default_value".into()),
@@ -305,6 +317,7 @@ mod tests {
   #[test]
   fn handles_suffix() {
     let entry = Entry {
+      location: Default::default(),
       namespace: Some("namespace".into()),
       key: "key".into(),
       value: Some("default_value".into()),

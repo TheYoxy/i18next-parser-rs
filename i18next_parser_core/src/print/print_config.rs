@@ -17,6 +17,9 @@ pub fn print_config<C: AsRef<Config>>(config: C) {
   eprintln!("  {}", separator);
   print_info("Dir:    ", config.working_dir.display());
   print_info("Input:  ", config.input.join(", "));
+  if !config.exclude.is_empty() {
+    print_info("Exclude:", config.exclude.join(", "));
+  }
   print_info("Output: ", &config.output);
   if config.verbose {
     eprintln!("  {}", separator);

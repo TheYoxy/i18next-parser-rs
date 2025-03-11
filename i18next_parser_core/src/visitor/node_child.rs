@@ -1,6 +1,7 @@
 use crate::IsEmpty;
 
 /// This enum represents the children of a tag.
+#[derive(Debug)]
 pub(super) enum NodeChild {
   /// The children is a text.
   Text(String),
@@ -21,6 +22,7 @@ impl IsEmpty for NodeChild {
 }
 
 /// This struct represents a tag.
+#[derive(Debug)]
 pub(super) struct NodeTag {
   /// The children of the tag.
   pub(super) children: Option<Vec<NodeChild>>,

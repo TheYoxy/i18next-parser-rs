@@ -26,12 +26,13 @@ oxc_parser = "0.20"
 oxc_span = "0.20"
 pretty_assertions = "1"
 regex = "1"
-serde = { version = "1.0.204", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 similar = "2"
 unic-langid = "0.9"
 serde_yaml_ng = "0.10"
 tracing = "0.1"
+bat = "0.25.0"
 
 [features]
 default = ["generate_types"]

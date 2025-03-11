@@ -1,7 +1,7 @@
 //! Collection of utility functions and constants used throughout the project.
 
 use color_eyre::{eyre::Context, owo_colors::OwoColorize};
-use tracing::{Event, Level, Subscriber};
+use tracing::{level_filters::LevelFilter, Event, Level, Subscriber};
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
   filter::filter_fn,
@@ -155,7 +155,7 @@ pub fn initialize_logging(verbose: &bool) -> color_eyre::Result<()> {
     .with_target(false)
     .with_ansi(true)
     .event_format(InfoFormatter)
-    .with_filter(EnvFilter::from_default_env())
+    .with_filter(EnvFilter::builder().with_default_directive(LevelFilter::WARN.into()).from_env_lossy())
     .with_filter(filter_fn(|meta| {
       let level = *meta.level();
       level <= Level::DEBUG

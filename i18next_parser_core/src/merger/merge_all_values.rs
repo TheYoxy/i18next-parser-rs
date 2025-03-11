@@ -1,3 +1,6 @@
+use core::panic;
+use std::collections::HashMap;
+
 use color_eyre::{eyre::eyre, owo_colors::OwoColorize};
 use tracing::instrument;
 
@@ -7,7 +10,15 @@ use crate::{
   merger::merge_results::{merge_results, MergeResults},
   transform::transform_entries::{transform_entries, TransformEntriesResult},
   Entry,
+  Location,
 };
+
+pub type FoundValue = HashMap<String, FoundEntry>;
+#[derive(Debug, Clone)]
+pub struct FoundEntry {
+  pub value: String,
+  pub location: Location,
+}
 
 /// Merges all translation values across different locales based on the provided entries and configuration.
 ///
@@ -62,8 +73,11 @@ pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
       .filter_map(|locale| {
         let entry = transform_entries(&entries, locale, config);
         match entry {
-          Ok(TransformEntriesResult { unique_count, unique_plurals_count, value, locale }) if value.is_object() => {
-            let catalog = value.as_object().unwrap();
+          Ok(TransformEntriesResult { unique_count, unique_plurals_count, value, locale }) => {
+            // TODO: transform from a.b.c to {'a': {'b': {'c': 'value'}}}
+
+            let obj = to_nested_object(&value);
+            let catalog = obj.as_object().unwrap();
             let result = catalog
               .iter()
               .map(|(namespace, catalog)| {
@@ -88,6 +102,31 @@ pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
 
     Ok(result)
   })
+}
+
+fn to_nested_object(obj: &FoundValue) -> serde_json::Value {
+  let mut result = serde_json::Value::Object(Default::default());
+  for (key, value) in obj.iter() {
+    let mut current = &mut result;
+    let parts = key.split('.').collect::<Vec<&str>>();
+    for (index, part) in parts.iter().enumerate() {
+      if index == parts.len() - 1 {
+        current.as_object_mut().unwrap().insert(part.to_string(), serde_json::Value::String(value.value.clone()));
+      } else {
+        let entry = current
+          .as_object_mut()
+          .unwrap()
+          .entry(part.to_string())
+          .or_insert(serde_json::Value::Object(Default::default()));
+        if !entry.is_object() {
+          log::error!("Found a non-object entry in the nested object: {:?}", entry);
+          panic!("Found a non-object entry for {} in the nested object: {:?}", key, entry);
+        }
+        current = entry;
+      }
+    }
+  }
+  result
 }
 
 #[cfg(test)]

@@ -1,4 +1,6 @@
 //! This module contains the implementation of the `get_char_diff` function.
+
+/// Returns a string with ANSI color codes to highlight the differences between two strings.
 pub fn get_char_diff(old: &str, new: &str) -> String {
   use color_eyre::owo_colors::OwoColorize;
   use similar::{ChangeTag, TextDiff};
@@ -9,8 +11,8 @@ pub fn get_char_diff(old: &str, new: &str) -> String {
       let val = changes.value();
       match changes.tag() {
         ChangeTag::Equal => val.to_string(),
-        ChangeTag::Insert => val.on_green().to_string(),
-        ChangeTag::Delete => val.on_red().to_string(),
+        ChangeTag::Insert => val.underline().red().to_string(),
+        ChangeTag::Delete => val.underline().green().to_string(),
       }
     })
     .collect::<Vec<_>>()

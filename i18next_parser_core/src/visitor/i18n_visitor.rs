@@ -320,9 +320,11 @@ impl<'a> I18NVisitor<'a> {
             }
           },
           ObjectPropertyKind::SpreadProperty(_) => {
-            if cfg!(debug_assertions) {
-              warn!("Unsupported spread property in {file}", file = self.file_path.display().yellow());
-            }
+            // #[cfg(debug_assertions)]
+            // {
+            //   warn!("Unsupported spread property");
+            //   visitor::visit::print_error_location(&self.file_path, &prop.span);
+            // }
             None
           },
         }
@@ -468,7 +470,7 @@ impl<'a> I18NVisitor<'a> {
           },
           JSXChild::Element(element) => {
             let name = if let JSXElementName::Identifier(id) = &element.opening_element.name { &id.name } else { "" };
-            let is_basic = element.opening_element.attributes.len() == 0;
+            let is_basic = element.opening_element.attributes.is_empty();
             let has_dynamic_children = element.children.iter().any(|child| {
               if let JSXChild::Element(e) = child {
                 if let JSXElementName::Identifier(id) = &e.opening_element.name {
@@ -510,7 +512,7 @@ impl<'a> I18NVisitor<'a> {
       Expression::StringLiteral(str) => NodeChild::Text(str.value.to_string()),
       Expression::AssignmentExpression(e) => Self::parse_expression_child(&e.right),
       Expression::TSAsExpression(e) => Self::parse_expression_child(&e.expression),
-      Expression::CallExpression(e) if e.callee.is_identifier_reference() && e.arguments.len() >= 1 => {
+      Expression::CallExpression(e) if e.callee.is_identifier_reference() && !e.arguments.is_empty() => {
         Self::parse_expression_child(&e.callee)
       },
       Expression::ObjectExpression(e) => {

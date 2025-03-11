@@ -7,31 +7,46 @@ use oxc_ast::{
 };
 use oxc_span::GetSpan;
 
-use crate::{visitor::I18NVisitor, Entry};
+use crate::{
+  visitor::{entry::Location, I18NVisitor},
+  Entry,
+};
 
 #[cfg(debug_assertions)]
-fn print_error_location(span: &oxc_span::Span, file_path: &std::path::PathBuf) {
-  use log::error;
+pub fn print_error_location(file_path: &std::path::PathBuf, span: &oxc_span::Span) {
+  use bat::{
+    line_range::{LineRange, LineRanges},
+    PrettyPrinter,
+  };
   let content = std::fs::read_to_string(file_path).unwrap();
-  let (start, remaining) = content.split_at(span.start.try_into().unwrap());
-  let (content, end) = remaining.split_at(span.size().try_into().unwrap());
-  let (previous, previous_content) = start.split_at(start.rfind('\n').unwrap());
-  let (_, last_line) = previous.split_at(previous.rfind('\n').unwrap());
-  let (next_content, next) = end.split_at(end.rfind('\n').unwrap());
-  let (next_line, _) = next.split_at(next.rfind('\n').unwrap());
-  let line = start.chars().fold(0, |i, c| if c == '\n' { i + 1 } else { i });
+  let mut start_line = 1;
+  let mut end_line = 1;
+  let start_pos = usize::try_from(span.start).unwrap();
+  let end_pos = usize::try_from(span.end).unwrap();
+  for (i, c) in content.chars().enumerate() {
+    if i == start_pos {
+      start_line = end_line;
+    }
+    if i == end_pos {
+      break;
+    }
 
-  error!("Location: ");
-  error!("{line}: {last_line}", last_line = last_line.replace('\n', ""));
-  let line = line + 1;
-  error!(
-    "{line}: {previous_content}{content}{next_content}",
-    previous_content = previous_content.replace('\n', ""),
-    content = content.italic().red().underline(),
-    next_content = next_content.replace('\n', ""),
-  );
-  let line = line + 1;
-  error!("{line}: {next_line}", next_line = next_line.replace('\n', ""));
+    if c == '\n' {
+      end_line += 1;
+    }
+  }
+
+  let bound = 2;
+  let range = LineRange::from(format!("{}:{}", start_line - bound, end_line + bound).as_str()).unwrap();
+  PrettyPrinter::new()
+    .input_file(file_path)
+    .line_ranges(LineRanges::from(vec![range]))
+    .header(true)
+    .grid(true)
+    .line_numbers(true)
+    .highlight_range(start_line, end_line)
+    .print()
+    .unwrap();
 }
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
@@ -55,7 +70,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             trace!("t expressions: {:?}", template.expressions);
             #[cfg(debug_assertions)]
             {
-              print_error_location(&template.span, &self.file_path);
+              print_error_location(&self.file_path, &template.span);
               todo!("Handle template literal")
             }
             #[cfg(not(debug_assertions))]
@@ -68,7 +83,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             trace!("t Arg: {:?}", bin.bright_black().italic());
             #[cfg(debug_assertions)]
             {
-              print_error_location(&bin.span, &self.file_path);
+              print_error_location(&self.file_path, &bin.span);
               todo!("Handle binary expression")
             }
             #[cfg(not(debug_assertions))]
@@ -77,33 +92,23 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
               None
             }
           },
-
-          Some(Argument::CallExpression(call)) => {
-            trace!("t Arg: {:?}", call.bright_black().italic());
-            trace!("t callee: {:?}", call.callee);
-            call.common_js_require().inspect(|req| trace!("t require: {}", req.value.to_string()));
-            call.callee_name().inspect(|name| trace!("t callee name: {}", name));
-            trace!("t arguments: {:?}", call.arguments);
-            for (idx, arg) in call.arguments.iter().enumerate() {
-              trace!("t argument: {idx} {:?}", arg);
-            }
-            #[cfg(debug_assertions)]
-            {
-              print_error_location(&call.span, &self.file_path);
-
-              todo!("Handle call expression")
-            }
-            #[cfg(not(debug_assertions))]
-            {
-              warn!("Call expression are not supported for now");
-              None
-            }
+          Some(Argument::CallExpression(_)) => {
+            trace!("Skipping CallExpression as it is unsupported");
+            None
+          },
+          Some(Argument::StaticMemberExpression(_)) => {
+            trace!("Skipping StaticMemberExpression as it is unsupported");
+            None
+          },
+          Some(Argument::Identifier(_)) => {
+            trace!("Skipping Identifier as it is unsupported");
+            None
           },
           Some(arg) => {
             #[cfg(debug_assertions)]
             {
               log::error!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
-              print_error_location(&arg.span(), &self.file_path);
+              print_error_location(&self.file_path, &arg.span());
 
               todo!("Handle argument {arg:?} in {}", self.file_path.display().yellow())
             }
@@ -135,7 +140,18 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             }
           }
 
-          self.entries.push(Entry { key, value, namespace, has_count, i18next_options });
+          self.entries.push(Entry {
+            location: Location::new(
+              self.file_path.to_str().unwrap().to_string(),
+              usize::try_from(expr.span.start).unwrap(),
+              usize::try_from(expr.span.end).unwrap(),
+            ),
+            key,
+            value,
+            namespace,
+            has_count,
+            i18next_options,
+          });
         }
       };
     }
@@ -164,6 +180,11 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
 
         if let Some(key) = key {
           self.entries.push(Entry {
+            location: Location::new(
+              self.file_path.to_str().unwrap().to_string(),
+              usize::try_from(elem.span.start).unwrap(),
+              usize::try_from(elem.span.end).unwrap(),
+            ),
             key,
             value: if default_value.is_empty() { None } else { Some(default_value) },
             namespace: ns,

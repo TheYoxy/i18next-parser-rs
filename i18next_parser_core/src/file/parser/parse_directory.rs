@@ -72,6 +72,16 @@ pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -
     builder.build()?
   };
 
+  let exclude = {
+    let mut builder = globset::GlobSetBuilder::new();
+    for input in &config.exclude {
+      let join = path.join(input);
+      let glob = join.to_str().unwrap();
+      builder.add(globset::Glob::new(glob)?);
+    }
+    builder.build()?
+  };
+
   if path.exists() {
     debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
   } else {
@@ -95,6 +105,7 @@ pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -
       .build()
       .filter_map(Result::ok)
       .filter(|f| glob.is_match(f.path()))
+      .filter(|f| !exclude.is_match(f.path()))
       .collect::<Vec<_>>();
 
     debug!("Found {} entries", filter.len().blue());

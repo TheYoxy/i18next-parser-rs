@@ -2,10 +2,10 @@
 use std::collections::HashMap;
 
 use log::error;
-use serde_json::Value;
 
 use crate::{
   config::Config,
+  merger::merge_all_values::FoundValue,
   transform::{plural::PluralResolver, transform_entry::transform_entry},
   Entry,
 };
@@ -17,7 +17,7 @@ pub struct TransformEntriesResult {
   /// The unique count of plural entries.
   pub unique_plurals_count: HashMap<String, usize>,
   /// The transformed value.
-  pub value: Value,
+  pub value: FoundValue,
   /// The locale of the transformed value.
   pub locale: String,
 }
@@ -41,13 +41,13 @@ pub fn transform_entries(
   let mut unique_count = HashMap::new();
   let mut unique_plurals_count = HashMap::new();
 
-  let value = entries.iter().try_fold(Value::Object(Default::default()), |mut value, entry| {
+  let value = entries.iter().try_fold(FoundValue::new(), |mut value, entry| {
     if entry.has_count {
       let suffixes = PluralResolver::default().get_suffixes(locale);
       match suffixes {
         Ok(suffixes) => {
           suffixes.iter().try_fold(value, |mut value, suffix| {
-            transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &mut value, config, Some(suffix))
+            transform_entry(entry, &mut unique_count, &mut unique_plurals_count, config, Some(suffix), &mut value)
           })
         },
         Err(e) => {
@@ -56,7 +56,7 @@ pub fn transform_entries(
         },
       }
     } else {
-      transform_entry(entry, &mut unique_count, &mut unique_plurals_count, &mut value, config, None)
+      transform_entry(entry, &mut unique_count, &mut unique_plurals_count, config, None, &mut value)
     }
   })?;
 

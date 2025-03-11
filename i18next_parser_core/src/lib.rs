@@ -16,7 +16,7 @@ pub use helper::{clean_multi_line_code::clean_multi_line_code, merge_hashes::mer
 pub use is_empty::IsEmpty;
 pub use merger::{merge_all_values::merge_all_values, merge_results::MergeResults};
 pub use print::print_config::print_config;
-pub use visitor::Entry;
+pub use visitor::{Entry, Location};
 
 #[cfg(feature = "generate_types")]
 mod generate_types;

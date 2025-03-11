@@ -1,5 +1,60 @@
 use crate::visitor::I18NextOptions;
 
+#[derive(Debug, Clone, Default, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Location {
+  pub file: String,
+  pub start: usize,
+  pub end: usize,
+}
+
+impl std::fmt::Display for Location {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}:{}:{}", self.file, self.start, self.end)
+  }
+}
+
+impl Location {
+  pub fn new(file: String, start: usize, end: usize) -> Self {
+    Self { file, start, end }
+  }
+
+  pub fn print(&self) {
+    use bat::{
+      line_range::{LineRange, LineRanges},
+      PrettyPrinter,
+    };
+    let content = std::fs::read_to_string(&self.file).unwrap();
+    let mut start_line = 1;
+    let mut end_line = 1;
+    let start_pos = self.start;
+    let end_pos = self.end;
+    for (i, c) in content.chars().enumerate() {
+      if i == start_pos {
+        start_line = end_line;
+      }
+      if i == end_pos {
+        break;
+      }
+
+      if c == '\n' {
+        end_line += 1;
+      }
+    }
+
+    let bound = 2;
+    let range = LineRange::from(format!("{}:{}", start_line - bound, end_line + bound).as_str()).unwrap();
+    PrettyPrinter::new()
+      .input_file(&self.file)
+      .line_ranges(LineRanges::from(vec![range]))
+      .header(true)
+      .grid(true)
+      .line_numbers(true)
+      .highlight_range(start_line, end_line)
+      .print()
+      .unwrap();
+  }
+}
+
 /// This struct represents an entry in the i18n system.
 ///
 /// # Fields
@@ -12,6 +67,7 @@ use crate::visitor::I18NextOptions;
 #[derive(Debug, Default, Eq)]
 #[allow(dead_code)]
 pub struct Entry {
+  pub location: Location,
   /// the key of the entry
   pub key: String,
   /// the value found for the key
