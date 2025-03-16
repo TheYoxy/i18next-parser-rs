@@ -40,6 +40,10 @@ pub struct Cli {
   #[cfg(feature = "generate_types")]
   generate_types: bool,
 
+  /// Dry run (not writing to file)
+  #[arg(short = 'n', long, default_value = "false", global = true)]
+  dry_run: bool,
+
   /// Should generate shell completions
   #[arg(long)]
   #[clap(value_enum)]
@@ -62,7 +66,7 @@ impl Runnable for Cli {
     let path = &self.path;
     log_time!(format!("Parsing {} to find translations to extract", path.display().yellow()), {
       info!("Working directory: {}", path.display().yellow());
-      let config = &Config::new(path, self.verbose)?;
+      let config = &Config::new(path, self.verbose, self.dry_run)?;
       trace!("Configuration: {config:?}");
 
       print_config(config);
@@ -72,7 +76,11 @@ impl Runnable for Cli {
       let merged = log_time!(format!("Parsing directory {:?}", file_name.yellow()), {
         let entries = parse_directory(path.clone(), config)?;
         let merged = merge_all_values(entries, config)?;
-        write_to_file(&merged, config)?;
+        if config.dry_run {
+          log::warn!("Dry run, not writing to file");
+        } else {
+          write_to_file(&merged, config)?;
+        }
 
         merged
       });

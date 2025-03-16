@@ -92,22 +92,42 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
               None
             }
           },
-          Some(Argument::CallExpression(_)) => {
+          Some(Argument::CallExpression(expression)) => {
+            #[cfg(debug_assertions)]
+            {
+              print_error_location(&self.file_path, &expression.span());
+            }
             trace!("Skipping CallExpression as it is unsupported");
             None
           },
-          Some(Argument::StaticMemberExpression(_)) => {
+          Some(Argument::StaticMemberExpression(expression)) => {
+            #[cfg(debug_assertions)]
+            {
+              print_error_location(&self.file_path, &expression.span());
+            }
             trace!("Skipping StaticMemberExpression as it is unsupported");
             None
           },
-          Some(Argument::Identifier(_)) => {
+          Some(Argument::Identifier(identifier)) => {
+            #[cfg(debug_assertions)]
+            {
+              print_error_location(&self.file_path, &identifier.span());
+            }
             trace!("Skipping Identifier as it is unsupported");
+            None
+          },
+          Some(Argument::TSAsExpression(expression)) => {
+            #[cfg(debug_assertions)]
+            {
+              print_error_location(&self.file_path, &expression.span());
+            }
+            trace!("Skipping TSAsExpression as it is unsupported");
             None
           },
           Some(arg) => {
             #[cfg(debug_assertions)]
             {
-              log::error!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
+              log::warn!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
               print_error_location(&self.file_path, &arg.span());
 
               todo!("Handle argument {arg:?} in {}", self.file_path.display().yellow())

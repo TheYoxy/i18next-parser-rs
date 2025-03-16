@@ -143,6 +143,9 @@ export default {{}};
 "#,
   );
 
+  if config.dry_run {
+    return Ok(());
+  }
   let path = Path::new(&config.generated_types);
   log::debug!("Writing {}", path.display().yellow().italic());
   fs::write(path, template)?;

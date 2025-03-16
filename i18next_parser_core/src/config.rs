@@ -76,6 +76,8 @@ pub struct Config {
   /// The path of the generated types
   #[cfg(feature = "generate_types")]
   pub generated_types: String,
+  /// Should write to files
+  pub dry_run: bool,
 }
 
 impl AsRef<Config> for Config {
@@ -108,6 +110,7 @@ impl Default for Config {
       fail_on_update: Default::default(),
       reset_default_value_locale: Default::default(),
       generated_types: PathBuf::from(".").join("react-i18next.resources.d.ts").to_str().unwrap().to_string(),
+      dry_run: Default::default(),
     }
   }
 }
@@ -118,7 +121,7 @@ impl Config {
   /// # Arguments
   /// * `working_dir` - The working directory for the i18n system.
   /// * `verbose` - A boolean indicating whether to output verbose logs in the i18n system.
-  pub fn new<T>(working_dir: T, verbose: bool) -> Result<Self, config::ConfigError>
+  pub fn new<T>(working_dir: T, verbose: bool, dry_run: bool) -> Result<Self, config::ConfigError>
   where
     T: Into<PathBuf>,
   {
@@ -145,10 +148,14 @@ impl Config {
       .set_default("fail_on_warnings", default_config.fail_on_warnings)?
       .set_default("fail_on_update", default_config.fail_on_update)?
       .set_default("generated_types", default_config.generated_types)?
+      .set_default("dry_run", default_config.dry_run)?
       .set_override("working_dir", working_dir_opt)?;
 
     if verbose {
       builder = builder.set_override("verbose", true)?;
+    }
+    if dry_run {
+      builder = builder.set_override("dry_run", true)?;
     }
 
     let config_files = [
@@ -248,7 +255,7 @@ mod config_tests {
   fn config_new_sets_working_dir_and_verbose() {
     let working_dir = "/tmp";
     let verbose = true;
-    let config = Config::new(working_dir, verbose).unwrap();
+    let config = Config::new(working_dir, verbose, false).unwrap();
     assert_eq!(config.working_dir, PathBuf::from(working_dir));
     assert!(config.verbose);
   }
@@ -268,6 +275,6 @@ mod config_tests {
   fn config_new_handles_invalid_working_dir() {
     let working_dir = "\0"; // Invalid path
     let verbose = false;
-    assert!(Config::new(working_dir, verbose).is_ok());
+    assert!(Config::new(working_dir, verbose, false).is_ok());
   }
 }
