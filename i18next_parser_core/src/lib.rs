@@ -22,4 +22,4 @@ pub use visitor::{Entry, Location};
 mod generate_types;
 
 #[cfg(feature = "generate_types")]
-pub use generate_types::generate_types;
+pub use generate_types::{generate_index, generate_types};

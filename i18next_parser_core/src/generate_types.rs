@@ -37,6 +37,69 @@ struct EntryValue<T: Display, P: Display, O: Display, L: Display> {
   path: T,
 }
 
+pub fn generate_index<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> color_eyre::Result<()> {
+  let config = config.as_ref();
+  trace!("Generating index for i18next resources.");
+
+  let result = entries
+    .iter()
+    .map(|entry| {
+      EntryValue {
+        name: entry.namespace.as_str(),
+        display_name: format!("{}_{}", camelize(entry.namespace.as_str()), entry.locale),
+        locale: entry.locale.as_str(),
+        path: entry
+          .path
+          .strip_prefix(&config.working_dir)
+          .unwrap_or_else(|_| panic!("Failed to strip prefix"))
+          .to_str()
+          .unwrap(),
+      }
+    })
+    .collect::<Vec<_>>();
+
+  for local in &config.locales {
+    let exports = result
+      .iter()
+      .filter(|entry| entry.locale == local)
+      .map(|entry| format!("export * from './{}.json';", entry.name))
+      .collect::<Vec<String>>()
+      .join("\n");
+    let output = config.output.replace("$LOCALE", local).replace("/$NAMESPACE.json", "/index.ts");
+    write_exports(config, &exports, &output)?;
+  }
+
+  let exports =
+    config.locales.iter().map(|locale| format!("export * from './{}';", locale)).collect::<Vec<String>>().join("\n");
+  write_exports(config, &exports, &config.output.replace("/$LOCALE", "").replace("/$NAMESPACE.json", "/index.ts"))?;
+
+  Ok(())
+}
+
+fn write_exports(config: &Config, exports: &String, output: &String) -> Result<(), color_eyre::eyre::Error> {
+  let template = format!(
+    r#"
+/// This file is generated automatically
+/// All changes will be lost
+/* eslint-disable */
+
+{exports}
+
+export default {{}};
+"#,
+  );
+  let display = config.working_dir.display();
+  let path = format!("{}/{}", display, output);
+  let path = Path::new(&path);
+  if !config.dry_run {
+    log::debug!("Writing {}", path.display().yellow().italic());
+    fs::write(path, template)?;
+    info!("Generated {}", path.display());
+  }
+
+  Ok(())
+}
+
 /// Generates types for the i18next resources.
 pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> color_eyre::Result<()> {
   let config = config.as_ref();

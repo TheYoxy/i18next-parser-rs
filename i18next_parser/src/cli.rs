@@ -6,6 +6,7 @@ use clap::{builder::Styles, command, Parser};
 use clap_complete::Shell;
 use color_eyre::{eyre::eyre, Section, SectionExt};
 use i18next_parser_core::{
+  generate_index,
   generate_types,
   log_time,
   merge_all_values,
@@ -85,7 +86,8 @@ impl Runnable for Cli {
         merged
       });
       if cfg!(feature = "generate_types") && self.generate_types {
-        log_time!("Generating types", { generate_types(&merged, config) })
+        log_time!("Generating types", { generate_types(&merged, config) })?;
+        log_time!("Generating types", { generate_index(&merged, config) })
       } else {
         Ok(())
       }
