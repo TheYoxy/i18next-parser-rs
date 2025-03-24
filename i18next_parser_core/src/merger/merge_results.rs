@@ -78,9 +78,8 @@ pub fn merge_results<C: AsRef<Config>>(
   trace!("File path: {}", path.display().yellow());
   trace!("Backup path: {}", backup.display().yellow());
 
-  let value = read_file_into_serde(&path);
-
-  let old_value = read_file_into_serde(&backup);
+  let value = read_file_into_serde(&path, namespace == config.default_namespace);
+  let old_value = read_file_into_serde(&backup, namespace == config.default_namespace);
   let old_value = old_value.as_ref();
 
   trace!("Value: {:?} -> {:?}", value.cyan(), old_value.cyan());
@@ -92,9 +91,7 @@ pub fn merge_results<C: AsRef<Config>>(
     ..Default::default()
   });
   let old_catalog = transfer_values(&merged.old, &old_merged.old);
-  if config.verbose {
-    print_counts(locale, namespace, unique_count, unique_plurals_count, &merged, &old_merged, config);
-  }
+  print_counts(locale, namespace, unique_count, unique_plurals_count, &merged, &old_merged);
 
   MergeResults { namespace: namespace.to_string(), locale: locale.to_string(), path, backup, merged, old_catalog }
 }

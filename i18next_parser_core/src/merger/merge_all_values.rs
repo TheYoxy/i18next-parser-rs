@@ -74,8 +74,6 @@ pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
         let entry = transform_entries(&entries, locale, config);
         match entry {
           Ok(TransformEntriesResult { unique_count, unique_plurals_count, value, locale }) => {
-            // TODO: transform from a.b.c to {'a': {'b': {'c': 'value'}}}
-
             let obj = to_nested_object(&value);
             let catalog = obj.as_object().unwrap();
             let result = catalog
@@ -119,8 +117,8 @@ fn to_nested_object(obj: &FoundValue) -> serde_json::Value {
           .entry(part.to_string())
           .or_insert(serde_json::Value::Object(Default::default()));
         if !entry.is_object() {
-          log::error!("Found a non-object entry in the nested object: {:?}", entry);
-          panic!("Found a non-object entry for {} in the nested object: {:?}", key, entry);
+          log::error!("Found a non-object entry for {} in the nested object: {}", key, entry);
+          panic!("Found a non-object entry for {} in the nested object: {}", key, entry);
         }
         current = entry;
       }

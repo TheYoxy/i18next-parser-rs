@@ -28,9 +28,13 @@ pub struct MergeResult {
   /// The old hash
   pub old: Value,
   pub reset: Value,
+  /// The number of keys that were merged
   pub merge_count: usize,
+  /// The number of keys that were pulled from the source
   pub pull_count: usize,
+  /// The number of keys that were replaced
   pub old_count: usize,
+  /// The number of keys that were reset
   pub reset_count: usize,
 }
 
@@ -108,7 +112,7 @@ pub fn merge_hashes(
       trace!("Handling {} with value {}", key.italic().purple(), value.cyan());
       match existing.get_mut(key) {
         Some(target_value) if target_value.is_object() && value.is_object() => {
-          debug!("Merging nested key: {}", key.yellow());
+          trace!("Merging nested key: {}", key.yellow());
           let nested_result = merge_hashes(
             Some(value),
             target_value,
@@ -149,21 +153,21 @@ pub fn merge_hashes(
           }
         },
         Some(_) if !value.is_string() && !value.is_array() => {
-          debug!("Replacing key: {} with {}", key.purple(), value.cyan());
+          trace!("Replacing key: {} with {}", key.purple(), value.cyan());
           old.insert(key.clone(), value.clone());
           old_count += 1;
         },
         Some(target_value)
           if reset_and_flag && !is_plural(key) && value != target_value || reset_values_map.contains_key(key) =>
         {
-          debug!("Inserting key: {} with {}", key.purple(), value.cyan());
+          trace!("Inserting key: {} with {}", key.purple(), value.cyan());
           old.insert(key.clone(), value.clone());
           old_count += 1;
           reset.insert(key.clone(), Value::Bool(true));
           reset_count += 1;
         },
         Some(target_value) => {
-          debug!("Replacing key: {} from {} to {}", key.purple(), target_value.cyan(), value.cyan());
+          trace!("Replacing key: {} from {} to {}", key.purple(), target_value.cyan(), value.cyan());
           *target_value = value.clone();
           merge_count += 1;
         },
@@ -199,7 +203,7 @@ pub fn merge_hashes(
       trace!("Existing: {:?}", existing.cyan());
     }
   } else {
-    debug!("No source provided, returning existing hash as is.");
+    trace!("No source provided, returning existing hash as is.");
     trace!("Existing: {:?}", existing.cyan());
   }
 

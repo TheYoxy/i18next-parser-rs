@@ -128,9 +128,14 @@ pub fn dot_path_to_hash(
     .unwrap_or_default();
 
   if let Some(namespace) = &entry.namespace {
-    debug!("Setting [{:?}] {:?} -> {:?}", namespace.cyan(), entry_path.yellow(), new_value.purple());
+    trace!("Setting [{:?}] {:?} -> {:?}", namespace.cyan(), entry_path.yellow(), new_value.purple());
   } else {
-    debug!("Setting {:?} -> {:?}", entry_path.yellow(), new_value.purple());
+    log::info!(
+      "Setting to default namespace [{:?}] {:?} -> {:?}",
+      config.default_namespace.cyan(),
+      entry_path.yellow(),
+      new_value.purple()
+    );
   };
   found_value.insert(entry_path, FoundEntry { value: new_value, location: Location { ..entry.location.clone() } });
 
