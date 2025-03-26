@@ -6,7 +6,7 @@ use std::{
 };
 
 use color_eyre::{owo_colors::OwoColorize, Report};
-use log::{debug, trace};
+use log::trace;
 use serde_json::Value;
 use tracing::instrument;
 
@@ -82,7 +82,7 @@ fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> s
   let mut file = File::create(Path::new(path))?;
   let bytes = text.as_bytes();
   file.write_all(bytes)?;
-  debug!("Wrote {} bytes to {}", bytes.len().cyan(), path.display().yellow());
+  trace!("Wrote {} bytes to {}", bytes.len().cyan(), path.display().yellow());
 
   Ok(())
 }

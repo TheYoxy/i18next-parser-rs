@@ -21,10 +21,10 @@ fn parse_directory_mono_thread<C: AsRef<Config>>(filter: &[DirEntry], config: C)
       match &ret {
         Some(r) if !r.is_empty() => {
           let len = r.len();
-            tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.display(), count = format!("{len} translations").italic().color(CssColors::Gray) ,format = format!("({elapsed:.2}ms)").bright_black());
+          tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.display(), format = format!("({elapsed:.2}ms)").bright_black(), count = format!("{len} translations").italic().color(CssColors::Gray) );
         },
         _ => {
-            tracing::info!(target: "file_read", "{file} {format}", file = entry_path.display().italic().color(CssColors::Gray), format = format!("({elapsed:.2}ms)").bright_black());
+          tracing::info!(target: "file_read", "{file} {format}", file = entry_path.display().italic().color(CssColors::Gray), format = format!("({elapsed:.2}ms)").bright_black());
         }
       }
       ret

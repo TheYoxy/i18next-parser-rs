@@ -1,7 +1,7 @@
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, trace, warn};
 use oxc_ast::{
-  ast::{Argument, CallExpression, ChainExpression, JSXElement, JSXElementName},
+  ast::{Argument, CallExpression, JSXElement, JSXElementName},
   visit::walk,
   Visit,
 };
@@ -50,11 +50,6 @@ pub fn print_error_location(file_path: &std::path::PathBuf, span: &oxc_span::Spa
 }
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
-  fn visit_chain_expression(&mut self, it: &ChainExpression<'a>) {
-    log::info!("Chain expression: {it:?}", it = it);
-    walk::walk_chain_expression(self, it);
-  }
-
   fn visit_call_expression(&mut self, expr: &CallExpression<'a>) {
     if let Some(name) = expr.callee_name() {
       self.extract_namespace(name, expr);

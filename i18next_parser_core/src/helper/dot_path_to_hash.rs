@@ -1,7 +1,7 @@
 //! Module containing the dot_path_to_hash function.
 
 use color_eyre::owo_colors::OwoColorize;
-use log::{debug, trace};
+use log::trace;
 
 use crate::{
   merger::merge_all_values::{FoundEntry, FoundValue},
@@ -334,18 +334,20 @@ mod tests {
             "key_suffix": "existing_value"
         }
     });
+    let mut value = FoundValue::new();
+    value.insert("namespace.key_suffix".into(), FoundEntry {
+      value: "existing_value".into(),
+      location: Default::default(),
+    });
     let config = Default::default();
 
-    let result = dot_path_to_hash(&entry, &mut target, Some("_suffix"), &config);
-
+    let result = dot_path_to_hash(&entry, Some("_suffix"), &config, &mut value);
     assert_eq!(
-      *result.target,
-      json!({
-          "namespace": {
-              "key_suffix": "default_value"
-          }
-      })
+      result,
+      Some(Conflict::Value(
+        ConflictEntry::new("existing_value".into(), Default::default()),
+        ConflictEntry::new("default_value".into(), Default::default())
+      ))
     );
-    assert_eq!(result.conflict, Some(Conflict::Value("existing_value".into(), "default_value".into())));
   }
 }

@@ -22,7 +22,7 @@ pub fn print_counts(
     return;
   }
 
-  let keys = format!("Keys: {}", unique_count);
+  let keys = format!("Keys: {}", unique_count.underline());
   let plurals = if *unique_plurals_count == 0 { "".into() } else { format!("({} are plurals)", unique_plurals_count) };
 
   let diff = format!(

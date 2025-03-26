@@ -142,7 +142,7 @@ mod tests {
       key: "key".into(),
       has_count: false,
       value: Some("value".into()),
-      i18next_options: None,
+      ..Default::default()
     }];
     let config = Config { locales: vec!["en".into()], ..Default::default() };
 
@@ -177,21 +177,21 @@ mod tests {
         key: "key1".into(),
         has_count: false,
         value: Some("value1".into()),
-        i18next_options: None,
+        ..Default::default()
       },
       Entry {
         namespace: Some("default".into()),
         key: "key2".into(),
         has_count: true,
         value: Some("value2".into()),
-        i18next_options: None,
+        ..Default::default()
       },
       Entry {
         namespace: Some("custom".into()),
         key: "key3".into(),
         has_count: false,
         value: Some("value3".into()),
-        i18next_options: None,
+        ..Default::default()
       },
     ];
     let config = Config { locales: vec!["en".into()], ..Default::default() };
