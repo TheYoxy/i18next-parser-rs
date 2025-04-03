@@ -13,16 +13,17 @@ use crate::{
 };
 
 #[cfg(debug_assertions)]
-pub fn print_error_location(file_path: &std::path::PathBuf, span: &oxc_span::Span) {
+pub fn print_error_location(file_path: &std::path::PathBuf, span: &oxc_span::Span) -> color_eyre::Result<()> {
   use bat::{
     line_range::{LineRange, LineRanges},
     PrettyPrinter,
   };
-  let content = std::fs::read_to_string(file_path).unwrap();
+  let content = std::fs::read_to_string(file_path)
+    .inspect_err(|e| log::error!("Unable to read file {}: {}", file_path.display(), e))?;
   let mut start_line = 1;
   let mut end_line = 1;
-  let start_pos = usize::try_from(span.start).unwrap();
-  let end_pos = usize::try_from(span.end).unwrap();
+  let start_pos = usize::try_from(span.start)?;
+  let end_pos = usize::try_from(span.end)?;
   for (i, c) in content.chars().enumerate() {
     if i == start_pos {
       start_line = end_line;
@@ -47,6 +48,8 @@ pub fn print_error_location(file_path: &std::path::PathBuf, span: &oxc_span::Spa
     .highlight_range(start_line, end_line)
     .print()
     .unwrap();
+
+  Ok(())
 }
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
@@ -65,7 +68,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             trace!("t expressions: {:?}", template.expressions);
             #[cfg(debug_assertions)]
             {
-              print_error_location(&self.file_path, &template.span);
+              let _ = print_error_location(&self.file_path, &template.span);
               todo!("Handle template literal")
             }
             #[cfg(not(debug_assertions))]
@@ -78,7 +81,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             trace!("t Arg: {:?}", bin.bright_black().italic());
             #[cfg(debug_assertions)]
             {
-              print_error_location(&self.file_path, &bin.span);
+              let _ = print_error_location(&self.file_path, &bin.span);
               todo!("Handle binary expression")
             }
             #[cfg(not(debug_assertions))]
@@ -90,7 +93,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           Some(Argument::CallExpression(expression)) => {
             #[cfg(debug_assertions)]
             {
-              print_error_location(&self.file_path, &expression.span());
+              let _ = print_error_location(&self.file_path, &expression.span());
             }
             trace!("Skipping CallExpression as it is unsupported");
             None
@@ -98,7 +101,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           Some(Argument::StaticMemberExpression(expression)) => {
             #[cfg(debug_assertions)]
             {
-              print_error_location(&self.file_path, &expression.span());
+              let _ = print_error_location(&self.file_path, &expression.span());
             }
             trace!("Skipping StaticMemberExpression as it is unsupported");
             None
@@ -106,7 +109,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           Some(Argument::Identifier(identifier)) => {
             #[cfg(debug_assertions)]
             {
-              print_error_location(&self.file_path, &identifier.span());
+              let _ = print_error_location(&self.file_path, &identifier.span());
             }
             trace!("Skipping Identifier as it is unsupported");
             None
@@ -114,7 +117,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
           Some(Argument::TSAsExpression(expression)) => {
             #[cfg(debug_assertions)]
             {
-              print_error_location(&self.file_path, &expression.span());
+              let _ = print_error_location(&self.file_path, &expression.span());
             }
             trace!("Skipping TSAsExpression as it is unsupported");
             None
@@ -123,7 +126,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             #[cfg(debug_assertions)]
             {
               log::warn!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
-              print_error_location(&self.file_path, &arg.span());
+              let _ = print_error_location(&self.file_path, &arg.span());
 
               todo!("Handle argument {arg:?} in {}", self.file_path.display().yellow())
             }

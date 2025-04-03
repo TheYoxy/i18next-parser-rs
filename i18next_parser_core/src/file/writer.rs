@@ -50,18 +50,18 @@ fn write_files<T: AsRef<Config>>(
   })
 }
 
-fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> std::io::Result<()> {
-  fn handle_line_ending(text: &str, line_ending: &LineEnding) -> String {
-    match line_ending {
-      LineEnding::Crlf => text.replace('\n', "\r\n"),
-      LineEnding::Cr => text.replace('\n', "\r"),
-      _ => {
-        // Do nothing, as Rust automatically uses the appropriate line endings
-        text.to_string()
-      },
-    }
+fn handle_line_ending(text: &str, line_ending: &LineEnding) -> String {
+  match line_ending {
+    LineEnding::Crlf => text.replace('\n', "\r\n"),
+    LineEnding::Cr => text.replace('\n', "\r"),
+    _ => {
+      // Do nothing, as Rust automatically uses the appropriate line endings
+      text.to_string()
+    },
   }
+}
 
+fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> std::io::Result<()> {
   let text = {
     let text = if path.ends_with("yml") {
       serde_yaml_ng::to_string(contents).unwrap()

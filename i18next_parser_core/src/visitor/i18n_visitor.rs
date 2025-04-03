@@ -1,11 +1,12 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use color_eyre::owo_colors::OwoColorize;
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
 use oxc_ast::ast::{
   Argument,
   CallExpression,
   Expression,
+  IdentifierName,
   IdentifierReference,
   JSXAttributeItem,
   JSXAttributeName,
@@ -17,6 +18,7 @@ use oxc_ast::ast::{
   ObjectExpression,
   ObjectPropertyKind,
   Program,
+  PropertyKey,
   Statement,
 };
 use serde_json::Value;
@@ -153,6 +155,46 @@ impl<'a> I18NVisitor<'a> {
     }
   }
 
+  /// Find the value of an identifier as a string
+  ///
+  /// # Arguments
+  ///
+  /// * `identifier` - The identifier to find the value for
+  ///
+  /// # Returns
+  ///
+  /// An optional string representing the value of the identifier
+  fn find_identifier_value_as_string_from_identifier_name(
+    &self,
+    identifier: &oxc_allocator::Box<IdentifierName>,
+  ) -> Option<String> {
+    let arr = self.program.body.iter().find_map(|stmt| {
+      if let Statement::VariableDeclaration(var) = stmt {
+        var
+          .declarations
+          .iter()
+          .find(|v| v.id.get_identifier() == Some(identifier.name.clone()))
+          .and_then(|item| item.init.as_ref())
+          .and_then(|init| {
+            trace!("Looking for expression value from {:?}", init.bright_black().italic());
+            self.parse_expression_as_string(init)
+          })
+      } else {
+        None
+      }
+    });
+
+    if arr.is_none() {
+      debug!(
+        "Cannot find identifier str value in {} for {name} {identifier:?}",
+        self.file_path.display().yellow(),
+        name = identifier.name.cyan()
+      );
+    }
+
+    arr
+  }
+
   /// Find the value of an identifier.
   ///
   /// # Arguments
@@ -163,6 +205,7 @@ impl<'a> I18NVisitor<'a> {
   ///
   /// An optional value representing the value of the identifier
   fn find_identifier_value(&self, identifier: &oxc_allocator::Box<IdentifierReference>) -> Option<Value> {
+    debug!("Looking for identifier value: {}", identifier.name);
     let arr = self.program.body.iter().find_map(|stmt| {
       if let Statement::VariableDeclaration(var) = stmt {
         var
@@ -238,6 +281,7 @@ impl<'a> I18NVisitor<'a> {
     let arg = match name {
       "useTranslation" | "withTranslation" => expr.arguments.first(),
       "getFixedT" => expr.arguments.get(1),
+      "cloneInstance" => expr.arguments.first(),
       _ => None,
     };
     if let Some(arg) = arg {
@@ -255,6 +299,33 @@ impl<'a> I18NVisitor<'a> {
         Argument::TSAsExpression(expression) => {
           trace!("Looking for namespace {} value from `As` expression", name.cyan());
           self.current_namespace = self.parse_expression_as_string(&expression.expression);
+        },
+        Argument::ObjectExpression(expression) => {
+          let vec = expression
+            .properties
+            .iter()
+            .filter_map(|prop| {
+              if let ObjectPropertyKind::ObjectProperty(obj) = prop {
+                match &obj.key {
+                  PropertyKey::StringLiteral(str) if str.value == "ns" => {
+                    return Some(str.value.to_string());
+                  },
+                  PropertyKey::StaticIdentifier(ident) if ident.name == "ns" => {
+                    return self.find_identifier_value_as_string_from_identifier_name(ident);
+                  },
+                  PropertyKey::Identifier(ident) if ident.name == "ns" => {
+                    return self.find_identifier_value_as_string(ident);
+                  },
+                  _ => (),
+                }
+                debug!("Unsupported property key: {:?}", obj.key);
+              }
+
+              None
+            })
+            .collect::<Vec<String>>();
+          let value = vec.first();
+          self.current_namespace = value.cloned();
         },
         _ => {
           warn!("Unsupported argument for {name} {arg:?}");
@@ -606,6 +677,17 @@ impl<'a> I18NVisitor<'a> {
           todo!("Handle identifier {identifier:?}")
         }
       },
+      (Some(Argument::Identifier(identifier)), None) => {
+        let value = self.find_identifier_value(identifier);
+        debug!("identifier value: {value:?}");
+        let value_as_str = value.as_ref().and_then(|v| v.as_str());
+        if let Some(value) = value_as_str {
+          (Some(value.to_string()), None)
+        } else {
+          error!("Unable to parse {value:?}");
+          todo!("Handle {value:?}");
+        }
+      },
       (None, None) => (None, None),
       (arg_1, arg_2) => {
         warn!("Unknown argument combination type: {arg_1:?} {arg_2:?}");
@@ -669,7 +751,7 @@ mod tests {
     let allocator = Allocator::default();
     let source_type = SourceType::from_path("file.tsx").unwrap();
     let ret = Parser::new(&allocator, source_text, source_type).parse();
-    log::info!("Program: {:#?}", ret.program.body);
+    log::debug!("Program: {:#?}", ret.program.body);
 
     let program = ret.program;
 
@@ -940,6 +1022,26 @@ mod tests {
           "invoice"
         ),
       ]);
+    }
+
+    #[test_log::test]
+    fn should_parse_t_with_ns_defined_as_template_string() {
+      // language=javascript
+      let source_text = "const ns = 'ns'; const title = t(`${ns}:toast.title`, undefined);";
+      let keys = parse(source_text);
+
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
+    }
+
+    #[test_log::test]
+    fn should_parse_t_with_ns_defined_in_clone_instance() {
+      // language=javascript
+      let source_text = "const ns = 'ns'; const { t } = i18next.cloneInstance({ ns }); const title = t('toast.title');";
+      let keys = parse(source_text);
+
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
     }
   }
 

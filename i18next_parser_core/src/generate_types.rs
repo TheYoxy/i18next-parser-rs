@@ -139,11 +139,21 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
     .collect::<Vec<String>>()
     .join("\n");
 
-  let custom_resources = result
-    .iter()
-    .map(|entry| format!("{}: typeof {};", get_name_property(entry.name), entry.display_name))
-    .collect::<Vec<String>>()
-    .join("\n      ");
+  let has_default_namespace = result.binary_search_by(|entry| entry.name.cmp(config.default_namespace.as_str()));
+  let custom_resources = if has_default_namespace.is_err() {
+    let mut vec = result
+      .iter()
+      .map(|entry| format!("{}: typeof {};", get_name_property(entry.name), entry.display_name))
+      .collect::<Vec<String>>();
+    vec.push(format!("{}: {{}}", get_name_property(config.default_namespace.as_str())));
+    vec.join("\n      ")
+  } else {
+    result
+      .iter()
+      .map(|entry| format!("{}: typeof {};", get_name_property(entry.name), entry.display_name))
+      .collect::<Vec<String>>()
+      .join("\n      ")
+  };
 
   let mut resource_map = HashMap::new();
   for entry in result.iter() {

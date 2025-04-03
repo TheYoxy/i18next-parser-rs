@@ -21,7 +21,7 @@ use tempdir::TempDir;
 fn setup_test<T: Into<PathBuf> + Clone>(path: T) -> color_eyre::Result<(T, Config)> {
   let _ = initialize_logging(&false);
 
-  let mut config = Config::new(path.clone(), false)?;
+  let mut config = Config::new(path.clone(), false, false)?;
   config.locales = vec!["en".into(), "fr".into()];
   config.output = ["locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR);
   config.input = vec!["**/*.{ts,tsx}".into()];

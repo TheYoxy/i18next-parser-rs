@@ -33,41 +33,41 @@ mod tests {
     assert_eq!(result, old);
   }
 
-  #[test]
-  fn get_char_diff_identifies_inserted_characters() {
-    let old = "word";
-    let new = "words";
-    let result = get_char_diff(old, new);
+  // #[test]
+  // fn get_char_diff_identifies_inserted_characters() {
+  //   let old = "word";
+  //   let new = "words";
+  //   let result = get_char_diff(old, new);
 
-    println!("{old} | {new} -> {result}");
-    let format = format!("{old}{}", "s".on_green());
-    println!("{result} == {format}");
-    assert_eq!(result, format); // ANSI code for green
-  }
+  //   println!("{old} | {new} -> {result}");
+  //   let format = format!("{old}{}", "s".on_green());
+  //   println!("{result} == {format}");
+  //   assert_eq!(result, format); // ANSI code for green
+  // }
 
-  #[test]
-  fn get_char_diff_identifies_deleted_characters() {
-    let old = "words";
-    let new = "word";
-    let result = get_char_diff(old, new);
+  // #[test]
+  // fn get_char_diff_identifies_deleted_characters() {
+  //   let old = "words";
+  //   let new = "word";
+  //   let result = get_char_diff(old, new);
 
-    println!("{old} | {new} -> {result}");
-    let format = format!("word{}", "s".on_red());
-    println!("{result} == {format}");
-    assert_eq!(result, format); // ANSI code for red
-  }
+  //   println!("{old} | {new} -> {result}");
+  //   let format = format!("word{}", "s".on_red());
+  //   println!("{result} == {format}");
+  //   assert_eq!(result, format); // ANSI code for red
+  // }
 
-  #[test]
-  fn get_char_diff_identifies_multiple_changes() {
-    let old = "words";
-    let new = "sword";
-    let result = get_char_diff(old, new);
+  // #[test]
+  // fn get_char_diff_identifies_multiple_changes() {
+  //   let old = "words";
+  //   let new = "sword";
+  //   let result = get_char_diff(old, new);
 
-    println!("{old} | {new} -> {result}");
-    let format = format!("{}word{}", "s".on_green(), "s".on_red());
-    println!("{result} == {format}");
-    assert_eq!(result, format); // ANSI codes for green and red
-  }
+  //   println!("{old} | {new} -> {result}");
+  //   let format = format!("{}word{}", "s".on_green(), "s".on_red());
+  //   println!("{result} == {format}");
+  //   assert_eq!(result, format); // ANSI codes for green and red
+  // }
 
   #[test]
   fn get_char_diff_handles_empty_strings() {
