@@ -77,6 +77,7 @@ impl Runnable for Cli {
       let merged = log_time!(format!("Parsing directory {:?}", file_name.yellow()), {
         let entries = parse_directory(path.clone(), config)?;
         let merged = merge_all_values(entries, config)?;
+
         if config.dry_run {
           log::warn!("Dry run, not writing to file");
         } else {

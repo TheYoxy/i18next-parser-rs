@@ -202,6 +202,17 @@ impl Config {
   pub fn get_output(&self) -> String {
     self.working_dir.join(&self.output).to_str().unwrap().to_string()
   }
+
+  pub fn get_output_dir(&self, locale: &str, ns: &str) -> String {
+    let output = self.output.replace("$LOCALE", locale).replace("$NAMESPACE", ns);
+    self.working_dir.join(&output).to_str().unwrap().to_string()
+  }
+
+  /// Get the output destination for a specific locale.
+  pub fn get_output_dir_by_locale(&self, locale: &str) -> String {
+    let output = self.output.replace("$LOCALE", locale);
+    self.working_dir.join(&output).to_str().unwrap().to_string()
+  }
 }
 
 #[cfg(test)]

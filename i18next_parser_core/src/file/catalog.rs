@@ -9,12 +9,7 @@ use serde_json::Value;
 pub fn read_file_into_serde(path: &PathBuf, is_default_ns: bool) -> Option<Value> {
   trace!("Reading file: {}", path.display().yellow());
   let file = File::open(path);
-  if file.is_err()
-    && path.file_name().and_then(|f| f.to_str()).is_some_and(|name| !name.to_string().contains("_old"))
-    && !is_default_ns
-  {
-    warn!("Unable to find file: {}", path.display().yellow());
-  }
+
   file.map_or(Default::default(), |file| {
     let reader = BufReader::new(file);
     if path.extension().is_some_and(|ext| ext == "yml") {

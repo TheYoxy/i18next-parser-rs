@@ -64,9 +64,8 @@ pub fn merge_results<C: AsRef<Config>>(
   config: C,
 ) -> MergeResults {
   let config = config.as_ref();
-  let output = config.get_output();
-  let path = output.replace("$LOCALE", locale).replace("$NAMESPACE", namespace);
-  trace!("Path for output {}: {}", output.yellow(), path.yellow());
+  let path = config.get_output_dir(locale, namespace);
+  trace!("Path for output {}", path.yellow());
   let path = PathBuf::from_str(&path).unwrap_or_else(|_| panic!("Unable to find path {path:?}"));
   // get backup file name
   let filename = {
@@ -75,6 +74,7 @@ pub fn merge_results<C: AsRef<Config>>(
     format!("{}_old.{}", filename, extension)
   };
   let backup = path.with_file_name(filename);
+
   trace!("File path: {}", path.display().yellow());
   trace!("Backup path: {}", backup.display().yellow());
 

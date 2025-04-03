@@ -1,5 +1,6 @@
 //! This module provides functionality for writing files
 use std::{
+  collections::HashSet,
   fs::File,
   io::Write,
   path::{Path, PathBuf},
@@ -22,10 +23,34 @@ use crate::{
 #[instrument(skip_all, err, target = "instrument")]
 pub fn write_to_file<T: AsRef<Config>>(values: &[MergeResults], config: T) -> color_eyre::Result<()> {
   let config = config.as_ref();
+
+  let mut table = HashSet::<&String>::new();
   log_time!("Writing files", {
     for value in values {
-      let MergeResults { namespace: _namespace, locale: _locale, path, backup, merged, old_catalog } = value;
+      let MergeResults { namespace, locale: _locale, path, backup, merged, old_catalog } = value;
+      log::info!("Writing file: {:?}", path.yellow());
+      table.insert(namespace);
+
       write_files(path, backup, merged, old_catalog, config)?;
+    }
+
+    if config.get_output().ends_with("$NAMESPACE.json") {
+      for locale in &config.locales {
+        let locale_directory = config.get_output_dir_by_locale(locale).replace("$NAMESPACE.json", "");
+        log::debug!("Locale directory: {:?}", locale_directory.yellow());
+        for dir in std::fs::read_dir(locale_directory)? {
+          let entry = dir.unwrap();
+          let path = entry.path();
+
+          if path.is_file() {
+            let file = path.file_stem().unwrap().to_str().unwrap().to_string();
+            if !table.contains(&file) {
+              log::debug!("Deleting file: {:?}", path.yellow());
+              std::fs::remove_file(path)?;
+            }
+          }
+        }
+      }
     }
 
     Ok(())
@@ -41,8 +66,7 @@ fn write_files<T: AsRef<Config>>(
 ) -> Result<(), Report> {
   let config = config.as_ref();
   log_time!(format!("Writing file {:?}", path.yellow()), {
-    let new_catalog = &merged.new;
-    push_file(path, new_catalog, config)?;
+    push_file(path, &merged.new, config)?;
     if config.create_old_catalogs && !old_catalog.is_empty() {
       push_file(backup, old_catalog, config)?;
     }
