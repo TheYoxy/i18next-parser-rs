@@ -152,6 +152,12 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             Some(opt) => opt.get("count").is_some(),
             None => false,
           };
+
+          let context = match options {
+            Some(opt) => opt.get("context").cloned().unwrap_or(None).map(|v| vec![v]),
+            None => None,
+          };
+
           for stmt in self.program.body.iter() {
             if stmt.span() == expr.span {
               debug!("Statement: {stmt:?}");
@@ -169,6 +175,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             namespace,
             has_count,
             i18next_options,
+            context,
           });
         }
       };
@@ -186,6 +193,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
         let ns = self.get_prop_value(elem, "ns");
         let default_value = self.get_prop_value(elem, "defaults");
         let count = self.has_prop(elem, "count");
+        let context = self.get_prop_values(elem, "context");
         let options = self.get_prop_value(elem, "i18n");
 
         trace!("Childrens: {:?}", elem.children);
@@ -208,6 +216,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             namespace: ns,
             has_count: count,
             i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
+            context,
           });
         }
       }

@@ -3,11 +3,15 @@ use std::{collections::HashMap, path::PathBuf};
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, error, trace, warn};
 use oxc_ast::ast::{
+  self,
   Argument,
+  BindingPattern,
+  BindingPatternKind,
   CallExpression,
   Expression,
   IdentifierName,
   IdentifierReference,
+  ImportDeclarationSpecifier,
   JSXAttributeItem,
   JSXAttributeName,
   JSXAttributeValue,
@@ -20,6 +24,9 @@ use oxc_ast::ast::{
   Program,
   PropertyKey,
   Statement,
+  TSLiteral,
+  TSType,
+  TSTypeName,
 };
 use serde_json::Value;
 use tracing::span;
@@ -112,7 +119,7 @@ impl<'a> I18NVisitor<'a> {
       Expression::TSSatisfiesExpression(expr) => self.parse_expression(&expr.expression),
       Expression::TSAsExpression(expression) => self.parse_expression(&expression.expression),
       _ => {
-        debug!("Unsupported expression: {expr:?}");
+        debug!("{} Unsupported expression: {expr:?}", "[Parse_expression]".red().bold());
         None
       },
     }
@@ -145,11 +152,10 @@ impl<'a> I18NVisitor<'a> {
       Expression::BooleanLiteral(bool) => Some(bool.value.to_string()),
       Expression::TSAsExpression(expression) => self.parse_expression_as_string(&expression.expression),
       _ => {
-        if cfg!(debug_assertions) {
-          warn!("Unsupported expression (str): {expr:?}");
-        } else {
-          warn!("Unsupported expression: {expr:?}");
-        }
+        #[cfg(debug_assertions)]
+        warn!("{} Unsupported expression (str): {expr:?}", "[Parse_expression_as_string]".red().bold());
+        #[cfg(not(debug_assertions))]
+        warn!("{} Unsupported expression: {expr:?}", "[Parse_expression_as_string]".red().bold());
         None
       },
     }
@@ -185,9 +191,18 @@ impl<'a> I18NVisitor<'a> {
     });
 
     if arr.is_none() {
-      debug!(
-        "Cannot find identifier str value in {} for {name} {identifier:?}",
-        self.file_path.display().yellow(),
+      #[cfg(debug_assertions)]
+      warn!(
+        "{} Cannot find str value of {name} in {path} {identifier:?}",
+        "[Find_identifier_value_as_string_from_identifier_name]".red().bold(),
+        path = self.file_path.display().yellow(),
+        name = identifier.name.cyan()
+      );
+      #[cfg(not(debug_assertions))]
+      warn!(
+        "{} Cannot find str value of {name} in {path} {identifier:?}",
+        "[Find_identifier_value_as_string_from_identifier_name]".red().bold(),
+        path = self.file_path.display().yellow(),
         name = identifier.name.cyan()
       );
     }
@@ -220,14 +235,154 @@ impl<'a> I18NVisitor<'a> {
     });
 
     if arr.is_none() {
+      #[cfg(debug_assertions)]
       warn!(
-        "Cannot find identifier value in {} for {name} {identifier:?}",
+        "{} Cannot value of {name} in {path} {identifier:?}",
+        "[Find_identifier_value]".red().bold(),
+        path = self.file_path.display().yellow(),
+        name = identifier.name.cyan()
+      );
+
+      #[cfg(not(debug_assertions))]
+      warn!(
+        "{} Cannot value of {name} in {path} {identifier:?}",
+        "[Find_identifier_value]".red().bold(),
+        path = self.file_path.display().yellow(),
+        name = identifier.name.cyan()
+      );
+    }
+
+    arr
+  }
+
+  fn find_identifier_value_as_vec_string(
+    &self,
+    identifier: &oxc_allocator::Box<IdentifierReference>,
+  ) -> Option<Vec<String>> {
+    fn fun_name<'a>(
+      stmt: &Statement<'a>,
+      identifier: &oxc_allocator::Box<'_, IdentifierReference<'_>>,
+      this: &I18NVisitor<'a>,
+    ) -> Option<Vec<String>> {
+      debug!("Statement: {:#?}", stmt);
+      match stmt {
+        Statement::VariableDeclaration(var) => {
+          debug!("Declarations {:#?}", var.declarations);
+          var.declarations.iter().find(|e| e.id.get_identifier().is_some_and(|idx| identifier.name.eq(&idx))).and_then(
+            |item| {
+              debug!("Parsing item: {:#?}", item);
+              item
+                .init
+                .as_ref()
+                .and_then(|init| {
+                  debug!("Parsing item value: {:#?}", init);
+                  this.parse_expression_as_string(init).map(|v| vec![v])
+                })
+                .or_else(|| {
+                  debug!("Parsing type annotation for item: {:#?}", item);
+                  item
+                    .id
+                    .type_annotation
+                    .as_ref()
+                    .and_then(|type_annotation| this.parse_type_annotation_as_vec_str(type_annotation))
+                })
+            },
+          )
+        },
+        Statement::FunctionDeclaration(func)
+          if func.params.iter_bindings().any(|param| find_type_of_identifier(identifier, param).is_some()) =>
+        {
+          func.params.iter_bindings().find_map(|param| find_type_of_identifier(identifier, param)).and_then(
+            |type_annotation| {
+              debug!("Type annotation: {:#?}", type_annotation);
+              this.parse_type_annotation_as_vec_str(type_annotation)
+            },
+          )
+        },
+        Statement::FunctionDeclaration(func) if func.body.is_some() => {
+          func.body.as_ref().unwrap().statements.iter().find_map(|stmt| fun_name(stmt, identifier, this))
+        },
+        _ => None,
+      }
+    }
+    let arr = self.program.body.iter().find_map(|stmt| fun_name(stmt, identifier, self));
+
+    if arr.is_none() {
+      #[cfg(debug_assertions)]
+      log::warn!(
+        "{} Cannot vec values of {name} in {} {identifier:?}",
+        "[Find_identifier_value_as_vec_string]".red().bold(),
+        self.file_path.display().yellow(),
+        name = identifier.name.cyan()
+      );
+
+      #[cfg(not(debug_assertions))]
+      log::warn!(
+        "{} Cannot vec values of {name} in {}",
+        "[Find_identifier_value_as_vec_string]".red().bold(),
         self.file_path.display().yellow(),
         name = identifier.name.cyan()
       );
     }
 
     arr
+  }
+
+  fn parse_type_annotation_as_vec_str(
+    &self,
+    type_annotation: &oxc_allocator::Box<'_, ast::TSTypeAnnotation<'_>>,
+  ) -> Option<Vec<String>> {
+    match &type_annotation.type_annotation {
+      TSType::TSUnionType(union_type) => get_string_values_from_union_type_literal(union_type),
+      TSType::TSTypeReference(type_reference) => {
+        if let TSTypeName::IdentifierReference(identifier) = &type_reference.type_name {
+          self.program.body.iter().find_map(|stmt| {
+            match stmt {
+              Statement::TSTypeAliasDeclaration(type_alias) if type_alias.id.name == identifier.name => {
+                if let TSType::TSUnionType(union_type) = &type_alias.type_annotation {
+                  get_string_values_from_union_type_literal(union_type)
+                } else {
+                  None
+                }
+              },
+              Statement::ImportDeclaration(import_decl)
+                if import_decl.specifiers.as_ref().is_some_and(|specifiers| {
+                  specifiers.iter().any(|specifier| {
+                    match &specifier {
+                      ImportDeclarationSpecifier::ImportSpecifier(specifier) => {
+                        specifier.local.name.eq(&identifier.name)
+                      },
+                      _ => false,
+                    }
+                  })
+                }) =>
+              {
+                log::warn!(
+                  "{} Value of identifier {} is an import declaration, which is not supported",
+                  "[Find_identifier_value_as_vec_string]".red().bold(),
+                  identifier.name.cyan()
+                );
+                None
+              },
+              _ => None,
+            }
+          })
+        } else {
+          log::warn!(
+            "{} Unsupported type reference: {type_reference:?}",
+            "[Find_identifier_value_as_vec_string]".red().bold()
+          );
+          None::<Vec<String>>
+        }
+      },
+      _ => {
+        log::warn!(
+          "{} Unsupported type annotation: {type_annotation:?}",
+          "[Find_identifier_value_as_vec_string]".red().bold()
+        );
+        None::<Vec<String>>
+      },
+    }
   }
 
   /// Find the value of an identifier as a string
@@ -257,8 +412,18 @@ impl<'a> I18NVisitor<'a> {
     });
 
     if arr.is_none() {
-      debug!(
-        "Cannot find identifier str value in {} for {name} {identifier:?}",
+      #[cfg(debug_assertions)]
+      warn!(
+        "{} Cannot str value of {name} in {} {identifier:?}",
+        "[Find_identifier_value_as_string]".red().bold(),
+        self.file_path.display().yellow(),
+        name = identifier.name.cyan()
+      );
+
+      #[cfg(not(debug_assertions))]
+      warn!(
+        "{} Cannot str value of {name} in {}",
+        "[Find_identifier_value_as_string]".red().bold(),
         self.file_path.display().yellow(),
         name = identifier.name.cyan()
       );
@@ -318,7 +483,7 @@ impl<'a> I18NVisitor<'a> {
                   },
                   _ => (),
                 }
-                debug!("Unsupported property key: {:?}", obj.key);
+                warn!("{} Unsupported property key: {:?}", "[Extract_namespace]".red().bold(), obj.key);
               }
 
               None
@@ -328,7 +493,7 @@ impl<'a> I18NVisitor<'a> {
           self.current_namespace = value.cloned();
         },
         _ => {
-          warn!("Unsupported argument for {name} {arg:?}");
+          warn!("{} Unsupported argument for {name} {arg:?}", "[Extract_namespace]".red().bold(),);
         },
       }
     }
@@ -390,12 +555,16 @@ impl<'a> I18NVisitor<'a> {
               },
             }
           },
-          ObjectPropertyKind::SpreadProperty(_) => {
-            // #[cfg(debug_assertions)]
-            // {
-            //   warn!("Unsupported spread property");
-            //   visitor::visit::print_error_location(&self.file_path, &prop.span);
-            // }
+          ObjectPropertyKind::SpreadProperty(prop) => {
+            #[cfg(debug_assertions)]
+            {
+              use crate::visitor::visit::print_error_location;
+
+              warn!("{} Unsupported spread property", "[Parse_i18next_option]".red().bold());
+              print_error_location(&self.file_path, &prop.span).unwrap();
+              panic!("Spread property is not supported in i18next options");
+            }
+            #[cfg(not(debug_assertions))]
             None
           },
         }
@@ -439,6 +608,65 @@ impl<'a> I18NVisitor<'a> {
         JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
       }
     })
+  }
+
+  /// Get the value of a prop in a JSX element
+  ///
+  /// # Arguments
+  ///
+  /// * `elem` - The JSX element to get the prop value from
+  /// * `attribute_name` - The name of the attribute to get the value for
+  ///
+  /// # Returns
+  ///
+  /// The value of the prop
+  pub(super) fn get_prop_values(&self, elem: &JSXElement<'_>, attribute_name: &str) -> Option<Vec<String>> {
+    _ = span!(tracing::Level::TRACE, "get_prop_value", attribute_name = attribute_name).enter();
+    elem
+      .opening_element
+      .attributes
+      .iter()
+      .filter_map(|elem| {
+        match elem {
+          JSXAttributeItem::Attribute(attribute) => {
+            if let JSXAttributeName::Identifier(identifier) = &attribute.name {
+              if identifier.name == attribute_name {
+                if let Some(value) = &attribute.value {
+                  trace!("Value: {attribute_name} {value:?}");
+                  match value {
+                    JSXAttributeValue::StringLiteral(str) => Some(vec![str.value.to_string()]),
+                    JSXAttributeValue::ExpressionContainer(e) => {
+                      // todo this expression will contains the required identifier
+                      match &e.expression {
+                        JSXExpression::StringLiteral(str) => Some(vec![str.value.to_string()]),
+                        JSXExpression::Identifier(identifier) => {
+                          trace!("Looking for identifier value for prop");
+                          self.find_identifier_value_as_vec_string(identifier)
+                        },
+                        JSXExpression::NumericLiteral(num) => Some(vec![num.value.to_string()]),
+                        JSXExpression::StaticMemberExpression(expression) => {
+                          self.parse_expression_as_string(&expression.object).map(|v| vec![v])
+                        },
+                        _ => todo!("expression container {e:?} not supported"),
+                      }
+                    },
+                    JSXAttributeValue::Element(_) => todo!("element not supported"),
+                    JSXAttributeValue::Fragment(_) => todo!("fragment not supported"),
+                  }
+                } else {
+                  None
+                }
+              } else {
+                None
+              }
+            } else {
+              None
+            }
+          },
+          JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
+        }
+      })
+      .next()
   }
 
   /// Get the value of a prop in a JSX element
@@ -650,6 +878,12 @@ impl<'a> I18NVisitor<'a> {
         let value = if value.is_empty() { default_value } else { Some(value) };
         (value, Some(i18next_options))
       },
+      (Some(Argument::StringLiteral(str)), Some(Argument::Identifier(identifier))) => {
+        let value = str.value.to_string();
+        trace!("translation value defined as string literal: {}", value.cyan());
+        warn!("The 3rd argument of t is an identifier. This is not supported and will be ignored.");
+        (Some(value), None)
+      },
       (Some(Argument::StringLiteral(str)), None) => {
         let value = str.value.to_string();
         trace!("translation value defined as string literal: {}", value.cyan());
@@ -736,6 +970,66 @@ impl<'a> I18NVisitor<'a> {
     }
     (i18next_options, default_value)
   }
+}
+
+fn find_type_of_identifier<'a>(
+  identifier: &oxc_allocator::Box<'a, IdentifierReference<'a>>,
+  param: &'a BindingPattern<'a>,
+) -> Option<&'a oxc_allocator::Box<'a, ast::TSTypeAnnotation<'a>>> {
+  debug!("Kind: {:#?}", param.kind);
+  match &param.kind {
+    BindingPatternKind::BindingIdentifier(idx) if idx.name.eq(&identifier.name) => param.type_annotation.as_ref(),
+    BindingPatternKind::ObjectPattern(obj) => {
+      obj.properties.iter().find(|prop| prop.key.name().is_some_and(|name| name.eq(&identifier.name))).and_then(
+        |prop| {
+          prop.value.type_annotation.as_ref().or(param.type_annotation.as_ref().and_then(|type_annotation| {
+            match &type_annotation.type_annotation {
+              TSType::TSTypeLiteral(type_literal) => {
+                type_literal.members.iter().find_map(|member| {
+                  match member {
+                    ast::TSSignature::TSPropertySignature(signature)
+                      if signature.key.name().is_some_and(|name| name.eq(&identifier.name)) =>
+                    {
+                      signature.type_annotation.as_ref()
+                    },
+                    _ => None,
+                  }
+                })
+              },
+              _ => None,
+            }
+          }))
+        },
+      )
+    },
+    _ => None,
+  }
+}
+
+fn get_string_values_from_union_type_literal(
+  union_type: &oxc_allocator::Box<'_, ast::TSUnionType<'_>>,
+) -> Option<Vec<String>> {
+  if !union_type.types.iter().all(|t| matches!(t, oxc_ast::ast::TSType::TSLiteralType(_))) {
+    warn!("Union type is not a TSTypeLiteral: {union_type:?}");
+    return None::<Vec<String>>;
+  }
+
+  let found = union_type
+    .types
+    .iter()
+    .filter_map(|t| {
+      if let TSType::TSLiteralType(literal) = t {
+        if let TSLiteral::StringLiteral(value) = &literal.literal {
+          return Some(value.value.to_string());
+        }
+      }
+      None::<String>
+    })
+    .collect::<Vec<_>>();
+
+  debug!("Found union type: {found:?}");
+
+  Some(found)
 }
 
 #[cfg(test)]
@@ -1025,6 +1319,7 @@ mod tests {
     }
 
     #[test_log::test]
+    #[should_panic]
     fn should_parse_t_with_ns_defined_as_template_string() {
       // language=javascript
       let source_text = "const ns = 'ns'; const title = t(`${ns}:toast.title`, undefined);";
@@ -1334,6 +1629,98 @@ mod tests {
 
       let le = keys.first().unwrap();
       assert!(le.has_count);
+    }
+
+    #[test_log::test]
+    fn should_parse_jsx_context_from_string_arg_type_alias() {
+      // language=javascript
+      let source_text = "type Ctx = 'male' | 'female'; function El(val: Ctx) {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
+    }
+
+    #[test_log::test]
+    fn should_parse_jsx_context_from_props_arg_function() {
+      // language=javascript
+      let source_text = "function El({ val }: {val: 'male' | 'female'}) {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
+    }
+
+    #[test_log::test]
+    fn should_parse_jsx_context_from_string_arg_function() {
+      // language=javascript
+      let source_text = "function El(val: 'male' | 'female') {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
+    }
+
+    #[test_log::test(ignore = "must be fixed")]
+    fn should_parse_jsx_context_from_string_arg_const_function() {
+      // language=javascript
+      let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string())));
+    }
+
+    #[test_log::test]
+    fn should_parse_jsx_context_from_variable_type() {
+      // language=javascript
+      let source_text =
+        "const getSex = () => 'male'; const val: 'male' | 'female' = getSex(); const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
+    }
+
+    #[test_log::test]
+    fn test_1() {
+      // language=javascript
+      let source_text = "function ThemeDropdownMenu() {
+  const { t } = useTranslation('ns');
+  const [theme, setTheme] = useTheme();
+  const preferredTheme: 'dark' | 'light' = getPreferredTheme();
+
+  return (
+    <Trans context={preferredTheme} i18nKey='theme.system' ns='ns' t={t}>
+        System theme
+    </Trans>
+  );
+}";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("theme.system", "System theme", "ns")]);
+      assert_eq!(keys.first().unwrap().context, Some(vec!("dark".to_string(), "light".to_string())));
+    }
+
+    #[test_log::test]
+    fn should_parse_jsx_context_from_variable() {
+      // language=javascript
+      let source_text =
+        "const val = 'male'; const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string())));
+    }
+
+    #[test_log::test]
+    fn should_parse_jsx_context_from_string_literal() {
+      // language=javascript
+      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string())));
     }
   }
 }

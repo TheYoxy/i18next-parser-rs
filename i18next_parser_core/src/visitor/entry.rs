@@ -78,6 +78,8 @@ pub struct Entry {
   pub i18next_options: Option<I18NextOptions>,
   /// the count found for the key (if plural)
   pub has_count: bool,
+  /// the context found for the key
+  pub context: Option<Vec<String>>,
 }
 
 /// Implement the `PartialEq` trait for `Entry`.

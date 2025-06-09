@@ -78,8 +78,8 @@ pub fn merge_results<C: AsRef<Config>>(
   trace!("File path: {}", path.display().yellow());
   trace!("Backup path: {}", backup.display().yellow());
 
-  let value = read_file_into_serde(&path, namespace == config.default_namespace);
-  let old_value = read_file_into_serde(&backup, namespace == config.default_namespace);
+  let value = read_file_into_serde(&path);
+  let old_value = read_file_into_serde(&backup);
   let old_value = old_value.as_ref();
 
   trace!("Value: {:?} -> {:?}", value.cyan(), old_value.cyan());

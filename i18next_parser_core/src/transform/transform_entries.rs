@@ -66,7 +66,7 @@ pub fn transform_entries(
 #[cfg(test)]
 mod tests {
   use pretty_assertions::assert_eq;
-  use serde_json::json;
+  use serde_json::{json, Map, Value};
 
   use super::*;
   use crate::Entry;
@@ -143,6 +143,86 @@ mod tests {
     //     }
     //   })
     // );
+  }
+
+  #[test]
+  fn test_transform_entries_with_multiple_context() {
+    let entries = vec![Entry {
+      namespace: Some("default".to_string()),
+      key: "key".to_string(),
+      has_count: false,
+      value: Some("value".to_string()),
+      context: Some(vec!["male".to_string(), "female".to_string()]),
+      ..Default::default()
+    }];
+    let locale = "en";
+    let config = Default::default();
+
+    let result = transform_entries(&entries, locale, &config);
+
+    assert!(result.is_ok());
+    let result = result.unwrap();
+
+    println!("{:#?}", result.value);
+    assert_eq!(result.unique_count.get("default"), Some(&2));
+    assert_eq!(result.unique_plurals_count.get("default"), Some(&0));
+
+    let map = Map::from_iter(result.value.iter().map(|(k, v)| (k.clone(), Value::String(v.value.clone()))));
+
+    assert_eq!(
+      map,
+      *json!({
+          "default.key_male": "value".to_string(),
+          "default.key_female": "value".to_string()
+      })
+      .as_object()
+      .unwrap()
+    );
+  }
+
+  #[test]
+  fn test_transform_entries_with_context() {
+    let entries = vec![
+      Entry {
+        namespace: Some("default".to_string()),
+        key: "key".to_string(),
+        has_count: false,
+        value: Some("male value".to_string()),
+        context: Some(vec!["male".to_string()]),
+        ..Default::default()
+      },
+      Entry {
+        namespace: Some("default".to_string()),
+        key: "key".to_string(),
+        has_count: false,
+        value: Some("female value".to_string()),
+        context: Some(vec!["female".to_string()]),
+        ..Default::default()
+      },
+    ];
+    let locale = "en";
+    let config = Default::default();
+
+    let result = transform_entries(&entries, locale, &config);
+
+    assert!(result.is_ok());
+    let result = result.unwrap();
+
+    println!("{:#?}", result.value);
+    assert_eq!(result.unique_count.get("default"), Some(&2));
+    assert_eq!(result.unique_plurals_count.get("default"), Some(&0));
+
+    let map = Map::from_iter(result.value.iter().map(|(k, v)| (k.clone(), Value::String(v.value.clone()))));
+
+    assert_eq!(
+      map,
+      *json!({
+          "default.key_male": "male value".to_string(),
+          "default.key_female": "female value".to_string()
+      })
+      .as_object()
+      .unwrap()
+    );
   }
 
   #[test]

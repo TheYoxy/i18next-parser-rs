@@ -1,5 +1,7 @@
 //! Module containing the dot_path_to_hash function.
 
+use std::collections::HashMap;
+
 use color_eyre::owo_colors::OwoColorize;
 use log::trace;
 
@@ -48,9 +50,10 @@ pub fn dot_path_to_hash(
   entry: &Entry,
   suffix: Option<&str>,
   config: &Config,
-  found_value: &mut FoundValue,
-) -> Option<Conflict> {
+  found_value: &FoundValue,
+) -> Option<HashMap<String, (FoundEntry, Option<Conflict>)>> {
   let separator = &config.key_separator;
+  let context_separator = &config.context_separator;
 
   if entry.key.is_empty() {
     return None;
@@ -59,18 +62,19 @@ pub fn dot_path_to_hash(
   let entry_path = {
     let base_path = entry
       .namespace
-      .clone()
-      .or(Some(config.default_namespace.clone()))
+      .as_ref()
+      .or(Some(&config.default_namespace))
       .map(|ns| format!("{ns}{separator}{key}", key = entry.key))
       .unwrap();
+
     let mut path =
       base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
 
     if let Some(suffix) = suffix {
       path += suffix;
     }
-    trace!("Path: {:?}", path.purple());
 
+    trace!("Path: {:?}", path.purple());
     if path.ends_with(separator) {
       trace!("Removing trailing separator from path: {:?}", path.purple());
       path = path[..path.len() - separator.len()].into();
@@ -80,51 +84,76 @@ pub fn dot_path_to_hash(
     path
   };
 
-  let segments: Vec<&str> = entry_path.split(separator).collect();
   trace!("Val {:?} {:?}", entry.key.purple(), entry.value.cyan());
-  let mut conflict: Option<Conflict> = None;
+  let mut new_values = HashMap::new();
 
-  let old_value = lookup_by_key(found_value, &segments);
+  if let Some(context_value) = &entry.context {
+    for context in context_value {
+      merge_values(
+        entry,
+        config,
+        found_value,
+        format!("{entry_path}{context_separator}{context}"),
+        &mut new_values,
+        true,
+      );
+    }
+  } else {
+    merge_values(entry, config, found_value, entry_path, &mut new_values, false);
+  }
 
-  let new_value: String = entry
+  Some(new_values)
+}
+
+fn merge_values(
+  entry: &Entry,
+  config: &Config,
+  found_value: &HashMap<String, FoundEntry>,
+  entry_path: String,
+  new_values: &mut HashMap<String, (FoundEntry, Option<Conflict>)>,
+  has_context: bool,
+) {
+  let old_value = found_value.get(&entry_path);
+  let (new_value, conflict): (&str, Option<Conflict>) = entry
     .value
-    .clone()
+    .as_ref()
     .map(|new_value| {
       if let Some(old_value) = old_value {
         let old_location = &old_value.location;
         let old_value = &old_value.value;
         trace!("Values {:?} -> {:?}", old_value.purple(), new_value.purple());
-        if *old_value != new_value && !old_value.is_empty() {
+        if *old_value != *new_value && !old_value.is_empty() {
           if new_value.is_empty() {
             trace!("new value is empty, keeping old value {old_value:?}");
-            old_value.clone()
+            (old_value.as_str(), None)
+          } else if has_context {
+            trace!("old value is different from new value, but has context. Keeping old value {old_value:?}");
+            // Since there is a context, we don't update the old value
+            (old_value.as_str(), None)
           } else {
-            // log::warn!(
-            //   "Conflict: {:?} -> {:?} -> {:?}",
-            //   path.yellow().italic(),
-            //   old_value.purple().italic(),
-            //   new_value.purple()
-            // );
-            conflict = Some(Conflict::Value(
-              ConflictEntry::new(old_value.clone(), old_location.clone()),
-              ConflictEntry::new(new_value.clone(), Location {
-                start: entry.location.start,
-                end: entry.location.end,
-                file: entry.location.file.clone(),
-              }),
-            ));
-            new_value
+            // We are free to update the old value
+            (
+              new_value.as_str(),
+              Some(Conflict::Value(
+                ConflictEntry::new(old_value.clone(), old_location.clone()),
+                ConflictEntry::new(new_value.clone(), Location {
+                  start: entry.location.start,
+                  end: entry.location.end,
+                  file: entry.location.file.clone(),
+                }),
+              )),
+            )
           }
         } else {
           trace!("Old value is empty or match new value, assigning new value {:?}", new_value.purple());
-          new_value
+          (new_value.as_str(), None)
         }
       } else {
         trace!("No old value, assigning new value {:?}", new_value.purple());
-        new_value
+        (new_value.as_str(), None)
       }
     })
-    .map(|v| v.trim().into())
+    .map(|(v, conflict)| (v.trim(), conflict))
     .unwrap_or_default();
 
   if let Some(namespace) = &entry.namespace {
@@ -137,51 +166,39 @@ pub fn dot_path_to_hash(
       new_value.purple()
     );
   };
-  found_value.insert(entry_path, FoundEntry { value: new_value, location: Location { ..entry.location.clone() } });
-
-  conflict
-}
-
-/// Lookup a value in a JSON object by key.
-///
-/// # Arguments
-///
-/// * `segments`: The segments of the key.
-///
-/// returns: (`Option<String>`, `Option<Conflict>`, &'a mut Value, &'a str) - A tuple containing a mutable reference to the value and an optional conflict.
-#[inline]
-fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Option<&'a FoundEntry> {
-  let old_value = found_value.get(&segments.join("."));
-  old_value
+  new_values.insert(
+    entry_path,
+    (FoundEntry { value: new_value.to_string(), location: Location { ..entry.location.clone() } }, conflict),
+  );
 }
 
 // #[cfg(test)]
 // mod tests {
 //   use pretty_assertions::assert_eq;
-//   use serde_json::json;
-
+//   use serde_json::{json, Value};
+//
 //   use super::*;
-
+//
 //   #[test]
 //   fn test_lookup_by_key() {
 //     let mut target = json!({ "a": { "b": { "c": "value" } } });
 //     let entry = vec!["a", "b", "c"];
-
+//
 //     {
 //       let (value, conflict, obj, key) = lookup_by_key(&mut target, &entry);
-
+//
 //       assert_eq!(value, Some("value".into()));
 //       assert_eq!(conflict, None);
 //       assert_eq!(obj, &json!({ "c": "value" }));
 //       assert_eq!(key, "c");
 //       obj[key] = Value::String("new_value".into());
 //     }
-
+//
 //     // validate that the obj returned is from the same instance of the object
 //     let target = target.get("a").unwrap().get("b").unwrap().get("c").unwrap();
 //     assert_eq!(*target, Value::String("new_value".into()));
 //   }
-
+//
 //   #[test]
 //   fn base() {
 //     let entry = Entry {
@@ -191,6 +208,7 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //       value: Some("default_value".into()),
 //       i18next_options: None,
 //       has_count: true,
+//       ..Default::default()
 //     };
 //     let mut target = json!({
 //       "namespace": {
@@ -198,9 +216,9 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //       }
 //     });
 //     let config = Default::default();
-
+//
 //     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-
+//
 //     assert_eq!(
 //       *result.target,
 //       json!({
@@ -209,10 +227,10 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //         }
 //       })
 //     );
-
+//
 //     assert_eq!(result.conflict, Some(Conflict::Value("existing_value".into(), "default_value".into())));
 //   }
-
+//
 //   #[test]
 //   fn handles_empty_path() {
 //     let entry = Entry {
@@ -222,16 +240,17 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //       value: Some("default_value".into()),
 //       i18next_options: None,
 //       has_count: true,
+//       ..Default::default()
 //     };
 //     let mut target = json!({});
 //     let config = Default::default();
-
+//
 //     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-
+//
 //     assert_eq!(*result.target, json!({}));
 //     assert!(result.conflict.is_none());
 //   }
-
+//
 //   #[test]
 //   fn handles_nonexistent_path() {
 //     let entry = Entry {
@@ -241,12 +260,13 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //       value: Some("default_value".into()),
 //       i18next_options: None,
 //       has_count: true,
+//       ..Default::default()
 //     };
 //     let mut target = json!({});
 //     let config = Default::default();
-
+//
 //     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-
+//
 //     assert_eq!(
 //       *result.target,
 //       json!({
@@ -257,7 +277,7 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //     );
 //     assert!(result.conflict.is_none());
 //   }
-
+//
 //   #[test]
 //   fn handles_existing_path() {
 //     let entry = Entry {
@@ -267,6 +287,7 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //       value: Some("default_value".into()),
 //       i18next_options: None,
 //       has_count: true,
+//       ..Default::default()
 //     };
 //     let mut target = json!({
 //         "namespace": {
@@ -274,9 +295,9 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //         }
 //     });
 //     let config = Default::default();
-
+//
 //     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-
+//
 //     assert_eq!(
 //       *result.target,
 //       json!({
@@ -287,7 +308,7 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //     );
 //     assert_eq!(result.conflict, Some(Conflict::Value("existing_value".into(), "default_value".into())));
 //   }
-
+//
 //   #[test]
 //   fn handle_add_entries() {
 //     let entry = Entry {
@@ -297,6 +318,7 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //       value: Some("default_value".into()),
 //       i18next_options: None,
 //       has_count: true,
+//       ..Default::default()
 //     };
 //     let mut target = json!({
 //         "namespace": {
@@ -304,9 +326,11 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //         }
 //     });
 //     let config = Default::default();
-
+//
 //     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-
+//
+//     assert!(result.is_some());
+//     let result = result.unwrap();
 //     assert_eq!(
 //       *result.target,
 //       json!({
@@ -318,7 +342,7 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //     );
 //     assert_eq!(result.conflict, None);
 //   }
-
+//
 //   #[test]
 //   fn handles_suffix() {
 //     let entry = Entry {
@@ -328,6 +352,7 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //       value: Some("default_value".into()),
 //       i18next_options: None,
 //       has_count: true,
+//       ..Default::default()
 //     };
 //     let mut target = json!({
 //         "namespace": {
@@ -340,7 +365,7 @@ fn lookup_by_key<'a>(found_value: &'a FoundValue, segments: &'a [&'a str]) -> Op
 //       location: Default::default(),
 //     });
 //     let config = Default::default();
-
+//
 //     let result = dot_path_to_hash(&entry, Some("_suffix"), &config, &mut value);
 //     assert_eq!(
 //       result,

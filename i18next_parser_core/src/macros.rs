@@ -24,6 +24,7 @@ macro_rules! log_time {
     result
   }};
 }
+
 #[cfg(test)]
 mod log_time_tests {
   use std::{thread, time::Duration};

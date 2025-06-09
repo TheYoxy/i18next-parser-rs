@@ -2,11 +2,11 @@
 use std::{fs::File, io::BufReader, path::PathBuf};
 
 use color_eyre::owo_colors::OwoColorize;
-use log::{trace, warn};
+use log::trace;
 use serde_json::Value;
 
 /// Read a file into a serde value
-pub fn read_file_into_serde(path: &PathBuf, is_default_ns: bool) -> Option<Value> {
+pub fn read_file_into_serde(path: &PathBuf) -> Option<Value> {
   trace!("Reading file: {}", path.display().yellow());
   let file = File::open(path);
 
@@ -42,7 +42,7 @@ mod tests {
       std::fs::write(&path, content).unwrap();
     }
     let path = dir.path().join("en").join("default.json");
-    let catalog = read_file_into_serde(&path, false);
+    let catalog = read_file_into_serde(&path);
     assert!(catalog.is_some());
     let catalog_value = catalog.unwrap();
     assert_eq!(catalog_value["key1"], "value1");
@@ -63,7 +63,7 @@ key4: value4
     }
 
     let path = dir.path().join("en").join("default.yml");
-    let catalog = read_file_into_serde(&path, false);
+    let catalog = read_file_into_serde(&path);
     assert!(catalog.is_some());
     let catalog_value = catalog.unwrap();
     assert_eq!(catalog_value["key3"], "value3");
@@ -73,7 +73,7 @@ key4: value4
   #[test_log::test]
   fn test_get_catalog_with_non_existing_file() {
     let path = PathBuf::from(BASE_PATH.to_owned() + "en/non_existing.json");
-    let catalog = read_file_into_serde(&path, false);
+    let catalog = read_file_into_serde(&path);
     assert!(catalog.is_none());
   }
 }

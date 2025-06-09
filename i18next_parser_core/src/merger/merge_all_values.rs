@@ -55,6 +55,8 @@ pub struct FoundEntry {
 ///   has_count: false,
 ///   value: Some("value".into()),
 ///   i18next_options: None,
+///   context: None,
+///   location: Default::default(),
 /// }];
 /// let config = Config { locales: vec!["en".into()], ..Default::default() };
 ///

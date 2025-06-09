@@ -30,36 +30,42 @@ pub fn transform_entry(
     unique_plurals_count.insert(namespace.clone(), 0);
   }
 
-  let conflict = dot_path_to_hash(entry, suffix, options, found_values);
+  let values = dot_path_to_hash(entry, suffix, options, found_values);
+  if let Some(values) = &values {
+    for (key, (value, conflict)) in values.iter() {
+      found_values.insert(key.clone(), value.clone());
 
-  match conflict {
-    Some(Conflict::Value(old, new)) => {
-      let separator: &str = options.namespace_separator.as_ref();
-      let diff = get_char_diff(&old.value, &new.value);
-      if options.verbose {
-        old.location.print();
-        new.location.print();
-      }
-      if options.fail_on_warnings {
-        bail!(
-          "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}",
-          key = format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
-            .italic(),
-        )
-      }
+      match conflict {
+        Some(Conflict::Value(old, new)) => {
+          let separator: &str = options.namespace_separator.as_ref();
+          let diff = get_char_diff(&old.value, &new.value);
+          if options.verbose {
+            old.location.print();
+            new.location.print();
+          }
+          if options.fail_on_warnings {
+            bail!(
+              "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}",
+              key =
+                format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
+                  .italic(),
+            )
+          }
 
-      warn!(
-        "Found same keys with different values: {key}: {diff}",
-        key = format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
-          .italic(),
-      );
-    },
-    _ => {
-      *unique_count.get_mut(&namespace).unwrap() += 1;
-      if suffix.is_some() {
-        *unique_plurals_count.get_mut(&namespace).unwrap() += 1;
+          warn!(
+            "Found same keys with different values: {key}: {diff}",
+            key = format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
+              .italic(),
+          );
+        },
+        _ => {
+          *unique_count.get_mut(&namespace).unwrap() += 1;
+          if suffix.is_some() {
+            *unique_plurals_count.get_mut(&namespace).unwrap() += 1;
+          }
+        },
       }
-    },
+    }
   }
 
   Ok(found_values.clone())
@@ -67,8 +73,6 @@ pub fn transform_entry(
 
 #[cfg(test)]
 mod tests {
-  use serde_json::{json, Value};
-
   use super::*;
 
   #[test]
@@ -80,6 +84,7 @@ mod tests {
       value: Some("value1".to_string()),
       has_count: false,
       i18next_options: None,
+      context: None,
     };
     let mut unique_count = HashMap::new();
     let mut unique_plurals_count = HashMap::new();

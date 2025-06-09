@@ -21,7 +21,6 @@ pub fn get_char_diff(old: &str, new: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-  use color_eyre::owo_colors::OwoColorize;
 
   use super::*;
 
