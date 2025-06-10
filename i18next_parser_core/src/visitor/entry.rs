@@ -18,6 +18,12 @@ impl Location {
     Self { file, start, end }
   }
 
+  #[cfg(not(feature = "print_error_location"))]
+  pub fn print(&self) {
+  }
+
+  #[cfg(feature = "print_error_location")]
+  #[tracing::instrument(skip(self))]
   pub fn print(&self) {
     use bat::{
       line_range::{LineRange, LineRanges},

@@ -108,7 +108,7 @@ where
 
     if level != Level::INFO {
       if let (Some(file), Some(line)) = (metadata.file(), metadata.line()) {
-        write!(writer, " @ {}:{}", file, line)?;
+        write!(writer, " @ {file}:{line}")?;
       }
     }
 
@@ -137,7 +137,7 @@ where
 
     let metadata = event.metadata();
     if let (Some(file), Some(line)) = (metadata.file(), metadata.line()) {
-      write!(writer, " @ {}:{}", file, line)?;
+      write!(writer, " @ {file}:{line}")?;
     }
 
     writeln!(writer)?;

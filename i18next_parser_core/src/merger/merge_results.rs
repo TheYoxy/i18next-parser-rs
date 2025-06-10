@@ -71,7 +71,7 @@ pub fn merge_results<C: AsRef<Config>>(
   let filename = {
     let filename = path.file_stem().and_then(|o| o.to_str()).unwrap_or_default();
     let extension = path.extension().and_then(|o| o.to_str()).unwrap_or_default();
-    format!("{}_old.{}", filename, extension)
+    format!("{filename}_old.{extension}")
   };
   let backup = path.with_file_name(filename);
 

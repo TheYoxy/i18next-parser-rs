@@ -13,11 +13,11 @@ fn is_plural(key: &str) -> bool {
 }
 
 fn has_related_plural_key(raw_key: &str, source: &Map<String, Value>) -> bool {
-  PLURAL_SUFFIXES.iter().any(|suffix| source.contains_key(&format!("{}{}", raw_key, suffix)))
+  PLURAL_SUFFIXES.iter().any(|suffix| source.contains_key(&format!("{raw_key}{suffix}")))
 }
 
 fn get_singular_form(key: &str, plural_separator: &str) -> String {
-  let plural_regex = Regex::new(&format!(r"(\{}(?:zero|one|two|few|many|other))$", plural_separator)).unwrap();
+  let plural_regex = Regex::new(&format!(r"(\{plural_separator}(?:zero|one|two|few|many|other))$")).unwrap();
   plural_regex.replace(key, "").to_string()
 }
 
@@ -178,7 +178,7 @@ pub fn merge_hashes(
 
           const CONTEXT_SEPARATOR: char = '_';
           let regex = Regex::new(
-            format!("\\{context_separator}([^\\{context_separator}]+)?$", context_separator = CONTEXT_SEPARATOR)
+            format!("\\{CONTEXT_SEPARATOR}([^\\{CONTEXT_SEPARATOR}]+)?$")
               .as_str(),
           )
           .unwrap();
@@ -186,7 +186,7 @@ pub fn merge_hashes(
           let raw_key = regex.replace(&singular_key, "").to_string();
 
           if (context_match && existing.contains_key(&raw_key))
-            || (plural_match && has_related_plural_key(&format!("{}{}", singular_key, plural_separator), &existing))
+            || (plural_match && has_related_plural_key(&format!("{singular_key}{plural_separator}"), &existing))
           {
             existing.insert(key.clone(), value.clone());
             pull_count += 1;

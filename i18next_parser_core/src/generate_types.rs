@@ -70,7 +70,7 @@ pub fn generate_index<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
   }
 
   let exports =
-    config.locales.iter().map(|locale| format!("export * from './{}';", locale)).collect::<Vec<String>>().join("\n");
+    config.locales.iter().map(|locale| format!("export * from './{locale}';")).collect::<Vec<String>>().join("\n");
   write_exports(config, &exports, &config.output.replace("/$LOCALE", "").replace("/$NAMESPACE.json", "/index.ts"))?;
 
   Ok(())
@@ -89,7 +89,7 @@ export default {{}};
 "#,
   );
   let display = config.working_dir.display();
-  let path = format!("{}/{}", display, output);
+  let path = format!("{display}/{output}");
   let path = Path::new(&path);
   if !config.dry_run {
     log::debug!("Writing {}", path.display().yellow().italic());
@@ -123,7 +123,7 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
 
   let get_name_property = |name: &str| {
     if name.chars().any(|char| !char.is_alphanumeric()) {
-      format!("'{}'", name)
+      format!("'{name}'")
     } else {
       name.to_string()
     }
@@ -157,11 +157,10 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
 
   let mut resource_map = HashMap::new();
   for entry in result.iter() {
-    let map_entry = if !resource_map.contains_key(entry.locale) {
-      resource_map.try_insert(entry.locale, vec![]).unwrap()
-    } else {
-      resource_map.get_mut(entry.locale).unwrap()
-    };
+    if !resource_map.contains_key(entry.locale) {
+      resource_map.insert(entry.locale, vec![]);
+    }
+    let map_entry = resource_map.get_mut(entry.locale).unwrap();
     map_entry.push(format!("{}: typeof {};", get_name_property(entry.name), entry.display_name));
   }
 

@@ -1,5 +1,3 @@
-#![feature(map_try_insert)]
-
 mod config;
 mod file;
 mod helper;

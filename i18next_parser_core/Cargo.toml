@@ -28,11 +28,12 @@ similar = "2"
 unic-langid = "0.9"
 serde_yaml_ng = "0.10"
 tracing = "0.1"
-bat = "0.25"
+bat = { version = "0.25", optional = true }
 
 [features]
 default = ["generate_types"]
 generate_types = []
+print_error_location = ["dep:bat"]
 
 [dev-dependencies]
 pretty_assertions = "1"

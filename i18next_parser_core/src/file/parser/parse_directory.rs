@@ -82,15 +82,8 @@ pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -
     builder.build()?
   };
 
-  if path.exists() {
-    debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
-  } else {
+  if !path.exists() {
     bail!("Directory {path:?} does not exist");
-  }
-
-  for path in path.read_dir()? {
-    let Ok(path) = path else { continue };
-    debug!("Reading directory {} to find {:?}", path.path().display().yellow(), &config.input);
   }
 
   let directory_name =
