@@ -10,12 +10,16 @@ use serde::{Deserialize, Serialize};
 pub enum LineEnding {
   /// Auto-detect line endings.
   #[default]
+  #[serde(alias = "auto")]
   Auto,
   /// Use CRLF line endings.
+  #[serde(alias = "crlf")]
   Crlf,
   /// Use CR line endings.
+  #[serde(alias = "cr")]
   Cr,
   /// Use LF line endings.
+  #[serde(alias = "lf")]
   Lf,
 }
 
@@ -216,7 +220,8 @@ impl Config {
 }
 
 #[cfg(test)]
-mod tests {
+mod config_tests {
+
   use super::*;
 
   #[test_log::test]
@@ -246,11 +251,6 @@ mod tests {
     let value: config::Value = line_ending.into();
     assert_eq!(value, "lf".into());
   }
-}
-#[cfg(test)]
-mod config_tests {
-
-  use super::*;
 
   #[test_log::test]
   fn config_default_values_are_correct() {
@@ -286,6 +286,9 @@ mod config_tests {
   fn config_new_handles_invalid_working_dir() {
     let working_dir = "\0"; // Invalid path
     let verbose = false;
-    assert!(Config::new(working_dir, verbose, false).is_ok());
+    let config = Config::new(working_dir, verbose, false).inspect_err(|e| {
+      log::error!("Failed to create config: {}", e);
+    });
+    assert!(config.is_ok());
   }
 }

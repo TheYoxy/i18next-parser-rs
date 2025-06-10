@@ -28,6 +28,7 @@ use oxc_ast::ast::{
   TSType,
   TSTypeName,
 };
+use oxc_span::GetSpan;
 use serde_json::Value;
 use tracing::span;
 
@@ -37,6 +38,7 @@ use crate::{
   Config,
   Entry,
   IsEmpty,
+  Location,
 };
 
 /// This type alias represents the options for i18next.
@@ -179,7 +181,7 @@ impl<'a> I18NVisitor<'a> {
         var
           .declarations
           .iter()
-          .find(|v| v.id.get_identifier() == Some(identifier.name.clone()))
+          .find(|v| v.id.get_identifier_name() == Some(identifier.name))
           .and_then(|item| item.init.as_ref())
           .and_then(|init| {
             trace!("Looking for expression value from {:?}", init.bright_black().italic());
@@ -226,7 +228,7 @@ impl<'a> I18NVisitor<'a> {
         var
           .declarations
           .iter()
-          .find(|v| v.id.get_identifier() == Some(identifier.name.clone()))
+          .find(|v| v.id.get_identifier_name() == Some(identifier.name))
           .and_then(|item| item.init.as_ref())
           .and_then(|init| self.parse_expression(init))
       } else {
@@ -268,8 +270,11 @@ impl<'a> I18NVisitor<'a> {
       match stmt {
         Statement::VariableDeclaration(var) => {
           debug!("Declarations {:#?}", var.declarations);
-          var.declarations.iter().find(|e| e.id.get_identifier().is_some_and(|idx| identifier.name.eq(&idx))).and_then(
-            |item| {
+          var
+            .declarations
+            .iter()
+            .find(|e| e.id.get_identifier_name().is_some_and(|idx| identifier.name.eq(&idx)))
+            .and_then(|item| {
               debug!("Parsing item: {:#?}", item);
               item
                 .init
@@ -286,8 +291,7 @@ impl<'a> I18NVisitor<'a> {
                     .as_ref()
                     .and_then(|type_annotation| this.parse_type_annotation_as_vec_str(type_annotation))
                 })
-            },
-          )
+            })
         },
         Statement::FunctionDeclaration(func)
           if func.params.iter_bindings().any(|param| find_type_of_identifier(identifier, param).is_some()) =>
@@ -400,7 +404,7 @@ impl<'a> I18NVisitor<'a> {
         var
           .declarations
           .iter()
-          .find(|v| v.id.get_identifier() == Some(identifier.name.clone()))
+          .find(|v| v.id.get_identifier_name().is_some_and(|name| name.eq(&identifier.name)))
           .and_then(|item| item.init.as_ref())
           .and_then(|init| {
             trace!("Looking for expression value from {:?}", init.bright_black().italic());
@@ -841,15 +845,13 @@ impl<'a> I18NVisitor<'a> {
         let value = if let Some(format_props) = format_props {
           let text = non_format_props.first().and_then(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default();
           if let ObjectPropertyKind::ObjectProperty(obj) = format_props {
-            obj.init.as_ref().and_then(|init| {
-              match &init {
-                Expression::StringLiteral(str) => Some(format!("{}, {}", text, str.value)),
-                _ => {
-                  warn!("The format property should be a string literal");
-                  None
-                },
-              }
-            })
+            match &obj.value {
+              Expression::StringLiteral(str) => Some(format!("{}, {}", text, str.value)),
+              _ => {
+                warn!("The format property should be a string literal");
+                None
+              },
+            }
           } else {
             None
           }
@@ -970,6 +972,134 @@ impl<'a> I18NVisitor<'a> {
     }
     (i18next_options, default_value)
   }
+
+  pub(super) fn extract_jsx_entries(&mut self, elem: &JSXElement<'a>) {
+    let key = self.get_prop_value(elem, "i18nKey");
+    let ns = self.get_prop_value(elem, "ns");
+    let default_value = self.get_prop_value(elem, "defaults");
+    let count = self.has_prop(elem, "count");
+    let context = self.get_prop_values(elem, "context");
+    let options = self.get_prop_value(elem, "i18n");
+
+    trace!("Childrens: {:?}", elem.children);
+    let node_as_string = {
+      let content = Self::parse_children(&elem.children);
+      self.elem_to_string(&content)
+    };
+    trace!("Element as string: {node_as_string:?}");
+    let default_value = default_value.unwrap_or(node_as_string);
+
+    if let Some(key) = key {
+      self.entries.push(Entry {
+        location: Location::new(
+          self.file_path.to_str().unwrap().to_string(),
+          usize::try_from(elem.span.start).unwrap(),
+          usize::try_from(elem.span.end).unwrap(),
+        ),
+        key,
+        value: if default_value.is_empty() { None } else { Some(default_value) },
+        namespace: ns,
+        has_count: count,
+        i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
+        context,
+      });
+    }
+  }
+
+  /// Extracts the key from the `t` function call.
+  pub(super) fn extract_t_function_key(&mut self, expr: &CallExpression<'a>) -> Option<String> {
+    match expr.arguments.first() {
+      Some(Argument::StringLiteral(str)) => {
+        trace!("t Arg: {:?}", str.bright_black().italic());
+        Some(str.value.to_string().clone())
+      },
+      Some(Argument::TemplateLiteral(template)) => {
+        trace!("t Arg: {:?}", template.bright_black().italic());
+        trace!("t quasis: {:?}", template.quasis);
+        trace!("t expressions: {:?}", template.expressions);
+        #[cfg(debug_assertions)]
+        {
+          use crate::visitor::visit::print_error_location;
+          let _ = print_error_location(&self.file_path, &template.span);
+          todo!("Handle template literal")
+        }
+        #[cfg(not(debug_assertions))]
+        {
+          warn!("Template literal are not supported for now");
+          None
+        }
+      },
+      Some(Argument::BinaryExpression(bin)) => {
+        trace!("t Arg: {:?}", bin.bright_black().italic());
+        #[cfg(debug_assertions)]
+        {
+          use crate::visitor::visit::print_error_location;
+          let _ = print_error_location(&self.file_path, &bin.span);
+          todo!("Handle binary expression")
+        }
+        #[cfg(not(debug_assertions))]
+        {
+          warn!("Binary expression are not supported for now");
+          None
+        }
+      },
+      Some(Argument::CallExpression(expression)) => {
+        #[cfg(debug_assertions)]
+        {
+          use crate::visitor::visit::print_error_location;
+          let _ = print_error_location(&self.file_path, &expression.span());
+        }
+        trace!("Skipping CallExpression as it is unsupported");
+        None
+      },
+      Some(Argument::StaticMemberExpression(expression)) => {
+        #[cfg(debug_assertions)]
+        {
+          use crate::visitor::visit::print_error_location;
+          let _ = print_error_location(&self.file_path, &expression.span());
+        }
+        trace!("Skipping StaticMemberExpression as it is unsupported");
+        None
+      },
+      Some(Argument::Identifier(identifier)) => {
+        #[cfg(debug_assertions)]
+        {
+          use crate::visitor::visit::print_error_location;
+          let _ = print_error_location(&self.file_path, &identifier.span());
+        }
+        trace!("Skipping Identifier as it is unsupported");
+        None
+      },
+      Some(Argument::TSAsExpression(expression)) => {
+        #[cfg(debug_assertions)]
+        {
+          use crate::visitor::visit::print_error_location;
+          let _ = print_error_location(&self.file_path, &expression.span());
+        }
+        trace!("Skipping TSAsExpression as it is unsupported");
+        None
+      },
+      Some(arg) => {
+        #[cfg(debug_assertions)]
+        {
+          use crate::visitor::visit::print_error_location;
+          log::warn!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
+          let _ = print_error_location(&self.file_path, &arg.span());
+
+          todo!("Handle argument {arg:?} in {}", self.file_path.display().yellow())
+        }
+        #[cfg(not(debug_assertions))]
+        {
+          warn!("Unknown argument type {arg:?}");
+          None
+        }
+      },
+      None => {
+        warn!("No key provided, skipping entry");
+        None
+      },
+    }
+  }
 }
 
 fn find_type_of_identifier<'a>(
@@ -1035,7 +1165,7 @@ fn get_string_values_from_union_type_literal(
 #[cfg(test)]
 mod tests {
   use oxc_allocator::Allocator;
-  use oxc_ast::Visit;
+  use oxc_ast_visit::Visit;
   use oxc_parser::Parser;
   use oxc_span::SourceType;
 

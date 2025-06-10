@@ -3,7 +3,7 @@ use std::{fs::read_to_string, path::Path};
 use color_eyre::owo_colors::OwoColorize;
 use log::trace;
 use oxc_allocator::Allocator;
-use oxc_ast::Visit;
+use oxc_ast_visit::Visit;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
 
