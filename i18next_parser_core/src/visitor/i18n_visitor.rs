@@ -8,6 +8,7 @@ use oxc_ast::ast::{
   BindingPattern,
   BindingPatternKind,
   CallExpression,
+  Declaration,
   Expression,
   IdentifierName,
   IdentifierReference,
@@ -261,7 +262,7 @@ impl<'a> I18NVisitor<'a> {
     &self,
     identifier: &oxc_allocator::Box<IdentifierReference>,
   ) -> Option<Vec<String>> {
-    fn fun_name<'a>(
+    fn find_identifier_from_declaration<'a>(
       stmt: &Statement<'a>,
       identifier: &oxc_allocator::Box<'_, IdentifierReference<'_>>,
       this: &I18NVisitor<'a>,
@@ -293,6 +294,35 @@ impl<'a> I18NVisitor<'a> {
                 })
             })
         },
+        Statement::ExportNamedDeclaration(named_decl) if named_decl.declaration.is_some() => {
+          named_decl.declaration.as_ref().and_then(|decl| {
+            match decl {
+              Declaration::FunctionDeclaration(func)
+                if func.params.iter_bindings().any(|param| find_type_of_identifier(identifier, param).is_some()) =>
+              {
+                func.params.iter_bindings().find_map(|param| find_type_of_identifier(identifier, param)).and_then(
+                  |type_annotation| {
+                    debug!("Type annotation: {:#?}", type_annotation);
+                    this.parse_type_annotation_as_vec_str(type_annotation)
+                  },
+                )
+              },
+              Declaration::FunctionDeclaration(func) if func.body.is_some() => {
+                func
+                  .body
+                  .as_ref()
+                  .unwrap()
+                  .statements
+                  .iter()
+                  .find_map(|stmt| find_identifier_from_declaration(stmt, identifier, this))
+              },
+              exported => {
+                warn!("{:#?} is not supported for now", exported);
+                None
+              },
+            }
+          })
+        },
         Statement::FunctionDeclaration(func)
           if func.params.iter_bindings().any(|param| find_type_of_identifier(identifier, param).is_some()) =>
         {
@@ -304,12 +334,18 @@ impl<'a> I18NVisitor<'a> {
           )
         },
         Statement::FunctionDeclaration(func) if func.body.is_some() => {
-          func.body.as_ref().unwrap().statements.iter().find_map(|stmt| fun_name(stmt, identifier, this))
+          func
+            .body
+            .as_ref()
+            .unwrap()
+            .statements
+            .iter()
+            .find_map(|stmt| find_identifier_from_declaration(stmt, identifier, this))
         },
         _ => None,
       }
     }
-    let arr = self.program.body.iter().find_map(|stmt| fun_name(stmt, identifier, self));
+    let arr = self.program.body.iter().find_map(|stmt| find_identifier_from_declaration(stmt, identifier, self));
 
     if arr.is_none() {
       #[cfg(debug_assertions)]
@@ -1830,6 +1866,26 @@ mod tests {
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("theme.system", "System theme", "ns")]);
       assert_eq!(keys.first().unwrap().context, Some(vec!("dark".to_string(), "light".to_string())));
+    }
+
+    #[test_log::test]
+    fn test_2() {
+      // language=javascript
+      let source_text = "
+export function InvitationEmail() {
+  const role: 'admin' | 'member' | 'owner' = invitee.role as ActiveOrganizationRole;
+  return (
+        <Trans context={role} i18nKey='new-invitation' ns='ns'>New invitation text</Trans>
+  );
+}
+";
+      let keys = parse(source_text);
+      assert_eq!(keys.len(), 1);
+      assert_eq!(keys, vec![Entry::new("new-invitation", "New invitation text", "ns")]);
+      assert_eq!(
+        keys.first().unwrap().context,
+        Some(vec!("admin".to_string(), "member".to_string(), "owner".to_string()))
+      );
     }
 
     #[test_log::test]
