@@ -203,6 +203,9 @@ pub fn merge_hashes(
     trace!("Existing: {:?}", existing.cyan());
   }
 
+  existing.sort_keys();
+  old.sort_keys();
+  reset.sort_keys();
   MergeResult {
     new: Value::Object(existing),
     old: Value::Object(old),

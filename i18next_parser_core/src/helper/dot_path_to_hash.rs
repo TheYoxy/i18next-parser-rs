@@ -26,6 +26,16 @@ pub struct ConflictEntry {
   /// The location of the conflict.
   pub location: Location,
 }
+impl From<&str> for ConflictEntry {
+  fn from(value: &str) -> Self {
+    Self { value: value.to_string(), location: Location::default() }
+  }
+}
+impl From<String> for ConflictEntry {
+  fn from(value: String) -> Self {
+    Self { value, location: Location::default() }
+  }
+}
 
 impl ConflictEntry {
   /// Default constructor for ConflictEntry.
@@ -172,207 +182,190 @@ fn merge_values(
   );
 }
 
-// #[cfg(test)]
-// mod tests {
-//   use pretty_assertions::assert_eq;
-//   use serde_json::{json, Value};
-//
-//   use super::*;
-//
-//   #[test]
-//   fn test_lookup_by_key() {
-//     let mut target = json!({ "a": { "b": { "c": "value" } } });
-//     let entry = vec!["a", "b", "c"];
-//
-//     {
-//       let (value, conflict, obj, key) = lookup_by_key(&mut target, &entry);
-//
-//       assert_eq!(value, Some("value".into()));
-//       assert_eq!(conflict, None);
-//       assert_eq!(obj, &json!({ "c": "value" }));
-//       assert_eq!(key, "c");
-//       obj[key] = Value::String("new_value".into());
-//     }
-//
-//     // validate that the obj returned is from the same instance of the object
-//     let target = target.get("a").unwrap().get("b").unwrap().get("c").unwrap();
-//     assert_eq!(*target, Value::String("new_value".into()));
-//   }
-//
-//   #[test]
-//   fn base() {
-//     let entry = Entry {
-//       location: Default::default(),
-//       namespace: Some("namespace".into()),
-//       key: "key".into(),
-//       value: Some("default_value".into()),
-//       i18next_options: None,
-//       has_count: true,
-//       ..Default::default()
-//     };
-//     let mut target = json!({
-//       "namespace": {
-//         "key": "existing_value"
-//       }
-//     });
-//     let config = Default::default();
-//
-//     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-//
-//     assert_eq!(
-//       *result.target,
-//       json!({
-//         "namespace": {
-//           "key": "default_value"
-//         }
-//       })
-//     );
-//
-//     assert_eq!(result.conflict, Some(Conflict::Value("existing_value".into(), "default_value".into())));
-//   }
-//
-//   #[test]
-//   fn handles_empty_path() {
-//     let entry = Entry {
-//       location: Default::default(),
-//       namespace: Some("".into()),
-//       key: "".into(),
-//       value: Some("default_value".into()),
-//       i18next_options: None,
-//       has_count: true,
-//       ..Default::default()
-//     };
-//     let mut target = json!({});
-//     let config = Default::default();
-//
-//     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-//
-//     assert_eq!(*result.target, json!({}));
-//     assert!(result.conflict.is_none());
-//   }
-//
-//   #[test]
-//   fn handles_nonexistent_path() {
-//     let entry = Entry {
-//       location: Default::default(),
-//       namespace: Some("nonexistent".into()),
-//       key: "key".into(),
-//       value: Some("default_value".into()),
-//       i18next_options: None,
-//       has_count: true,
-//       ..Default::default()
-//     };
-//     let mut target = json!({});
-//     let config = Default::default();
-//
-//     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-//
-//     assert_eq!(
-//       *result.target,
-//       json!({
-//           "nonexistent": {
-//               "key": "default_value"
-//           }
-//       })
-//     );
-//     assert!(result.conflict.is_none());
-//   }
-//
-//   #[test]
-//   fn handles_existing_path() {
-//     let entry = Entry {
-//       location: Default::default(),
-//       namespace: Some("namespace".into()),
-//       key: "key".into(),
-//       value: Some("default_value".into()),
-//       i18next_options: None,
-//       has_count: true,
-//       ..Default::default()
-//     };
-//     let mut target = json!({
-//         "namespace": {
-//             "key": "existing_value"
-//         }
-//     });
-//     let config = Default::default();
-//
-//     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-//
-//     assert_eq!(
-//       *result.target,
-//       json!({
-//           "namespace": {
-//               "key": "default_value"
-//           }
-//       })
-//     );
-//     assert_eq!(result.conflict, Some(Conflict::Value("existing_value".into(), "default_value".into())));
-//   }
-//
-//   #[test]
-//   fn handle_add_entries() {
-//     let entry = Entry {
-//       location: Default::default(),
-//       namespace: Some("namespace".into()),
-//       key: "key2".into(),
-//       value: Some("default_value".into()),
-//       i18next_options: None,
-//       has_count: true,
-//       ..Default::default()
-//     };
-//     let mut target = json!({
-//         "namespace": {
-//             "key1": "default_value"
-//         }
-//     });
-//     let config = Default::default();
-//
-//     let result = dot_path_to_hash(&entry, &mut target, None, &config);
-//
-//     assert!(result.is_some());
-//     let result = result.unwrap();
-//     assert_eq!(
-//       *result.target,
-//       json!({
-//           "namespace": {
-//               "key1": "default_value",
-//               "key2": "default_value"
-//           }
-//       })
-//     );
-//     assert_eq!(result.conflict, None);
-//   }
-//
-//   #[test]
-//   fn handles_suffix() {
-//     let entry = Entry {
-//       location: Default::default(),
-//       namespace: Some("namespace".into()),
-//       key: "key".into(),
-//       value: Some("default_value".into()),
-//       i18next_options: None,
-//       has_count: true,
-//       ..Default::default()
-//     };
-//     let mut target = json!({
-//         "namespace": {
-//             "key_suffix": "existing_value"
-//         }
-//     });
-//     let mut value = FoundValue::new();
-//     value.insert("namespace.key_suffix".into(), FoundEntry {
-//       value: "existing_value".into(),
-//       location: Default::default(),
-//     });
-//     let config = Default::default();
-//
-//     let result = dot_path_to_hash(&entry, Some("_suffix"), &config, &mut value);
-//     assert_eq!(
-//       result,
-//       Some(Conflict::Value(
-//         ConflictEntry::new("existing_value".into(), Default::default()),
-//         ConflictEntry::new("default_value".into(), Default::default())
-//       ))
-//     );
-//   }
-// }
+#[cfg(test)]
+mod tests {
+  use pretty_assertions::assert_eq;
+
+  use super::*;
+
+  #[test]
+  fn handles_empty_path() {
+    let entry = Entry {
+      location: Default::default(),
+      namespace: Some("".into()),
+      key: "".into(),
+      value: Some("default_value".into()),
+      i18next_options: None,
+      has_count: true,
+      ..Default::default()
+    };
+    let target = FoundValue::new();
+    let config = Default::default();
+
+    let result = dot_path_to_hash(&entry, None, &config, &target);
+    assert!(result.is_none());
+  }
+
+  #[test]
+  fn handles_nonexistent_path() {
+    let entry = Entry {
+      location: Default::default(),
+      namespace: Some("nonexistent".into()),
+      key: "key".into(),
+      value: Some("default_value".into()),
+      i18next_options: None,
+      has_count: true,
+      ..Default::default()
+    };
+    let target = FoundValue::new();
+    let config = Default::default();
+
+    let result = dot_path_to_hash(&entry, None, &config, &target);
+    assert!(result.is_some());
+    let result = result.unwrap();
+
+    assert!(result.contains_key("nonexistent.key"));
+    assert_eq!(result.get("nonexistent.key").unwrap().0.value, "default_value");
+    assert_eq!(result.get("nonexistent.key").unwrap().1, None);
+  }
+
+  #[test]
+  fn handles_existing_path() {
+    let entry = Entry {
+      location: Default::default(),
+      namespace: Some("namespace".into()),
+      key: "key".into(),
+      value: Some("default_value".into()),
+      i18next_options: None,
+      has_count: true,
+      ..Default::default()
+    };
+
+    let mut target = FoundValue::new();
+    target.insert("namespace.key".into(), "existing_value".into());
+    let config = Default::default();
+
+    let result = dot_path_to_hash(&entry, None, &config, &target);
+    assert!(result.is_some());
+    let result = result.unwrap();
+
+    assert!(result.contains_key("namespace.key"));
+    assert_eq!(result.get("namespace.key").unwrap().0.value, "default_value");
+    assert_eq!(
+      result.get("namespace.key").unwrap().1,
+      Some(Conflict::Value("existing_value".into(), "default_value".into()))
+    );
+  }
+
+  #[test]
+  fn handle_add_entries() {
+    let entry = Entry {
+      location: Default::default(),
+      namespace: Some("namespace".into()),
+      key: "key2".into(),
+      value: Some("default_value".into()),
+      i18next_options: None,
+      has_count: true,
+      ..Default::default()
+    };
+
+    let mut target = FoundValue::new();
+    target.insert("namespace.key1".into(), "existing_value".into());
+    let config = Default::default();
+
+    let result = dot_path_to_hash(&entry, None, &config, &target);
+    assert!(result.is_some());
+    let result = result.unwrap();
+
+    assert!(!result.contains_key("namespace.key1"));
+    assert!(result.contains_key("namespace.key2"));
+    assert_eq!(result.get("namespace.key2").unwrap().0.value, "default_value");
+    assert_eq!(result.get("namespace.key2").unwrap().1, None);
+  }
+
+  #[test]
+  fn handles_suffix() {
+    let entry = Entry {
+      location: Default::default(),
+      namespace: Some("namespace".into()),
+      key: "key".into(),
+      value: Some("default_value".into()),
+      i18next_options: None,
+      has_count: true,
+      ..Default::default()
+    };
+
+    let mut value = FoundValue::new();
+    value.insert("namespace.key_suffix".into(), "existing_value".into());
+    let config = Default::default();
+
+    let result = dot_path_to_hash(&entry, Some("_suffix"), &config, &value);
+    assert!(result.is_some());
+    let result = result.unwrap();
+
+    assert!(result.contains_key("namespace.key_suffix"));
+    assert_eq!(result.get("namespace.key_suffix").unwrap().0.value, "default_value");
+    assert_eq!(
+      result.get("namespace.key_suffix").unwrap().1,
+      Some(Conflict::Value("existing_value".into(), "default_value".into()))
+    );
+  }
+
+  #[test]
+  fn handle_context() {
+    let entry = Entry {
+      location: Default::default(),
+      namespace: Some("namespace".into()),
+      key: "key".into(),
+      value: Some("default_value".into()),
+      i18next_options: None,
+      context: Some(vec!["context1".into(), "context2".into()]),
+      ..Default::default()
+    };
+
+    let value = FoundValue::new();
+    let config = Default::default();
+
+    let result = dot_path_to_hash(&entry, None, &config, &value);
+    assert!(result.is_some());
+    let result = result.unwrap();
+
+    assert!(result.contains_key("namespace.key_context1"));
+    assert_eq!(result.get("namespace.key_context1").unwrap().0.value, "default_value");
+    assert_eq!(result.get("namespace.key_context1").unwrap().1, None);
+
+    assert!(result.contains_key("namespace.key_context2"));
+    assert_eq!(result.get("namespace.key_context2").unwrap().0.value, "default_value");
+    assert_eq!(result.get("namespace.key_context2").unwrap().1, None);
+  }
+
+  #[test]
+  fn do_not_override_existing_context_value() {
+    let entry = Entry {
+      location: Default::default(),
+      namespace: Some("namespace".into()),
+      key: "key".into(),
+      value: Some("default_value".into()),
+      i18next_options: None,
+      context: Some(vec!["context1".into(), "context2".into()]),
+      ..Default::default()
+    };
+
+    let mut value = FoundValue::new();
+    value.insert("namespace.key_context1".into(), "existing_value".into());
+    value.insert("namespace.key_context2".into(), "existing_value".into());
+    let config = Default::default();
+
+    let result = dot_path_to_hash(&entry, None, &config, &value);
+    assert!(result.is_some());
+    let result = result.unwrap();
+
+    assert!(result.contains_key("namespace.key_context1"));
+    assert_eq!(result.get("namespace.key_context1").unwrap().0.value, "existing_value");
+    assert_eq!(result.get("namespace.key_context1").unwrap().1, None);
+
+    assert!(result.contains_key("namespace.key_context2"));
+    assert_eq!(result.get("namespace.key_context2").unwrap().0.value, "existing_value");
+    assert_eq!(result.get("namespace.key_context2").unwrap().1, None);
+  }
+}

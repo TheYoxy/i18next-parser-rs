@@ -19,6 +19,16 @@ pub struct FoundEntry {
   pub value: String,
   pub location: Location,
 }
+impl From<&str> for FoundEntry {
+  fn from(value: &str) -> Self {
+    Self { value: value.to_string(), location: Location::default() }
+  }
+}
+impl From<String> for FoundEntry {
+  fn from(value: String) -> Self {
+    Self { value, location: Location::default() }
+  }
+}
 
 /// Merges all translation values across different locales based on the provided entries and configuration.
 ///
