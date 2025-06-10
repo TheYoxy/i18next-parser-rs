@@ -15,7 +15,8 @@ mod tests {
 
     let program = ret.program;
 
-    let mut visitor = I18NVisitor::new(&program, "file.tsx", Config::default());
+    let config = Config::default();
+    let mut visitor = I18NVisitor::new(&allocator, &program, "file.tsx", &config);
     visitor.visit_program(&program);
     visitor.entries
   }
@@ -27,7 +28,8 @@ mod tests {
 
     let program = ret.program;
 
-    let mut visitor = I18NVisitor::new(&program, "file.tsx", Config::default());
+    let config = Config::default();
+    let mut visitor = I18NVisitor::new(&allocator, &program, "file.tsx", &config);
     visitor.options.trans_keep_basic_html_nodes_for =
       Some(vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]);
     visitor.visit_program(&program);

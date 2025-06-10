@@ -204,12 +204,12 @@ mod tests {
     let result = result.unwrap();
     let expected: Vec<MergeResults> = vec![
       MergeResults {
-        namespace: "custom".into(),
+        namespace: "default".into(),
         locale: "en".into(),
-        path: "./locales/en/custom.json".into(),
-        backup: "./locales/en/custom_old.json".into(),
+        path: "./locales/en/default.json".into(),
+        backup: "./locales/en/default_old.json".into(),
         merged: MergeResult {
-          new: json!({"key3": "value3",}),
+          new: json!({"key1": "value1", "key2_one": "value2","key2_other": "value2",}),
           old: json!({}),
           reset: json!({}),
           merge_count: 0,
@@ -220,12 +220,12 @@ mod tests {
         old_catalog: json!({}),
       },
       MergeResults {
-        namespace: "default".into(),
+        namespace: "custom".into(),
         locale: "en".into(),
-        path: "./locales/en/default.json".into(),
-        backup: "./locales/en/default_old.json".into(),
+        path: "./locales/en/custom.json".into(),
+        backup: "./locales/en/custom_old.json".into(),
         merged: MergeResult {
-          new: json!({"key1": "value1", "key2_one": "value2","key2_other": "value2",}),
+          new: json!({"key3": "value3",}),
           old: json!({}),
           reset: json!({}),
           merge_count: 0,

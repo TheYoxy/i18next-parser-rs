@@ -1,33 +1,12 @@
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, trace, warn};
-use oxc_ast::ast::{
-  BindingPattern,
-  BindingPatternKind,
-  Declaration,
-  Expression,
-  IdentifierReference,
-  ImportDeclarationSpecifier,
-  JSXChild,
-  JSXElementName,
-  ModuleDeclaration,
-  ObjectExpression,
-  ObjectPropertyKind,
-  Statement,
-  TSLiteral,
-  TSSignature,
-  TSType,
-  TSTypeAnnotation,
-  TSTypeName,
-  TSUnionType,
-};
-use oxc_span::GetSpan;
-use serde_json::Value;
+use oxc_ast::ast::{Expression, JSXChild, JSXElementName, ObjectExpression, ObjectPropertyKind};
 
 use crate::{
   clean_multi_line_code,
-  helper::SerdeHelper,
   visitor::{
     node_child::{NodeChild, NodeTag},
+    traits::oxc_custom_parser::OxcCustomParser,
     I18NVisitor,
     I18NextOptions,
   },
@@ -35,134 +14,16 @@ use crate::{
 };
 
 impl<'a> I18NVisitor<'a> {
-  /// Parse an expression to find its value
-  ///
-  /// # Arguments
-  ///
-  /// * `expr` - The expression to parse
-  ///
-  /// # Returns
-  ///
-  /// An optional value representing the value of the expression
-  pub(super) fn parse_expression_to_serde_value(&self, expr: &Expression<'_>) -> Option<Value> {
-    use serde_json::json;
-    trace!("Parsing expression: {:?}", expr.bright_black().italic());
-
-    match expr {
-      Expression::StringLiteral(str) => Some(json!(str.value.to_string())),
-      Expression::NumericLiteral(num) => Some(json!(num.value.to_string())),
-      Expression::BooleanLiteral(bool) => Some(json!(bool.value.to_string())),
-      Expression::ArrayExpression(arr) => {
-        Some(Value::Array(
-          arr
-            .elements
-            .iter()
-            .map(|e| {
-              if let Some(expession) = e.as_expression() {
-                self.parse_expression_to_serde_value(expession).unwrap_or(Value::Null)
-              } else {
-                Value::Null
-              }
-            })
-            .collect(),
-        ))
-      },
-      Expression::ObjectExpression(obj) => {
-        Some(Value::Object(
-          obj
-            .properties
-            .iter()
-            .filter_map(|prop| {
-              if let ObjectPropertyKind::ObjectProperty(kv) = prop {
-                let key = kv.key.name().unwrap_or_default().to_string();
-                let value = self.parse_expression_to_serde_value(&kv.value);
-                Some((key, value.unwrap_or(Value::Null)))
-              } else {
-                None
-              }
-            })
-            .collect(),
-        ))
-      },
-      Expression::Identifier(identifier) => self.find_identifier_value_as_serde(identifier),
-      Expression::TSSatisfiesExpression(expr) => self.parse_expression_to_serde_value(&expr.expression),
-      Expression::TSAsExpression(expression) => self.parse_expression_to_serde_value(&expression.expression),
-      _ => {
-        self.print_error_location(&expr.span());
-        debug!("{} Unsupported expression: {expr:?}", "[Parse_expression]".red().bold());
-        None
-      },
-    }
-  }
-
-  /// Parse an expression to find its value
-  ///
-  /// # Arguments
-  ///
-  /// * `expr` - The expression to parse
-  ///
-  /// # Returns
-  ///
-  /// An optional value representing the value of the expression
-  pub(super) fn parse_expression_as_string(&self, expr: &Expression<'_>) -> Option<String> {
-    self.parse_expression_to_serde_value(expr).value_to_string()
-  }
-
-  pub(super) fn parse_type_annotation_as_vec_str(
+  pub(super) fn parse_option_and_default_value(
     &self,
-    type_annotation: &oxc_allocator::Box<'_, TSTypeAnnotation<'_>>,
-  ) -> Option<Vec<String>> {
-    match &type_annotation.type_annotation {
-      TSType::TSUnionType(union_type) => get_string_values_from_union_type_literal(union_type),
-      TSType::TSTypeReference(type_reference) => {
-        if let TSTypeName::IdentifierReference(identifier) = &type_reference.type_name {
-          self.program.body.iter().find_map(|stmt| {
-            match stmt {
-              Statement::TSTypeAliasDeclaration(type_alias) if type_alias.id.name == identifier.name => {
-                if let TSType::TSUnionType(union_type) = &type_alias.type_annotation {
-                  get_string_values_from_union_type_literal(union_type)
-                } else {
-                  None
-                }
-              },
-              Statement::ImportDeclaration(import_decl)
-                if import_decl.specifiers.as_ref().is_some_and(|specifiers| {
-                  specifiers.iter().any(|specifier| {
-                    match &specifier {
-                      ImportDeclarationSpecifier::ImportSpecifier(specifier) => {
-                        specifier.local.name.eq(&identifier.name)
-                      },
-                      _ => false,
-                    }
-                  })
-                }) =>
-              {
-                log::warn!(
-                  "{} Value of identifier {} is an import declaration, which is not supported",
-                  "[Find_identifier_value_as_vec_string]".red().bold(),
-                  identifier.name.cyan()
-                );
-                None
-              },
-              _ => None,
-            }
-          })
-        } else {
-          log::warn!(
-            "{} Unsupported type reference: {type_reference:?}",
-            "[Find_identifier_value_as_vec_string]".red().bold()
-          );
-          None::<Vec<String>>
-        }
-      },
-      _ => {
-        log::warn!(
-          "{} Unsupported type annotation: {type_annotation:?}",
-          "[Find_identifier_value_as_vec_string]".red().bold()
-        );
-        None::<Vec<String>>
-      },
+    obj: &oxc_allocator::Box<'_, ObjectExpression<'_>>,
+  ) -> (I18NextOptions, Option<String>) {
+    let i18next_options = self.parse_i18next_option(obj);
+    let default_value = i18next_options.get("defaultValue").cloned().flatten();
+    if let Some(value) = i18next_options.get("defaultValue") {
+      trace!("translation value found in i18next options: {value:?}");
     }
+    (i18next_options, default_value)
   }
 
   /// Parse the i18next options
@@ -319,153 +180,5 @@ impl<'a> I18NVisitor<'a> {
       },
       _ => NodeChild::Text("".to_string()),
     }
-  }
-
-  pub(super) fn parse_option_and_default_value(
-    &mut self,
-    obj: &oxc_allocator::Box<'_, ObjectExpression<'_>>,
-  ) -> (I18NextOptions, Option<String>) {
-    let i18next_options = self.parse_i18next_option(obj);
-    let default_value = i18next_options.get("defaultValue").cloned().flatten();
-    if let Some(value) = i18next_options.get("defaultValue") {
-      trace!("translation value found in i18next options: {value:?}");
-    }
-    (i18next_options, default_value)
-  }
-
-  pub(super) fn parse_value_from_statement(
-    &self,
-    stmt: &Statement<'_>,
-    identifier: &oxc_allocator::Box<'_, IdentifierReference<'_>>,
-  ) -> Option<Value> {
-    if let Some(decl) = stmt.as_declaration() {
-      self.parse_value_from_declaration(identifier, decl)
-    } else if let Some(module) = stmt.as_module_declaration() {
-      match module {
-        ModuleDeclaration::ExportNamedDeclaration(decl) => {
-          decl.declaration.as_ref().and_then(|declaration| self.parse_value_from_declaration(identifier, declaration))
-        },
-        _ => {
-          #[cfg(test)]
-          todo!("Handle other module declarations: {module:?}");
-
-          None
-        },
-      }
-    } else {
-      #[cfg(test)]
-      warn!("{} Unsupported statement: {stmt:?}", "[Parse_value_from_statement]".red().bold());
-      None
-    }
-  }
-
-  pub(super) fn parse_value_from_declaration(
-    &self,
-    identifier: &oxc_allocator::Box<'_, IdentifierReference<'_>>,
-    decl: &Declaration<'_>,
-  ) -> Option<Value> {
-    match decl {
-      Declaration::VariableDeclaration(var) => {
-        var
-          .declarations
-          .iter()
-          .find(|e| e.id.get_identifier_name().is_some_and(|idx| identifier.name.eq(&idx)))
-          .and_then(|item| {
-            trace!("Parsing item: {:?}", item);
-            item
-              .init
-              .as_ref()
-              .and_then(|init| {
-                trace!("Parsing item value: {:?}", init);
-                self.parse_expression_to_serde_value(init)
-              })
-              .or_else(|| {
-                trace!("Parsing type annotation for item: {:?}", item);
-                item.id.type_annotation.as_ref().and_then(|type_annotation| {
-                  self
-                    .parse_type_annotation_as_vec_str(type_annotation)
-                    .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
-                })
-              })
-          })
-      },
-      Declaration::FunctionDeclaration(func)
-        if func.params.iter_bindings().any(|param| find_type_of_identifier(identifier, param).is_some()) =>
-      {
-        func.params.iter_bindings().find_map(|param| find_type_of_identifier(identifier, param)).and_then(
-          |type_annotation| {
-            trace!("Type annotation: {:?}", type_annotation);
-            self
-              .parse_type_annotation_as_vec_str(type_annotation)
-              .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
-          },
-        )
-      },
-      Declaration::FunctionDeclaration(func) if func.body.is_some() => {
-        func.body.as_ref().unwrap().statements.iter().find_map(|stmt| self.parse_value_from_statement(stmt, identifier))
-      },
-      _exported => {
-        #[cfg(test)]
-        warn!("{:?} is not supported for now", _exported);
-        None
-      },
-    }
-  }
-}
-
-fn find_type_of_identifier<'a>(
-  identifier: &oxc_allocator::Box<'a, IdentifierReference<'a>>,
-  param: &'a BindingPattern<'a>,
-) -> Option<&'a oxc_allocator::Box<'a, TSTypeAnnotation<'a>>> {
-  match &param.kind {
-    BindingPatternKind::BindingIdentifier(idx) if idx.name.eq(&identifier.name) => param.type_annotation.as_ref(),
-    BindingPatternKind::ObjectPattern(obj) => {
-      obj.properties.iter().find(|prop| prop.key.name().is_some_and(|name| name.eq(&identifier.name))).and_then(
-        |prop| {
-          prop.value.type_annotation.as_ref().or(param.type_annotation.as_ref().and_then(|type_annotation| {
-            match &type_annotation.type_annotation {
-              TSType::TSTypeLiteral(type_literal) => {
-                type_literal.members.iter().find_map(|member| {
-                  match member {
-                    TSSignature::TSPropertySignature(signature)
-                      if signature.key.name().is_some_and(|name| name.eq(&identifier.name)) =>
-                    {
-                      signature.type_annotation.as_ref()
-                    },
-                    _ => None,
-                  }
-                })
-              },
-              _ => None,
-            }
-          }))
-        },
-      )
-    },
-    _ => None,
-  }
-}
-
-fn get_string_values_from_union_type_literal(
-  union_type: &oxc_allocator::Box<'_, TSUnionType<'_>>,
-) -> Option<Vec<String>> {
-  let found = union_type
-    .types
-    .iter()
-    .filter_map(|t| {
-      if let TSType::TSLiteralType(literal) = t {
-        if let TSLiteral::StringLiteral(value) = &literal.literal {
-          return Some(value.value.to_string());
-        }
-      }
-      None::<String>
-    })
-    .collect::<Vec<_>>();
-
-  if found.is_empty() {
-    None::<Vec<String>>
-  } else {
-    trace!("Found union type: {found:?}");
-    Some(found)
   }
 }

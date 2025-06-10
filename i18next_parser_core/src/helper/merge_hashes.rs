@@ -177,11 +177,7 @@ pub fn merge_hashes(
           let plural_match = key != &singular_key;
 
           const CONTEXT_SEPARATOR: char = '_';
-          let regex = Regex::new(
-            format!("\\{CONTEXT_SEPARATOR}([^\\{CONTEXT_SEPARATOR}]+)?$")
-              .as_str(),
-          )
-          .unwrap();
+          let regex = Regex::new(format!("\\{CONTEXT_SEPARATOR}([^\\{CONTEXT_SEPARATOR}]+)?$").as_str()).unwrap();
           let context_match = regex.is_match(&singular_key);
           let raw_key = regex.replace(&singular_key, "").to_string();
 

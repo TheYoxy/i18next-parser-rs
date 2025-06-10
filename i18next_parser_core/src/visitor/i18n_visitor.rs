@@ -2,11 +2,10 @@ use std::{collections::HashMap, path::PathBuf};
 
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, error, trace, warn};
+use oxc_allocator::Allocator;
 use oxc_ast::ast::{
   Argument,
   CallExpression,
-  IdentifierName,
-  IdentifierReference,
   JSXAttributeItem,
   JSXAttributeName,
   JSXAttributeValue,
@@ -15,13 +14,25 @@ use oxc_ast::ast::{
   ObjectPropertyKind,
   Program,
   PropertyKey,
-  Statement,
 };
+use oxc_resolver::{ResolveOptions, Resolver, TsconfigOptions, TsconfigReferences};
 use oxc_span::GetSpan;
-use serde_json::Value;
 use tracing::span;
 
-use crate::{helper::SerdeHelper, visitor::node_child::NodeChild, Config, Entry, Location};
+use crate::{
+  visitor::{
+    node_child::NodeChild,
+    traits::{
+      oxc_custom_parser::OxcCustomParser,
+      oxc_program::OxcProgram,
+      oxc_resolver::{OxcResolveImport, OxcResolver},
+      print_error_location::PrintErrorLocation,
+    },
+  },
+  Config,
+  Entry,
+  Location,
+};
 
 /// This type alias represents the options for i18next.
 /// It is a HashMap where the key is a String representing the option name,
@@ -55,10 +66,10 @@ impl VisitorOptions {
 /// * `entries` - A vector of entries in the i18n system.
 /// * `options` - The options for the I18NVisitor.
 /// * `current_namespace` - The current namespace while parsing a file.
-#[derive(Debug)]
 pub struct I18NVisitor<'a> {
   /// the program to be parsed
   pub program: &'a Program<'a>,
+  allocator: &'a Allocator,
   /// the file name of the file being parsed
   pub file_path: PathBuf,
   /// the entries in the i18n system
@@ -67,18 +78,69 @@ pub struct I18NVisitor<'a> {
   pub options: VisitorOptions,
   /// the current namespace while parsing a file
   pub(super) current_namespace: Option<String>,
+  pub(super) resolver: Resolver,
+}
+
+impl<'a> OxcProgram for I18NVisitor<'a> {
+  fn program(&self) -> &Program<'a> {
+    self.program
+  }
+}
+
+impl<'a> OxcResolver for I18NVisitor<'a> {
+  fn file_path(&self) -> &PathBuf {
+    &self.file_path
+  }
+
+  fn resolver(&self) -> &Resolver {
+    &self.resolver
+  }
+
+  fn allocator(&self) -> &Allocator {
+    self.allocator
+  }
+}
+
+impl<'a> PrintErrorLocation for I18NVisitor<'a> {
+}
+
+impl<'a> OxcResolveImport for I18NVisitor<'a> {
 }
 
 /// The visitor implementation that will search for translations inside javascript code
 impl<'a> I18NVisitor<'a> {
   /// Creates a new \[`CountASTNodes`\].
-  pub fn new<Path: Into<PathBuf>, C: AsRef<Config>>(program: &'a Program<'a>, file_path: Path, config: C) -> Self {
+  pub fn new<Path: Into<PathBuf>, C: AsRef<Config>>(
+    allocator: &'a Allocator,
+    program: &'a Program<'a>,
+    file_path: Path,
+    config: &'a C,
+  ) -> Self {
     I18NVisitor {
+      allocator,
       program,
       file_path: file_path.into(),
       entries: Default::default(),
       options: VisitorOptions::new(config),
       current_namespace: Default::default(),
+      resolver: Resolver::new(ResolveOptions {
+        roots: vec![config.as_ref().working_dir.join("src")],
+        extensions: vec![".ts".into(), ".tsx".into(), ".js".into(), ".jsx".into()],
+        extension_alias: vec![
+          (".js".to_string(), vec![".js".to_string(), ".ts".to_string()]),
+          (".jsx".to_string(), vec![".jsx".to_string(), ".tsx".to_string()]),
+        ],
+        prefer_relative: true,
+        tsconfig: {
+          let tsconfig = config.as_ref().working_dir.join("tsconfig.json");
+          if tsconfig.exists() {
+            Some(TsconfigOptions { config_file: tsconfig, references: TsconfigReferences::Auto })
+          } else {
+            None
+          }
+        },
+        ..Default::default()
+      }),
     }
   }
 
@@ -176,181 +238,6 @@ impl<'a> I18NVisitor<'a> {
 
   #[cfg(not(feature = "print_error_location"))]
   pub fn print_error_location(&self, _span: &oxc_span::Span) {
-  }
-
-  /// Find the value of an identifier as a string
-  ///
-  /// # Arguments
-  ///
-  /// * `identifier` - The identifier to find the value for
-  ///
-  /// # Returns
-  ///
-  /// An optional string representing the value of the identifier
-  fn find_identifier_value_as_string_from_identifier_name(
-    &self,
-    identifier: &oxc_allocator::Box<IdentifierName>,
-  ) -> Option<String> {
-    let arr = self.program.body.iter().find_map(|stmt| {
-      if let Statement::VariableDeclaration(var) = stmt {
-        var
-          .declarations
-          .iter()
-          .find(|v| v.id.get_identifier_name() == Some(identifier.name))
-          .and_then(|item| item.init.as_ref())
-          .and_then(|init| {
-            trace!("Looking for expression value from {:?}", init.bright_black().italic());
-            self.parse_expression_as_string(init)
-          })
-      } else {
-        None
-      }
-    });
-
-    if arr.is_none() {
-      #[cfg(debug_assertions)]
-      warn!(
-        "{} Cannot find str value of {name} in {path} {identifier:?}",
-        "[Find_identifier_value_as_string_from_identifier_name]".red().bold(),
-        path = self.file_path.display().yellow(),
-        name = identifier.name.cyan()
-      );
-      #[cfg(not(debug_assertions))]
-      warn!(
-        "{} Cannot find str value of {name} in {path}",
-        "[Find_identifier_value_as_string_from_identifier_name]".red().bold(),
-        path = self.file_path.display().yellow(),
-        name = identifier.name.cyan()
-      );
-      self.print_error_location(&identifier.span());
-    }
-
-    arr
-  }
-
-  /// Find the value of an identifier.
-  ///
-  /// # Arguments
-  ///
-  /// * `identifier` - The identifier to find the value for
-  ///
-  /// # Returns
-  ///
-  /// An optional value representing the value of the identifier
-  pub(super) fn find_identifier_value_as_serde(
-    &self,
-    identifier: &oxc_allocator::Box<IdentifierReference>,
-  ) -> Option<Value> {
-    debug!("Looking for identifier value: {}", identifier.name);
-    let arr = self.program.body.iter().find_map(|stmt| {
-      if let Statement::VariableDeclaration(var) = stmt {
-        var
-          .declarations
-          .iter()
-          .find(|v| v.id.get_identifier_name().is_some_and(|name| name.eq(&identifier.name)))
-          .and_then(|item| item.init.as_ref())
-          .and_then(|init| self.parse_expression_to_serde_value(init))
-      } else {
-        None
-      }
-    });
-
-    if arr.is_none() {
-      #[cfg(debug_assertions)]
-      warn!(
-        "{} Cannot find value of {name} in {path} {identifier:?}",
-        "[Find_identifier_value]".red().bold(),
-        path = self.file_path.display().yellow(),
-        name = identifier.name.cyan()
-      );
-
-      #[cfg(not(debug_assertions))]
-      warn!(
-        "{} Cannot find value of {name} in {path} {identifier:?}",
-        "[Find_identifier_value]".red().bold(),
-        path = self.file_path.display().yellow(),
-        name = identifier.name.cyan()
-      );
-      self.print_error_location(&identifier.span());
-    }
-
-    arr
-  }
-
-  fn find_identifier_value_as_vec_string(
-    &self,
-    identifier: &oxc_allocator::Box<IdentifierReference>,
-  ) -> Option<Vec<String>> {
-    let arr = self.program.body.iter().find_map(|stmt| self.parse_value_from_statement(stmt, identifier));
-
-    if arr.is_none() {
-      #[cfg(debug_assertions)]
-      log::warn!(
-        "{} Cannot vec values of {name} in {} {identifier:?}",
-        "[Find_identifier_value_as_vec_string]".red().bold(),
-        self.file_path.display().yellow(),
-        name = identifier.name.cyan()
-      );
-
-      #[cfg(not(debug_assertions))]
-      log::warn!(
-        "{} Cannot vec values of {name} in {}",
-        "[Find_identifier_value_as_vec_string]".red().bold(),
-        self.file_path.display().yellow(),
-        name = identifier.name.cyan()
-      );
-      self.print_error_location(&identifier.span());
-    }
-
-    arr.value_to_string_vec()
-  }
-
-  /// Find the value of an identifier as a string
-  ///
-  /// # Arguments
-  ///
-  /// * `identifier` - The identifier to find the value for
-  ///
-  /// # Returns
-  ///
-  /// An optional string representing the value of the identifier
-  fn find_identifier_value_as_string(&self, identifier: &oxc_allocator::Box<IdentifierReference>) -> Option<String> {
-    let arr = self.program.body.iter().find_map(|stmt| {
-      if let Statement::VariableDeclaration(var) = stmt {
-        var
-          .declarations
-          .iter()
-          .find(|v| v.id.get_identifier_name().is_some_and(|name| name.eq(&identifier.name)))
-          .and_then(|item| item.init.as_ref())
-          .and_then(|init| {
-            trace!("Looking for expression value from {:?}", init.bright_black().italic());
-            self.parse_expression_as_string(init)
-          })
-      } else {
-        None
-      }
-    });
-
-    if arr.is_none() {
-      #[cfg(debug_assertions)]
-      warn!(
-        "{} Cannot find str value of {name} in {} {identifier:?}",
-        "[Find_identifier_value_as_string]".red().bold(),
-        self.file_path.display().yellow(),
-        name = identifier.name.cyan()
-      );
-
-      #[cfg(not(debug_assertions))]
-      warn!(
-        "{} Cannot find str value of {name} in {}",
-        "[Find_identifier_value_as_string]".red().bold(),
-        self.file_path.display().yellow(),
-        name = identifier.name.cyan()
-      );
-      self.print_error_location(&identifier.span());
-    }
-
-    arr
   }
 
   /// Extract the namespace from the i18next function
@@ -489,10 +376,7 @@ impl<'a> I18NVisitor<'a> {
                       // todo this expression will contains the required identifier
                       match &e.expression {
                         JSXExpression::StringLiteral(str) => Some(vec![str.value.to_string()]),
-                        JSXExpression::Identifier(identifier) => {
-                          trace!("Looking for identifier value for prop");
-                          self.find_identifier_value_as_vec_string(identifier)
-                        },
+                        JSXExpression::Identifier(identifier) => self.find_identifier_value_as_vec_string(identifier),
                         JSXExpression::NumericLiteral(num) => Some(vec![num.value.to_string()]),
                         JSXExpression::StaticMemberExpression(expression) => {
                           self.parse_expression_as_string(&expression.object).map(|v| vec![v])

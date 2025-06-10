@@ -18,7 +18,7 @@ pub fn parse_file<P: AsRef<Path>, C: AsRef<Config>>(path: P, config: C) -> color
   let source_type = SourceType::from_path(path).unwrap();
   let parser = Parser::new(allocator, source_text.as_str(), source_type);
   let parsed = parser.parse();
-  let mut visitor = I18NVisitor::new(&parsed.program, path, config);
+  let mut visitor = I18NVisitor::new(allocator, &parsed.program, path, &config);
 
   trace!("Start parsing file {}...", file_name.yellow().italic());
   log_time!(format!("Parsing file {}", file_name.yellow()), {
