@@ -78,13 +78,47 @@ mod tests {
     .unwrap();
   }
 
+  #[test_log::test(ignore = "to be implemented")]
+  fn resolve_string_type_import_constraint_from_import() {
+    let dir = TempDir::new("translations").unwrap();
+    let main = dir.path().join("src").join("main.tsx");
+    write_file(
+      &main,
+      r#"import { Role } from './utils';
+export function InvitationEmail() {
+  const role: Role;
+  return (
+    <EmailRoot>
+      <Text className='truncate'>
+        <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+      </Text>
+    </EmailRoot>
+  );
+}"#,
+    )
+    .unwrap();
+
+    write_ts_config(&dir);
+
+    let utils = dir.path().join("src").join("utils.ts");
+    write_file(&utils, r#"export type Role = 'admin' | 'member' | 'owner'"#).unwrap();
+    let config = get_config(dir.path()).unwrap();
+    let entries = parse(&main, config);
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries, vec![Entry::new("role", "Role", "ns")]);
+    assert_eq!(
+      entries.first().unwrap().context,
+      Some(vec!("admin".to_string(), "member".to_string(), "owner".to_string()))
+    );
+  }
+
   #[test_log::test]
   fn resolve_string_type_from_import() {
     let dir = TempDir::new("translations").unwrap();
     let main = dir.path().join("src").join("main.tsx");
     write_file(
       &main,
-      r#"import { getRole } from './utils.js';
+      r#"import { Role } from './utils';
 export function InvitationEmail() {
   const role: Role;
   return (
@@ -118,7 +152,7 @@ export function InvitationEmail() {
     let main = dir.path().join("src").join("main.tsx");
     write_file(
       &main,
-      r#"import { getRole } from './utils.js';
+      r#"import { getRole } from './utils';
 export function InvitationEmail() {
   const role = getRole();
   return (

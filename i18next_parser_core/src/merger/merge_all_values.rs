@@ -201,24 +201,8 @@ mod tests {
     let result = merge_all_values(entries, &config);
 
     assert!(result.is_ok());
-    let result = result.unwrap();
+    let mut result = result.unwrap();
     let expected: Vec<MergeResults> = vec![
-      MergeResults {
-        namespace: "default".into(),
-        locale: "en".into(),
-        path: "./locales/en/default.json".into(),
-        backup: "./locales/en/default_old.json".into(),
-        merged: MergeResult {
-          new: json!({"key1": "value1", "key2_one": "value2","key2_other": "value2",}),
-          old: json!({}),
-          reset: json!({}),
-          merge_count: 0,
-          pull_count: 0,
-          old_count: 0,
-          reset_count: 0,
-        },
-        old_catalog: json!({}),
-      },
       MergeResults {
         namespace: "custom".into(),
         locale: "en".into(),
@@ -235,8 +219,28 @@ mod tests {
         },
         old_catalog: json!({}),
       },
+      MergeResults {
+        namespace: "default".into(),
+        locale: "en".into(),
+        path: "./locales/en/default.json".into(),
+        backup: "./locales/en/default_old.json".into(),
+        merged: MergeResult {
+          new: json!({"key1": "value1", "key2_one": "value2","key2_other": "value2",}),
+          old: json!({}),
+          reset: json!({}),
+          merge_count: 0,
+          pull_count: 0,
+          old_count: 0,
+          reset_count: 0,
+        },
+        old_catalog: json!({}),
+      },
     ];
-    assert_eq!(result, expected);
+    result.sort_by(|a, b| a.namespace.cmp(&b.namespace));
+
+    assert_eq!(result.len(), expected.len());
+    assert_eq!(result[0], expected[0]);
+    assert_eq!(result[1], expected[1]);
   }
 
   #[test]

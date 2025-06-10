@@ -22,12 +22,7 @@ use tracing::span;
 use crate::{
   visitor::{
     node_child::NodeChild,
-    traits::{
-      oxc_custom_parser::OxcCustomParser,
-      oxc_program::OxcProgram,
-      oxc_resolver::{OxcResolveImport, OxcResolver},
-      print_error_location::PrintErrorLocation,
-    },
+    traits::{oxc_custom_parser::OxcCustomParser, oxc_program::OxcProgram, print_error_location::PrintErrorLocation},
   },
   Config,
   Entry,
@@ -81,13 +76,13 @@ pub struct I18NVisitor<'a> {
   pub(super) resolver: Resolver,
 }
 
-impl<'a> OxcProgram for I18NVisitor<'a> {
-  fn program(&self) -> &Program<'a> {
+impl PrintErrorLocation for I18NVisitor<'_> {
+}
+impl OxcProgram for I18NVisitor<'_> {
+  fn program(&self) -> &Program<'_> {
     self.program
   }
-}
 
-impl<'a> OxcResolver for I18NVisitor<'a> {
   fn file_path(&self) -> &PathBuf {
     &self.file_path
   }
@@ -100,11 +95,7 @@ impl<'a> OxcResolver for I18NVisitor<'a> {
     self.allocator
   }
 }
-
-impl<'a> PrintErrorLocation for I18NVisitor<'a> {
-}
-
-impl<'a> OxcResolveImport for I18NVisitor<'a> {
+impl OxcCustomParser for I18NVisitor<'_> {
 }
 
 /// The visitor implementation that will search for translations inside javascript code
@@ -266,7 +257,7 @@ impl<'a> I18NVisitor<'a> {
         },
         Argument::Identifier(identifier) => {
           trace!("Looking for namespace {} value from identifier", name.cyan());
-          let identifier = self.find_identifier_value_as_string(identifier);
+          let identifier = self.find_identifier_value_as_string(&identifier.name);
           self.current_namespace = identifier;
         },
         Argument::TSAsExpression(expression) => {
@@ -284,10 +275,10 @@ impl<'a> I18NVisitor<'a> {
                     return Some(str.value.to_string());
                   },
                   PropertyKey::StaticIdentifier(ident) if ident.name == "ns" => {
-                    return self.find_identifier_value_as_string_from_identifier_name(ident);
+                    return self.find_identifier_value_as_string(&ident.name);
                   },
                   PropertyKey::Identifier(ident) if ident.name == "ns" => {
-                    return self.find_identifier_value_as_string(ident);
+                    return self.find_identifier_value_as_string(&ident.name);
                   },
                   _ => (),
                 }
@@ -369,14 +360,21 @@ impl<'a> I18NVisitor<'a> {
             if let JSXAttributeName::Identifier(identifier) = &attribute.name {
               if identifier.name == attribute_name {
                 if let Some(value) = &attribute.value {
-                  trace!("Value: {attribute_name} {value:?}");
+                  #[cfg(test)]
+                  trace!(
+                    "Value: {attribute_name} {value:?}",
+                    attribute_name = attribute_name.cyan(),
+                    value = value.bright_black().italic()
+                  );
                   match value {
                     JSXAttributeValue::StringLiteral(str) => Some(vec![str.value.to_string()]),
                     JSXAttributeValue::ExpressionContainer(e) => {
                       // todo this expression will contains the required identifier
                       match &e.expression {
                         JSXExpression::StringLiteral(str) => Some(vec![str.value.to_string()]),
-                        JSXExpression::Identifier(identifier) => self.find_identifier_value_as_vec_string(identifier),
+                        JSXExpression::Identifier(identifier) => {
+                          self.find_identifier_value_as_vec_string(&identifier.name)
+                        },
                         JSXExpression::NumericLiteral(num) => Some(vec![num.value.to_string()]),
                         JSXExpression::StaticMemberExpression(expression) => {
                           self.parse_expression_as_string(&expression.object).map(|v| vec![v])
@@ -434,7 +432,7 @@ impl<'a> I18NVisitor<'a> {
                         JSXExpression::StringLiteral(str) => Some(str.value.to_string()),
                         JSXExpression::Identifier(identifier) => {
                           trace!("Looking for identifier value for prop");
-                          self.find_identifier_value_as_string(identifier)
+                          self.find_identifier_value_as_string(&identifier.name)
                         },
                         JSXExpression::NumericLiteral(num) => Some(num.value.to_string()),
                         JSXExpression::StaticMemberExpression(expression) => {
@@ -530,7 +528,7 @@ impl<'a> I18NVisitor<'a> {
       },
       (Some(Argument::Identifier(identifier)), Some(Argument::ObjectExpression(obj))) => {
         debug!("looking for identifier value in t");
-        let value = self.find_identifier_value_as_serde(identifier);
+        let value = self.find_identifier_value_as_serde(&identifier.name);
         let (i18next_options, default_value) = self.parse_option_and_default_value(obj);
         if value.is_none() {
           (default_value, Some(i18next_options))
@@ -539,7 +537,7 @@ impl<'a> I18NVisitor<'a> {
         }
       },
       (Some(Argument::Identifier(identifier)), None) => {
-        let value = self.find_identifier_value_as_serde(identifier);
+        let value = self.find_identifier_value_as_serde(&identifier.name);
         debug!("identifier value: {value:?}");
         let value_as_str = value.as_ref().and_then(|v| v.as_str());
         if let Some(value) = value_as_str {
