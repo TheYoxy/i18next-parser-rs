@@ -423,7 +423,11 @@ impl<'a> I18NVisitor<'a> {
             if let JSXAttributeName::Identifier(identifier) = &attribute.name {
               if identifier.name == attribute_name {
                 if let Some(value) = &attribute.value {
-                  trace!("Value: {attribute_name} {value:?}");
+                  trace!(
+                    "Value: {attribute_name} {value:?}",
+                    attribute_name = attribute_name.cyan(),
+                    value = value.bright_black().italic()
+                  );
                   match value {
                     JSXAttributeValue::StringLiteral(str) => Some(str.value.to_string()),
                     JSXAttributeValue::ExpressionContainer(e) => {

@@ -34,7 +34,7 @@ pub fn dot_path_to_hash(
   found_value: &FoundValue,
 ) -> Option<HashMap<String, (FoundEntry, Option<Conflict>)>> {
   if entry.key.is_empty() {
-    log::error!("Entry key is empty, skipping entry: {:?}", entry);
+    log::error!("Entry key is empty, skipping entry: {entry:?}");
     print_error_location_from_file(&entry.location.file, entry.location.start, entry.location.end);
     return None;
   }

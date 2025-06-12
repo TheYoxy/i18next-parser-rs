@@ -27,7 +27,7 @@ fn generate_completion(shell: clap_complete::Shell) -> color_eyre::Result<()> {
   use clap::CommandFactory;
   use log::debug;
   let mut cmd = cli::Cli::command();
-  debug!("Generating completions for shell: {}", shell);
+  debug!("Generating completions for shell: {shell}");
   print_completions(shell, &mut cmd);
   Ok(())
 }

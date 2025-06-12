@@ -759,11 +759,28 @@ mod tests {
       }
 
       #[test_log::test]
+      fn should_parse_context_from_type_union_with_typeof() {
+        // language=javascript
+        let source_text = "
+            const sexKinds = ['male', 'female'] as const;
+            type SexKind = (typeof sexKinds)[number];
+            function A({kind} : {kind: SexKind}) {
+            return <Trans ns='ns' i18nKey='dialog.title' context={kind}>Reset password</Trans>;
+            }";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!["male".into(), "female".into()]
+        ),]);
+      }
+
+      #[test_log::test]
       fn should_parse_jsx_context_from_string_literal_with_multiple_entries() {
         // language=javascript
         let source_text = "const a = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;const b = <Trans ns='ns' i18nKey='dialog.title' context='female'>Reset password</Trans>;";
         let keys = parse(source_text);
-        pretty_assertions::assert_eq!(keys.len(), 2);
         pretty_assertions::assert_eq!(keys, vec![
           Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
           Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])

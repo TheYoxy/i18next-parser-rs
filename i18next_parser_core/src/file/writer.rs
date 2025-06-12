@@ -98,7 +98,7 @@ fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> s
 
   if let Some(parent) = path.parent() {
     if !parent.exists() {
-      trace!("creating parent directory: {:?}", parent);
+      trace!("creating parent directory: {parent:?}");
       std::fs::create_dir_all(parent)?;
     }
   }

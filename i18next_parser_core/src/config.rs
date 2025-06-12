@@ -194,11 +194,11 @@ impl Config {
 
     log::trace!("Building configuration");
     let configuration = builder.build();
-    log::trace!("Configuration built: {:#?}", configuration);
+    log::trace!("Configuration built: {configuration:#?}");
     let configuration = configuration.and_then(|config| config.try_deserialize::<Self>()).map(|config| {
       Config { generated_types: working_dir.join(config.generated_types).to_str().unwrap().to_string(), ..config }
     });
-    log::trace!("Loaded configuration: {:#?}", configuration);
+    log::trace!("Loaded configuration: {configuration:#?}");
     configuration
   }
 
