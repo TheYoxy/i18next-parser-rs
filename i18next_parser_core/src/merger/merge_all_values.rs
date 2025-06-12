@@ -1,7 +1,7 @@
 use core::panic;
 use std::collections::HashMap;
 
-use color_eyre::{eyre::eyre, owo_colors::OwoColorize};
+use color_eyre::owo_colors::OwoColorize;
 use tracing::instrument;
 
 use crate::{
@@ -63,28 +63,19 @@ pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
   tracing::info!(target: "instrument_log", "Merging {} entries across locales", entries.len().cyan());
   log_time!("Preparing entries to write", {
     let locales = &config.locales;
-    let default_locale = &config.locales.first().ok_or(eyre!("No locales found in the configuration."))?;
+    let default_locale = config.default_locale();
 
     let result = locales
       .iter()
       .filter_map(|locale| {
-        let entry = transform_entries(&entries, locale, config);
-        match entry {
-          Ok(TransformEntriesResult { unique_count, unique_plurals_count, value, locale }) => {
+        match transform_entries(&entries, locale, config) {
+          Ok(TransformEntriesResult { value, locale }) => {
             let obj = to_nested_object(&value);
             let catalog = obj.as_object().unwrap();
             let result = catalog
               .iter()
               .map(|(namespace, catalog)| {
-                merge_results(
-                  &locale,
-                  namespace,
-                  catalog,
-                  &unique_count,
-                  &unique_plurals_count,
-                  locale == **default_locale,
-                  config,
-                )
+                merge_results(&locale, namespace, catalog, locale == **default_locale, config)
               })
               .collect::<Vec<_>>();
             Some(result)
@@ -156,9 +147,9 @@ mod tests {
         new: json!({"key": "value"}),
         old: json!({}),
         reset: json!({}),
-        merge_count: 0,
-        pull_count: 0,
-        old_count: 0,
+        merged_count: 0,
+        unchanged_count: 0,
+        replaced_count: 0,
         reset_count: 0,
       },
       old_catalog: json!({}),
@@ -207,9 +198,9 @@ mod tests {
           new: json!({"key3": "value3",}),
           old: json!({}),
           reset: json!({}),
-          merge_count: 0,
-          pull_count: 0,
-          old_count: 0,
+          merged_count: 0,
+          unchanged_count: 0,
+          replaced_count: 0,
           reset_count: 0,
         },
         old_catalog: json!({}),
@@ -223,9 +214,9 @@ mod tests {
           new: json!({"key1": "value1", "key2_one": "value2","key2_other": "value2",}),
           old: json!({}),
           reset: json!({}),
-          merge_count: 0,
-          pull_count: 0,
-          old_count: 0,
+          merged_count: 0,
+          unchanged_count: 0,
+          replaced_count: 0,
           reset_count: 0,
         },
         old_catalog: json!({}),

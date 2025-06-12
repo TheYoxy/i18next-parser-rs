@@ -1,14 +1,8 @@
 //! This module contains the logic to transform entries into a JSON object.
-use std::collections::HashMap;
-
 use crate::{config::Config, merger::merge_all_values::FoundValue, transform::transform_entry::transform_entry, Entry};
 
 /// Represents the result of transforming entries.
 pub struct TransformEntriesResult {
-  /// The unique count of entries.
-  pub unique_count: HashMap<String, usize>,
-  /// The unique count of plural entries.
-  pub unique_plurals_count: HashMap<String, usize>,
   /// The transformed value.
   pub value: FoundValue,
   /// The locale of the transformed value.
@@ -31,15 +25,12 @@ pub fn transform_entries(
   locale: &str,
   config: &Config,
 ) -> color_eyre::Result<TransformEntriesResult> {
-  let mut unique_count = HashMap::new();
-  let mut unique_plurals_count = HashMap::new();
-
   let value = entries.iter().fold(FoundValue::new(), |mut value, entry| {
-    transform_entry(entry, &mut unique_count, &mut unique_plurals_count, config, locale, &mut value);
+    transform_entry(entry, config, locale, &mut value);
     value
   });
 
-  Ok(TransformEntriesResult { unique_count, unique_plurals_count, value, locale: locale.to_string() })
+  Ok(TransformEntriesResult { value, locale: locale.to_string() })
 }
 
 #[cfg(test)]
@@ -83,10 +74,7 @@ mod tests {
     assert!(result.is_ok());
     let result = result.unwrap();
 
-    assert_eq!(result.unique_count.get("default"), Some(&3));
-    assert_eq!(result.unique_count.get("custom"), Some(&1));
-    assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
-    assert_eq!(result.unique_plurals_count.get("custom"), Some(&0));
+    println!("{:?}", result.value);
     // assert_eq!(
     //   result.value,
     //   json!({"default": {"key1": "value1","key2_one": "value2","key2_other": "value2",},"custom": {"key3": "value3",}})
@@ -110,8 +98,6 @@ mod tests {
     assert!(result.is_ok());
     let result = result.unwrap();
 
-    assert_eq!(result.unique_count.get("default"), Some(&2));
-    assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
     println!("{:?}", result.value);
     // assert_eq!(
     //   result.value,
@@ -143,8 +129,6 @@ mod tests {
     let result = result.unwrap();
 
     println!("{:#?}", result.value);
-    assert_eq!(result.unique_count.get("default"), Some(&2));
-    assert_eq!(result.unique_plurals_count.get("default"), Some(&0));
 
     let map = Map::from_iter(result.value.iter().map(|(k, v)| (k.clone(), Value::String(v.value.clone()))));
 
@@ -188,8 +172,6 @@ mod tests {
     let result = result.unwrap();
 
     println!("{:#?}", result.value);
-    assert_eq!(result.unique_count.get("default"), Some(&2));
-    assert_eq!(result.unique_plurals_count.get("default"), Some(&0));
 
     let map = Map::from_iter(result.value.iter().map(|(k, v)| (k.clone(), Value::String(v.value.clone()))));
 
@@ -221,8 +203,6 @@ mod tests {
     assert!(result.is_ok());
     let result = result.unwrap();
 
-    assert_eq!(result.unique_count.get("default"), Some(&3));
-    assert_eq!(result.unique_plurals_count.get("default"), Some(&3));
     println!("{:?}", result.value);
     // assert_eq!(
     //   result.value,
@@ -253,8 +233,6 @@ mod tests {
     assert!(result.is_ok());
     let result = result.unwrap();
 
-    assert_eq!(result.unique_count.get("default"), Some(&2));
-    assert_eq!(result.unique_plurals_count.get("default"), Some(&2));
     println!("{:?}", result.value);
     // assert_eq!(
     //   result.value,

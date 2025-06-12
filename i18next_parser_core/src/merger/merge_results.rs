@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr};
 
 use color_eyre::owo_colors::OwoColorize;
 use log::trace;
@@ -8,7 +8,6 @@ use crate::{
   config::Config,
   file::catalog::read_file_into_serde,
   helper::merge_hashes::{merge_hashes, MergeResult},
-  print::print_count::print_counts,
   transform::transfer_values::transfer_values,
 };
 
@@ -58,8 +57,6 @@ pub fn merge_results<C: AsRef<Config>>(
   locale: &str,
   namespace: &str,
   catalog: &Value,
-  unique_count: &HashMap<String, usize>,
-  unique_plurals_count: &HashMap<String, usize>,
   is_default: bool,
   config: C,
 ) -> MergeResults {
@@ -79,19 +76,20 @@ pub fn merge_results<C: AsRef<Config>>(
   trace!("Backup path: {}", backup.display().yellow());
 
   let value = read_file_into_serde(&path);
+  let value = value.as_ref();
+
   let old_value = read_file_into_serde(&backup);
   let old_value = old_value.as_ref();
 
   trace!("Value: {:?} -> {:?}", value.cyan(), old_value.cyan());
 
-  let full_key_prefix = format!("{}{}", namespace, config.key_separator);
-  let merged = merge_hashes(value.as_ref(), catalog, old_value, &full_key_prefix, is_default, config);
-  let old_merged = merge_hashes(old_value, &merged.new, None, &full_key_prefix, false, &Config {
+  let full_key_prefix = format!("{}{}", namespace, config.namespace_separator);
+  let merged = merge_hashes(value, catalog, old_value, &full_key_prefix, is_default, locale, config);
+  let old_merged = merge_hashes(old_value, &merged.new, None, &full_key_prefix, false, locale, &Config {
     keep_removed: false,
     ..Default::default()
   });
   let old_catalog = transfer_values(&merged.old, &old_merged.old);
-  print_counts(locale, namespace, unique_count, unique_plurals_count, &merged, &old_merged);
 
   MergeResults { namespace: namespace.to_string(), locale: locale.to_string(), path, backup, merged, old_catalog }
 }
@@ -132,16 +130,14 @@ mod tests {
     let catalog = json!({
         "key": "value"
     });
-    let unique_count = HashMap::<String, usize>::new();
-    let unique_plurals_count = HashMap::<String, usize>::new();
     let is_default = true;
     let config = Config { locales: vec![locale.into()], output, ..Default::default() };
 
-    let result = merge_results(locale, namespace, &catalog, &unique_count, &unique_plurals_count, is_default, config);
+    let result = merge_results(locale, namespace, &catalog, is_default, config);
     let merged = result.merged;
     assert_eq!(merged.new, catalog, "the new value do not match");
     assert_eq!(merged.old, value, "the old value do not match");
-    assert_eq!(merged.merge_count, 0, "the merge count do not match");
+    assert_eq!(merged.merged_count, 0, "the merge count do not match");
   }
 
   #[test_log::test(ignore = "this should be fixed")]
@@ -159,15 +155,13 @@ mod tests {
         "key_male": "value",
         "key_female": "value"
     });
-    let unique_count = HashMap::<String, usize>::new();
-    let unique_plurals_count = HashMap::<String, usize>::new();
     let is_default = true;
     let config = Config { locales: vec![locale.into()], output, ..Default::default() };
 
-    let result = merge_results(locale, namespace, &catalog, &unique_count, &unique_plurals_count, is_default, config);
+    let result = merge_results(locale, namespace, &catalog, is_default, config);
     let merged = result.merged;
     assert_eq!(merged.new, value, "the new value do not match");
     assert_eq!(merged.old, value, "the old value do not match");
-    assert_eq!(merged.merge_count, 0, "the merge count do not match");
+    assert_eq!(merged.merged_count, 0, "the merge count do not match");
   }
 }

@@ -19,9 +19,8 @@ where
   }
 }
 
-#[allow(unused_variables)]
+#[cfg(feature = "print_error_location")]
 pub fn print_error_location(content: &str, start: usize, end: usize) {
-  #[cfg(feature = "print_error_location")]
   {
     use bat::{
       line_range::{LineRange, LineRanges},

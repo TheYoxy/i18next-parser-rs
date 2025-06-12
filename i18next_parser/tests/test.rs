@@ -58,9 +58,9 @@ fn should_parse_successfully() {
       old_catalog: _old_catalog,
     } = entry;
 
-    assert_eq!(merged.old_count, 0, "there isn't any values yet");
-    assert_eq!(merged.merge_count, 0, "there is 0 values to merge");
-    assert_eq!(merged.pull_count, 0, "there is 8 new values");
+    assert_eq!(merged.replaced_count, 0, "there isn't any values yet");
+    assert_eq!(merged.merged_count, 0, "there is 0 values to merge");
+    assert_eq!(merged.unchanged_count, 0, "there is 8 new values");
     assert_eq!(merged.reset_count, 0, "there is 0 values to reset");
     assert!(merged.old.is_empty(), "there isn't any old values");
     assert!(merged.reset.is_empty(), "there isn't any reset values");

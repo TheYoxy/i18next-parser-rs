@@ -217,6 +217,10 @@ impl Config {
     let output = self.output.replace("$LOCALE", locale);
     self.working_dir.join(&output).to_str().unwrap().to_string()
   }
+
+  pub fn default_locale(&self) -> &String {
+    self.locales.first().as_ref().expect("At least one locale should be defined")
+  }
 }
 
 #[cfg(test)]

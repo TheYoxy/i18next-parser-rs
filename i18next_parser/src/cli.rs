@@ -1,10 +1,10 @@
 //! This module provides the CLI for the i18n system.
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use anstyle::Style;
 use clap::{builder::Styles, command, Parser};
 use clap_complete::Shell;
-use color_eyre::{eyre::eyre, Section, SectionExt};
+use color_eyre::owo_colors::OwoColorize;
 use i18next_parser_core::{
   generate_index,
   generate_types,
@@ -17,6 +17,8 @@ use i18next_parser_core::{
 };
 use log::{info, trace};
 use resolve_path::PathResolveExt;
+
+use crate::print_count::{CountResults, PrintCounts};
 
 /// Create the style used by the CLI
 fn make_style() -> Styles {
@@ -65,34 +67,44 @@ pub trait Runnable {
 impl Runnable for Cli {
   fn run(&self) -> color_eyre::Result<()> {
     let path = &self.path;
-    log_time!(format!("Parsing {} to find translations to extract", path.display().yellow()), {
-      info!("Working directory: {}", path.display().yellow());
-      let config = &Config::new(path, self.verbose, self.dry_run)?;
-      trace!("Configuration: {config:?}");
+    info!("Working directory: {}", path.display().yellow());
+    let config = &Config::new(path, self.verbose, self.dry_run)?;
+    trace!("Configuration: {config:?}");
 
-      print_config(config);
+    print_config(config);
 
-      let path = &path.resolve();
-      let file_name = path.file_name().ok_or(eyre!("Invalid path").note(format!("{path:#?}").header("Path: ")))?;
-      let merged = log_time!(format!("Parsing directory {:?}", file_name.yellow()), {
-        let entries = parse_directory(path.clone(), config)?;
-        let merged = merge_all_values(entries, config)?;
+    let path = &path.resolve();
+    let entries = parse_directory(path.clone(), config)?;
+    let merged = merge_all_values(entries, config)?;
 
-        if config.dry_run {
-          log::warn!("Dry run, not writing to file");
-        } else {
-          write_to_file(&merged, config)?;
-        }
+    if config.verbose {
+      merged
+        .iter()
+        .fold(CountResults::new(), |mut curr, result| {
+          let mut map = HashMap::new();
+          map.insert(&result.locale, &result.merged);
+          if curr.contains_key(&result.namespace) {
+            curr.get_mut(&result.namespace).and_then(|map| map.insert(&result.locale, &result.merged));
+          } else {
+            curr.insert(&result.namespace, map);
+          }
+          curr
+        })
+        .print_counts();
+    }
 
-        merged
-      });
-      if cfg!(feature = "generate_types") && self.generate_types {
-        log_time!("Generating types", { generate_types(&merged, config) })?;
-        log_time!("Generating types", { generate_index(&merged, config) })
-      } else {
-        Ok(())
-      }
-    })
+    if config.dry_run {
+      log::warn!("Dry run, not writing to file");
+    } else {
+      write_to_file(&merged, config)?;
+    }
+
+    if cfg!(feature = "generate_types") && self.generate_types {
+      log_time!("Generating types", { generate_types(&merged, config) })?;
+      log_time!("Generating types", { generate_index(&merged, config) })
+    } else {
+      Ok(())
+    }
   }
 }
 

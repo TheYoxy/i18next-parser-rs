@@ -619,6 +619,7 @@ impl<'a> I18NVisitor<'a> {
   }
 
   /// Extracts the key from the `t` function call.
+  #[allow(unused_variables)]
   pub(super) fn extract_t_function_key(&mut self, expr: &CallExpression<'a>) -> Option<String> {
     match expr.arguments.first() {
       Some(Argument::StringLiteral(str)) => {

@@ -62,11 +62,11 @@ impl<'a> I18NVisitor<'a> {
               },
             }
           },
-          ObjectPropertyKind::SpreadProperty(prop) => {
+          ObjectPropertyKind::SpreadProperty(_prop) => {
             #[cfg(debug_assertions)]
             {
               warn!("{} Unsupported spread property", "[Parse_i18next_option]".red().bold());
-              self.print_error_location(&prop.span);
+              self.print_error_location(&_prop.span);
               panic!("Spread property is not supported in i18next options");
             }
             #[cfg(not(debug_assertions))]

@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod print_count;
 pub mod utils;
 
 fn print_completions<G: clap_complete::Generator>(gen: G, cmd: &mut clap::Command) {
