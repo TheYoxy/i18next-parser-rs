@@ -106,6 +106,7 @@ mod tests {
 
   use super::*;
 
+  #[allow(dead_code)]
   fn init_test(dir: &TempDir, ns: &str, locale: &str, value: &Value) -> color_eyre::Result<String> {
     std::fs::create_dir_all(dir.path())?;
     let output = dir.path().join("locales").join(ns).join(format!("{locale}.json"));

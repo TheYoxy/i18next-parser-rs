@@ -506,6 +506,7 @@ impl<'a> I18NVisitor<'a> {
       (Some(Argument::StringLiteral(str)), Some(Argument::Identifier(_))) => {
         let value = str.value.to_string();
         trace!("translation value defined as string literal: {}", value.cyan());
+        #[cfg(debug_assertions)]
         warn!("The 3rd argument of t is an identifier. This is not supported and will be ignored.");
         (Some(value), None)
       },

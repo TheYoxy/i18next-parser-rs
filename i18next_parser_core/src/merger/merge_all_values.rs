@@ -7,10 +7,8 @@ use tracing::instrument;
 use crate::{
   config::Config,
   log_time,
-  merger::{
-    merge_results::{merge_results, MergeResults},
-    FoundEntry,
-  },
+  merger::merge_results::{merge_results, MergeResults},
+  models::FoundEntry,
   transform::transform_entries::{transform_entries, TransformEntriesResult},
   Entry,
 };

@@ -1,10 +1,28 @@
+use std::path::PathBuf;
+
 use crate::visitor::traits::oxc_program::OxcProgram;
 
-pub trait PrintErrorLocation: OxcProgram {
-  /// Print the location of an error in the source code
+#[allow(unused_variables)]
+pub fn print_error_location_from_file<Path>(file_name: Path, start: usize, end: usize)
+where
+  Path: Into<PathBuf>,
+{
   #[cfg(feature = "print_error_location")]
-  #[tracing::instrument(skip(self), target = "instrument")]
-  fn print_error_location(&self, span: &oxc_span::Span) {
+  {
+    use std::fs;
+
+    let file_path: PathBuf = file_name.into();
+    let content =
+      fs::read_to_string(&file_path).expect(format!("Failed to read file: {}", file_path.display()).as_str());
+
+    print_error_location(&content, start, end);
+  }
+}
+
+#[allow(unused_variables)]
+pub fn print_error_location(content: &str, start: usize, end: usize) {
+  #[cfg(feature = "print_error_location")]
+  {
     use bat::{
       line_range::{LineRange, LineRanges},
       Input,
@@ -68,15 +86,11 @@ pub trait PrintErrorLocation: OxcProgram {
       }
     }
 
-    let content = self.program().source_text;
-
-    let start_pos = usize::try_from(span.start).unwrap();
-    let end_pos = usize::try_from(span.end).unwrap();
-    let bounds = get_line_bounds(content, start_pos, end_pos);
+    let bounds = get_line_bounds(content, start, end);
     let (start_line, end_line) = match bounds {
       Some((start, end)) => (start + 1, end + 1), // Convert to 1-indexed lines
       None => {
-        log::error!("{} Invalid span: {span:?}", "[Print_error_location]".red().bold());
+        log::error!("{} Invalid span: {start} {end}", "[Print_error_location]".red().bold());
         return;
       },
     };
@@ -86,7 +100,7 @@ pub trait PrintErrorLocation: OxcProgram {
     let input = Input::from_bytes(content.as_bytes());
     let _ = PrettyPrinter::new()
       .input(input)
-      .language(if self.program().source_type.is_typescript() { "typescript" } else { "javascript" })
+      .language("typescript")
       .line_ranges(LineRanges::from(vec![range]))
       .header(false)
       .grid(true)
@@ -94,8 +108,20 @@ pub trait PrintErrorLocation: OxcProgram {
       .highlight_range(start_line, end_line)
       .print();
   }
+}
 
-  #[cfg(not(feature = "print_error_location"))]
+pub trait PrintErrorLocation: OxcProgram {
+  /// Print the location of an error in the source code
+  #[tracing::instrument(skip(self), target = "instrument")]
   fn print_error_location(&self, _span: &oxc_span::Span) {
+    #[cfg(feature = "print_error_location")]
+    {
+      let span = _span;
+      let content = self.program().source_text;
+
+      let start_pos = usize::try_from(span.start).unwrap();
+      let end_pos = usize::try_from(span.end).unwrap();
+      print_error_location(content, start_pos, end_pos);
+    }
   }
 }

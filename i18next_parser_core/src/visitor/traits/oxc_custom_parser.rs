@@ -58,7 +58,14 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
     let arr = self.program().body.iter().find_map(|stmt| self.find_value_for_identifier(stmt, identifier));
 
     if arr.is_none() {
+      #[cfg(test)]
       warn!(
+        "{} Cannot find value of {name}",
+        "[find_identifier_value_as_serde]".red().bold(),
+        name = identifier.cyan()
+      );
+      #[cfg(not(test))]
+      debug!(
         "{} Cannot find value of {name}",
         "[find_identifier_value_as_serde]".red().bold(),
         name = identifier.cyan()
@@ -215,10 +222,7 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
             func
               .body
               .as_ref()
-              .unwrap()
-              .statements
-              .iter()
-              .find_map(|stmt| self.find_value_for_identifier(stmt, identifier))
+              .and_then(|body| body.statements.iter().find_map(|stmt| self.find_value_for_identifier(stmt, identifier)))
           })
       },
       Declaration::TSTypeAliasDeclaration(type_alias) if type_alias.id.name.eq(identifier) => {
@@ -301,12 +305,16 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
                   })
                 });
 
-                if result.is_none() {
-                  log::warn!(
-                    "{} Value of identifier {} is an import declaration, which is not supported",
-                    "[parse_type_annotation_as_vec_str]".red().bold(),
-                    identifier.name.cyan()
-                  );
+                #[cfg(debug_assertions)]
+                {
+                  if result.is_none() {
+                    log::warn!(
+                      "{} Value of identifier {} is an import declaration, which is not supported",
+                      "[parse_type_annotation_as_vec_str]".red().bold(),
+                      identifier.name.cyan()
+                    );
+                    self.print_error_location(&identifier.span());
+                  }
                 }
 
                 result.value_to_string_vec()
@@ -315,9 +323,11 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
             }
           })
         } else {
+          #[cfg(test)]
           log::warn!(
             "{} Unsupported type reference: {type_reference:?}",
-            "[parse_type_annotation_as_vec_str]".red().bold()
+            "[parse_type_annotation_as_vec_str]".red().bold(),
+            type_reference = type_reference.type_name
           );
           None::<Vec<String>>
         }
@@ -363,7 +373,16 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
   fn find_value_identifier_and_declaration(&self, path_to_resolve: &str, identifier: &str) -> Option<Value> {
     let path =
       (if self.file_path().is_dir() { Some(self.file_path().as_path()) } else { self.file_path().parent() }).unwrap();
-    let resolved = self.resolver().resolve(path, path_to_resolve);
+
+    let resolved = self.resolver().resolve(
+      path,
+      if path_to_resolve == "." {
+        warn!("Resolving path {path_to_resolve} as index");
+        "index"
+      } else {
+        path_to_resolve
+      },
+    );
     match resolved {
       Ok(resolved) => {
         let path = resolved.path();
@@ -400,7 +419,12 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         })
       },
       Err(err) => {
-        error!("{} Failed to resolve import: {}", "[Parse_value_from_statement]".red().bold(), err);
+        error!(
+          "{} Failed to resolve import to {}: {}",
+          "[Parse_value_from_statement]".on_red().bold(),
+          path_to_resolve.yellow(),
+          err.red()
+        );
         None
       },
     }

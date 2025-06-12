@@ -5,11 +5,9 @@ use log::warn;
 
 use crate::{
   config::Config,
-  helper::{
-    dot_path_to_hash::{dot_path_to_hash, Conflict},
-    get_char_diff::get_char_diff,
-  },
+  helper::{dot_path_to_hash::dot_path_to_hash, get_char_diff::get_char_diff},
   merger::merge_all_values::FoundValue,
+  models::Conflict,
   Entry,
 };
 
@@ -22,7 +20,7 @@ pub fn transform_entry(
   locale: &str,
   found_values: &mut FoundValue,
 ) {
-  let namespace = if let Some(ns) = &entry.namespace { ns } else { "default" };
+  let namespace = if let Some(ns) = &entry.namespace { ns } else { &options.default_namespace };
   if !unique_count.contains_key(namespace) {
     unique_count.insert(namespace.to_string(), 0);
   }
@@ -31,6 +29,7 @@ pub fn transform_entry(
   }
 
   let values = dot_path_to_hash(entry, locale, options, found_values);
+
   if let Some(values) = &values {
     for (key, (value, conflict)) in values.iter() {
       found_values.insert(key.to_string(), value.clone());
