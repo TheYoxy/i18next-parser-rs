@@ -1,4 +1,4 @@
-name: Build i18next-parser
+name: Continuous Integration
 
 on:
   pull_request:
@@ -7,15 +7,135 @@ on:
       - "update-*"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   main:
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.build.name }}
+    runs-on: ${{ matrix.build.os }}
+    strategy:
+      matrix:
+        build:
+          - {
+              NAME: linux-x64-glibc,
+              OS: ubuntu-22.04,
+              TOOLCHAIN: nightly,
+              TARGET: x86_64-unknown-linux-gnu,
+            }
+          - {
+              NAME: linux-x64-musl,
+              OS: ubuntu-22.04,
+              TOOLCHAIN: nightly,
+              TARGET: x86_64-unknown-linux-musl,
+            }
+          - {
+              NAME: linux-x86-glibc,
+              OS: ubuntu-22.04,
+              TOOLCHAIN: nightly,
+              TARGET: i686-unknown-linux-gnu,
+            }
+          - {
+              NAME: linux-x86-musl,
+              OS: ubuntu-22.04,
+              TOOLCHAIN: nightly,
+              TARGET: i686-unknown-linux-musl,
+            }
+          - {
+              NAME: linux-arm64-glibc,
+              OS: ubuntu-22.04,
+              TOOLCHAIN: nightly,
+              TARGET: aarch64-unknown-linux-gnu,
+            }
+          - {
+              NAME: linux-arm64-musl,
+              OS: ubuntu-22.04,
+              TOOLCHAIN: nightly,
+              TARGET: aarch64-unknown-linux-musl,
+            }
+          - {
+              NAME: win32-x64-mingw,
+              OS: windows-2022,
+              TOOLCHAIN: nightly,
+              TARGET: x86_64-pc-windows-gnu,
+            }
+          - {
+              NAME: win32-x64-msvc,
+              OS: windows-2022,
+              TOOLCHAIN: nightly,
+              TARGET: x86_64-pc-windows-msvc,
+            }
+          - {
+              NAME: win32-x86-msvc,
+              OS: windows-2022,
+              TOOLCHAIN: nightly,
+              TARGET: i686-pc-windows-msvc,
+            }
+          - {
+              NAME: win32-arm64-msvc,
+              OS: windows-2022,
+              TOOLCHAIN: nightly,
+              TARGET: aarch64-pc-windows-msvc,
+            }
+          - {
+              NAME: darwin-x64,
+              OS: macos-14,
+              TOOLCHAIN: nightly,
+              TARGET: x86_64-apple-darwin,
+            }
+          - {
+              NAME: darwin-arm64,
+              OS: macos-14,
+              TOOLCHAIN: nightly,
+              TARGET: aarch64-apple-darwin,
+            }
 
     steps:
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@master
 
-      - name: Install Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Install dependencies
+        shell: bash
+        run: |
+          if [[ "${{ matrix.build.NAME }}" = *"-musl" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              --allow-unauthenticated musl-tools
+          fi
 
-      - run: nix build github:$GITHUB_REPOSITORY/$GITHUB_SHA -L
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.build.TOOLCHAIN }}
+          target: ${{ matrix.build.TARGET }}
+          override: true
+
+      - name: Test (linux/macos)
+        if: matrix.build.OS != 'windows-2022'
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+          args: --locked --target ${{ matrix.build.TARGET }}
+
+      - name: Test (windows)
+        if: matrix.build.OS == 'windows-2022'
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --locked --target ${{ matrix.build.TARGET }}
+
+      - name: Build (linux/macos)
+        if: matrix.build.OS != 'windows-2022'
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --locked --target ${{ matrix.build.TARGET }}
+
+      - name: Build (windows)
+        if: matrix.build.OS == 'windows-2022'
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --locked --target ${{ matrix.build.TARGET }}
