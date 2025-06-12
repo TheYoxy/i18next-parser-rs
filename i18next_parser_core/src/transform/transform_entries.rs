@@ -36,10 +36,9 @@ pub fn transform_entries(
 #[cfg(test)]
 mod tests {
   use pretty_assertions::assert_eq;
-  use serde_json::{json, Map, Value};
 
   use super::*;
-  use crate::Entry;
+  use crate::{models::FoundEntry, Entry};
 
   #[test_log::test(ignore = "count are not correctly implemented")]
   fn test_transform_entries() {
@@ -69,48 +68,13 @@ mod tests {
     let locale = "en";
     let config = Default::default();
 
-    let result = transform_entries(&entries, locale, &config);
+    let result = transform_entries(&entries, locale, &config).map(|e| e.value).expect("the result should be ok");
 
-    assert!(result.is_ok());
-    let result = result.unwrap();
-
-    println!("{:?}", result.value);
-    // assert_eq!(
-    //   result.value,
-    //   json!({"default": {"key1": "value1","key2_one": "value2","key2_other": "value2",},"custom": {"key3": "value3",}})
-    // );
+    assert_eq!(result.get("default.key_male"), Some(&FoundEntry::new("male value")));
+    assert_eq!(result.get("default.key_female"), Some(&FoundEntry::new("female value")));
   }
 
-  #[test_log::test(ignore = "count are not correctly implemented")]
-  fn test_transform_entries_with_count_en() {
-    let entries = vec![Entry {
-      namespace: Some("default".to_string()),
-      key: "key".to_string(),
-      has_count: true,
-      value: Some("value".to_string()),
-      ..Default::default()
-    }];
-    let locale = "en";
-    let config = Default::default();
-
-    let result = transform_entries(&entries, locale, &config);
-
-    assert!(result.is_ok());
-    let result = result.unwrap();
-
-    println!("{:?}", result.value);
-    // assert_eq!(
-    //   result.value,
-    //   json!({
-    //   "default": {
-    //       "key_one": "value",
-    //       "key_other": "value",
-    //     }
-    //   })
-    // );
-  }
-
-  #[test_log::test(ignore = "count are not correctly implemented")]
+  #[test_log::test]
   fn test_transform_entries_with_multiple_context() {
     let entries = vec![Entry {
       namespace: Some("default".to_string()),
@@ -123,27 +87,13 @@ mod tests {
     let locale = "en";
     let config = Default::default();
 
-    let result = transform_entries(&entries, locale, &config);
+    let result = transform_entries(&entries, locale, &config).map(|e| e.value).expect("the result should be ok");
 
-    assert!(result.is_ok());
-    let result = result.unwrap();
-
-    println!("{:#?}", result.value);
-
-    let map = Map::from_iter(result.value.iter().map(|(k, v)| (k.clone(), Value::String(v.value.clone()))));
-
-    assert_eq!(
-      map,
-      *json!({
-          "default.key_male": "value".to_string(),
-          "default.key_female": "value".to_string()
-      })
-      .as_object()
-      .unwrap()
-    );
+    assert_eq!(result.get("default.key_male"), Some(&FoundEntry::new("value")));
+    assert_eq!(result.get("default.key_female"), Some(&FoundEntry::new("value")));
   }
 
-  #[test_log::test(ignore = "count are not correctly implemented")]
+  #[test_log::test]
   fn test_transform_entries_with_context() {
     let entries = vec![
       Entry {
@@ -166,24 +116,10 @@ mod tests {
     let locale = "en";
     let config = Default::default();
 
-    let result = transform_entries(&entries, locale, &config);
+    let result = transform_entries(&entries, locale, &config).map(|e| e.value).expect("the result should be ok");
 
-    assert!(result.is_ok());
-    let result = result.unwrap();
-
-    println!("{:#?}", result.value);
-
-    let map = Map::from_iter(result.value.iter().map(|(k, v)| (k.clone(), Value::String(v.value.clone()))));
-
-    assert_eq!(
-      map,
-      *json!({
-          "default.key_male": "male value".to_string(),
-          "default.key_female": "female value".to_string()
-      })
-      .as_object()
-      .unwrap()
-    );
+    assert_eq!(result.get("default.key_male"), Some(&FoundEntry::new("male value")));
+    assert_eq!(result.get("default.key_female"), Some(&FoundEntry::new("female value")));
   }
 
   #[test_log::test(ignore = "count are not correctly implemented")]

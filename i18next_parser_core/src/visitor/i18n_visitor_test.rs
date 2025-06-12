@@ -30,8 +30,7 @@ mod tests {
 
     let config = Config::default();
     let mut visitor = I18NVisitor::new(&allocator, &program, "file.tsx", &config);
-    visitor.options.trans_keep_basic_html_nodes_for =
-      Some(vec!["br".to_string(), "strong".to_string(), "i".to_string(), "p".to_string()]);
+    visitor.options.trans_keep_basic_html_nodes_for = Some(vec!["br".into(), "strong".into(), "i".into(), "p".into()]);
     visitor.visit_program(&program);
     visitor.entries
   }
@@ -45,8 +44,8 @@ mod tests {
       let source_text = "const ns = 'ns'; const title = t('toast.title', undefined, {namespace: ns});";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
     }
 
     #[test_log::test]
@@ -55,8 +54,8 @@ mod tests {
       let source_text = "const title = t('toast.title');";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("toast.title")]);
     }
 
     #[test_log::test]
@@ -65,8 +64,8 @@ mod tests {
       let source_text = "const title = t('toast.title', 'default_value', {namespace: 'ns'});";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("toast.title", "default_value", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("toast.title", "default_value", "ns")]);
     }
 
     #[test_log::test]
@@ -75,8 +74,8 @@ mod tests {
       let source_text = "const title = t('toast.title', 'nns');";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_value("toast.title", "nns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_value("toast.title", "nns")]);
     }
 
     #[test_log::test]
@@ -86,8 +85,8 @@ mod tests {
         "const ns = 'ns'; const t = await i18next.getFixedT(locale, ns); const title = t('toast.title'); ";
 
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
     }
 
     #[test_log::test]
@@ -95,8 +94,8 @@ mod tests {
       // language=javascript
       let source_text = "const ns = 'ns'; const title = t('toast.title', 'default title', { namespace: ns });";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("toast.title", "default title", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("toast.title", "default title", "ns")]);
     }
 
     #[test_log::test]
@@ -104,8 +103,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = t('toast.title');";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("toast.title")]);
     }
 
     #[test_log::test]
@@ -113,8 +112,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = t('toast.title', undefined, {});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("toast.title")]);
     }
 
     #[test_log::test]
@@ -123,8 +122,12 @@ mod tests {
       let source_text =
         "const title1 = t('toast.title1'); const title2 = t('toast.title2'); const title3 = t('toast.title3');";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 3);
-      assert_eq!(keys, vec![Entry::empty("toast.title1"), Entry::empty("toast.title2"), Entry::empty("toast.title3")]);
+      pretty_assertions::assert_eq!(keys.len(), 3);
+      pretty_assertions::assert_eq!(keys, vec![
+        Entry::empty("toast.title1"),
+        Entry::empty("toast.title2"),
+        Entry::empty("toast.title3")
+      ]);
     }
 
     #[test_log::test]
@@ -133,8 +136,12 @@ mod tests {
       let source_text =
         "const title1 = t('toast.title'); const title2 = t('toast.title'); const title3 = t('toast.title');";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 3);
-      assert_eq!(keys, vec![Entry::empty("toast.title"), Entry::empty("toast.title"), Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 3);
+      pretty_assertions::assert_eq!(keys, vec![
+        Entry::empty("toast.title"),
+        Entry::empty("toast.title"),
+        Entry::empty("toast.title")
+      ]);
     }
 
     #[test_log::test]
@@ -142,8 +149,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = t('toast.title', {defaultValue: 'Attempt {{num}}', num: 0});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_value("toast.title", "Attempt {{num}}")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_value("toast.title", "Attempt {{num}}")]);
     }
 
     #[test_log::test]
@@ -151,8 +158,8 @@ mod tests {
       // language=javascript
       let source_text = "const count = 1; const title = t('toast.title', undefined, { count });";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("toast.title")]);
       let el = keys.first().unwrap();
       assert!(el.has_count);
     }
@@ -162,8 +169,8 @@ mod tests {
       // language=javascript
       let source_text = "const count = 1; const title = t('toast.title', undefined, {count: count});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("toast.title")]);
       let el = keys.first().unwrap();
       assert!(el.has_count);
     }
@@ -173,8 +180,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = t('toast.title', undefined, {count: 1});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("toast.title")]);
       let el = keys.first().unwrap();
       assert!(el.has_count);
     }
@@ -184,8 +191,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = (count: number) => t('toast.title', undefined, {count: count});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("toast.title")]);
       let el = keys.first().unwrap();
       assert!(el.has_count);
     }
@@ -195,8 +202,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = (count: number) => t('toast.title', undefined, {count});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::empty("toast.title")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("toast.title")]);
       let el = keys.first().unwrap();
       assert!(el.has_count);
     }
@@ -207,8 +214,8 @@ mod tests {
       let source_text =
         "const t = useTranslation('other_override'); const title = t('namespace:toast.title', {ns: 'override'});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
     }
 
     #[test_log::test]
@@ -216,8 +223,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = t('namespace:toast.title', {ns: 'override'});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
     }
 
     #[test_log::test]
@@ -225,8 +232,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = t('namespace:toast.title');";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
     }
 
     #[test_log::test]
@@ -234,8 +241,8 @@ mod tests {
       // language=javascript
       let source_text = "const title = t('toast.title', {ns: 'namespace'});";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "namespace")]);
     }
 
     #[test_log::test]
@@ -244,8 +251,8 @@ mod tests {
       let source_text = "const title = t('toast.title', 'nns', {ns: 'namespace'});";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("toast.title", "nns", "namespace")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("toast.title", "nns", "namespace")]);
     }
 
     #[test_log::test]
@@ -255,8 +262,8 @@ mod tests {
         "const title = t('preview.error.text', 'An error has occurred while generating the preview.\\nPlease try again.', { ns: 'invoice', })";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new(
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new(
         "preview.error.text",
         "An error has occurred while generating the preview.\nPlease try again.",
         "invoice"
@@ -275,8 +282,8 @@ mod tests {
     });";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 2);
-      assert_eq!(keys, vec![
+      pretty_assertions::assert_eq!(keys.len(), 2);
+      pretty_assertions::assert_eq!(keys, vec![
         Entry::new("preview.error.title", "Error", "invoice"),
         Entry::new(
           "preview.error.text",
@@ -293,8 +300,8 @@ mod tests {
       let source_text = "const ns = 'ns'; const title = t(`${ns}:toast.title`, undefined);";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
     }
 
     #[test_log::test]
@@ -303,8 +310,8 @@ mod tests {
       let source_text = "const ns = 'ns'; const { t } = i18next.cloneInstance({ ns }); const title = t('toast.title');";
       let keys = parse(source_text);
 
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("toast.title", "ns")]);
     }
   }
 
@@ -316,8 +323,8 @@ mod tests {
       // language=javascript
       let source_text = "<Translation>{(t) => <>{t('first', 'Main')}{t('second')}</>}</Translation>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 2);
-      assert_eq!(keys, vec![Entry::new_with_value("first", "Main"), Entry::empty("second")]);
+      pretty_assertions::assert_eq!(keys.len(), 2);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_value("first", "Main"), Entry::empty("second")]);
     }
 
     #[test_log::test]
@@ -326,8 +333,8 @@ mod tests {
       // language=javascript
       let source_text = "<Translation ns='foo'>{(t) => t('first')}</Translation>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new_with_ns("first", "foo")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("first", "foo")]);
     }
   }
 
@@ -339,7 +346,7 @@ mod tests {
       // language=javascript
       let source_text = "<Trans i18nKey='first' defaults='test-value'>should be ignored</Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys, vec![Entry::new_with_value("first", "test-value")]);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_value("first", "test-value")]);
     }
 
     #[test_log::test]
@@ -347,7 +354,7 @@ mod tests {
       // language=javascript
       let source_text = "<Trans i18nKey='first' defaults={'test-value'}>should be ignored</Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys, vec![Entry::new_with_value("first", "test-value")]);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_value("first", "test-value")]);
     }
 
     #[test_log::test]
@@ -355,7 +362,7 @@ mod tests {
       // language=javascript
       let source_text = "<Trans i18nKey='first' />";
       let keys = parse(source_text);
-      assert_eq!(keys, vec![Entry::empty("first")]);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("first")]);
     }
 
     #[test_log::test]
@@ -364,7 +371,7 @@ mod tests {
       // language=javascript
       let source_text = "<Trans count={count}>{{ key: property, format: 'number' }}</Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys, vec![Entry::new_with_value("{{key, number}}", "{{key, number}}")]);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_value("{{key, number}}", "{{key, number}}")]);
     }
 
     #[test_log::test]
@@ -373,7 +380,7 @@ mod tests {
       // language=javascript
       let source_text = "<Trans count={count}>before{{ key1, key2 }}after</Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys, vec![Entry::new_with_value("beforeafter", "beforeafter")]);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_value("beforeafter", "beforeafter")]);
     }
 
     #[test_log::test]
@@ -381,8 +388,8 @@ mod tests {
       // language=javascript
       let source_text = "<Trans count={count}/>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
-      assert_eq!(keys, vec![]);
+      pretty_assertions::assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys, vec![]);
     }
 
     #[test_log::test]
@@ -390,8 +397,8 @@ mod tests {
       // language=javascript
       let source_text = "<Trans count={count}></Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
-      assert_eq!(keys, vec![]);
+      pretty_assertions::assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys, vec![]);
     }
 
     #[test_log::test]
@@ -400,9 +407,9 @@ mod tests {
       // language=javascript
       let source_text = "<Trans>a<b test={'</b>'}>c<c>z</c></b>{d}<br stuff={y}/></Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys.len(), 0);
       let first = keys.first().unwrap();
-      assert_eq!(first.value, Some("a<1>c<1>z</1></1>{d}<3></3>".into()));
+      pretty_assertions::assert_eq!(first.value, Some("a<1>c<1>z</1></1>{d}<3></3>".into()));
     }
 
     #[test_log::test]
@@ -412,9 +419,9 @@ mod tests {
       let source_text =
         "<Trans>My dogs are named: <ul i18nIsDynamicList>{['rupert', 'max'].map(dog => (<li>{dog}</li>))}</ul></Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys.len(), 0);
       let first = keys.first().unwrap();
-      assert_eq!(first.value, Some("My dogs are named: <1></1>".into()));
+      pretty_assertions::assert_eq!(first.value, Some("My dogs are named: <1></1>".into()));
     }
 
     #[test_log::test]
@@ -423,9 +430,9 @@ mod tests {
       // language=javascript
       let source_text = "<Trans>My dog is named: <span {...styles}>Spot</span></Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys.len(), 0);
       let first = keys.first().unwrap();
-      assert_eq!(first.value, Some("My dog is named: <1>Spot</1>".into()));
+      pretty_assertions::assert_eq!(first.value, Some("My dog is named: <1>Spot</1>".into()));
     }
 
     #[test_log::test]
@@ -434,9 +441,9 @@ mod tests {
       // language=javascript
       let source_text = "<Trans>{/* some comment */}Some Content</Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys.len(), 0);
       let first = keys.first().unwrap();
-      assert_eq!(first.value, Some("Some Content".into()));
+      pretty_assertions::assert_eq!(first.value, Some("Some Content".into()));
     }
 
     #[test_log::test]
@@ -445,8 +452,8 @@ mod tests {
       // language=javascript
       let source_text = "<><Trans i18nKey='first' /></>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
-      assert_eq!(keys, vec![Entry::empty("first")]);
+      pretty_assertions::assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys, vec![Entry::empty("first")]);
     }
 
     #[test_log::test]
@@ -455,9 +462,9 @@ mod tests {
       // language=javascript
       let source_text = "<Trans>Some{' '}Interpolated {'Content'}</Trans>";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys.len(), 0);
       let first = keys.first().unwrap();
-      assert_eq!(first.value, Some("Some Interpolated Content".into()));
+      pretty_assertions::assert_eq!(first.value, Some("Some Interpolated Content".into()));
     }
 
     #[test_log::test]
@@ -465,8 +472,8 @@ mod tests {
       // language=javascript
       let source_text = "const ns = 'ns'; const el = <Trans ns={ns} i18nKey='dialog.title'>Reset password</Trans>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
     }
 
     #[test_log::test]
@@ -474,8 +481,8 @@ mod tests {
       // language=javascript
       let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password</Trans>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
     }
 
     #[test_log::test]
@@ -483,8 +490,8 @@ mod tests {
       // language=javascript
       let source_text = "const Comp = () => <i>Reset password</i>; const el = <Trans ns='ns' i18nKey='dialog.title'><Comp>Reset password</Comp></Trans>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "<0>Reset password</0>", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "<0>Reset password</0>", "ns")]);
     }
 
     #[test_log::test]
@@ -493,8 +500,8 @@ mod tests {
       let source_text =
         "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password {{attempt}}</Trans>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]);
     }
 
     #[test_log::test]
@@ -502,8 +509,8 @@ mod tests {
       // language=javascript
       let source_text = "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password {{ attempt: attempt + 1 }}</Trans>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]);
     }
 
     #[test_log::test]
@@ -511,8 +518,8 @@ mod tests {
       // language=javascript
       let source_text = "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Attempt {{ attempt: attempt + 1 }} on 10</Trans>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Attempt {{attempt}} on 10", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Attempt {{attempt}} on 10", "ns")]);
     }
 
     #[test_log::test]
@@ -520,8 +527,8 @@ mod tests {
       // language=javascript
       let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password<br /></Trans>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password<1></1>", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password<1></1>", "ns")]);
     }
 
     #[test_log::test]
@@ -529,8 +536,8 @@ mod tests {
       // language=javascript
       let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title'><i>Reset password</i></Trans>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "<0>Reset password</0>", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "<0>Reset password</0>", "ns")]);
     }
 
     #[test_log::test]
@@ -538,8 +545,8 @@ mod tests {
       // language=javascript
       let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title'><i>Reset password</i></Trans>;";
       let keys = parse_with_options(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "<i>Reset password</i>", "ns")]);
+      pretty_assertions::assert_eq!(keys.len(), 1);
+      pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "<i>Reset password</i>", "ns")]);
     }
 
     #[test_log::test]
@@ -547,172 +554,221 @@ mod tests {
       // language=javascript
       let source_text = "const el = <Trad ns='ns' i18nKey='dialog.title'><i>Reset password</i></Trad>;";
       let keys = parse(source_text);
-      assert_eq!(keys.len(), 0);
+      pretty_assertions::assert_eq!(keys.len(), 0);
     }
 
-    #[test_log::test]
-    fn should_parse_jsx_with_count_identifier() {
-      // language=javascript
-      let source_text =
-        "const count = 2; const el = <Trans ns='ns' i18nKey='dialog.title' count={count}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      let le = keys.first().unwrap();
-      assert!(le.has_count);
+    mod count {
+      use super::*;
+      #[test_log::test]
+      fn should_parse_jsx_with_count_identifier() {
+        // language=javascript
+        let source_text =
+          "const count = 2; const el = <Trans ns='ns' i18nKey='dialog.title' count={count}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+        let le = keys.first().unwrap();
+        assert!(le.has_count);
+      }
+
+      #[test_log::test]
+      fn should_parse_jsx_with_count_numeral() {
+        // language=javascript
+        let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' count={2}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+        let le = keys.first().unwrap();
+        assert!(le.has_count);
+      }
+
+      #[test_log::test]
+      fn should_parse_jsx_with_count_double_reference() {
+        // language=javascript
+        let source_text =
+            "const a = 2; const b = a; const el = <Trans ns='ns' i18nKey='dialog.title' count={b}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+
+        let le = keys.first().unwrap();
+        assert!(le.has_count);
+      }
+
+      #[test_log::test]
+      fn should_parse_jsx_with_count_from_arg() {
+        // language=javascript
+        let source_text =
+          "const el = (count: number) => <Trans ns='ns' i18nKey='dialog.title' count={count}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+
+        let le = keys.first().unwrap();
+        assert!(le.has_count);
+      }
     }
 
-    #[test_log::test]
-    fn should_parse_jsx_with_count_numeral() {
-      // language=javascript
-      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' count={2}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      let le = keys.first().unwrap();
-      assert!(le.has_count);
-    }
+    mod context {
+      use super::*;
 
-    #[test_log::test]
-    fn should_parse_jsx_with_count_double_reference() {
-      // language=javascript
-      let source_text =
-        "const a = 2; const b = a; const el = <Trans ns='ns' i18nKey='dialog.title' count={b}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      #[test_log::test]
+      fn should_parse_jsx_context_from_string_arg_type_alias() {
+        // language=javascript
+        let source_text = "type Ctx = 'male' | 'female'; function El(val: Ctx) {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
 
-      let le = keys.first().unwrap();
-      assert!(le.has_count);
-    }
+      #[test_log::test]
+      fn should_parse_jsx_context_from_props_arg_function() {
+        // language=javascript
+        let source_text = "function El({ val }: {val: 'male' | 'female'}) {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
 
-    #[test_log::test]
-    fn should_parse_jsx_with_count_from_arg() {
-      // language=javascript
-      let source_text =
-        "const el = (count: number) => <Trans ns='ns' i18nKey='dialog.title' count={count}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
+      #[test_log::test]
+      fn should_parse_jsx_context_from_string_arg_function() {
+        // language=javascript
+        let source_text = "function El(val: 'male' | 'female') {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
 
-      let le = keys.first().unwrap();
-      assert!(le.has_count);
-    }
+      #[test_log::test]
+      fn should_parse_jsx_context_from_string_arg_const_function() {
+        // language=javascript
+        let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_arg_type_alias() {
-      // language=javascript
-      let source_text = "type Ctx = 'male' | 'female'; function El(val: Ctx) {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
-    }
+      #[test_log::test]
+      fn should_parse_jsx_context_from_variable_type() {
+        // language=javascript
+        let source_text =
+            "const getSex = () => 'male'; const val: 'male' | 'female' = getSex(); const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_props_arg_function() {
-      // language=javascript
-      let source_text = "function El({ val }: {val: 'male' | 'female'}) {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
-    }
+      #[test_log::test]
+      fn test_1() {
+        // language=javascript
+        let source_text = "function ThemeDropdownMenu() {
+      const { t } = useTranslation('ns');
+      const [theme, setTheme] = useTheme();
+      const preferredTheme: 'dark' | 'light' = getPreferredTheme();
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_arg_function() {
-      // language=javascript
-      let source_text = "function El(val: 'male' | 'female') {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
-    }
+      return (
+        <Trans context={preferredTheme} i18nKey='theme.system' ns='ns' t={t}>
+            System theme
+        </Trans>
+      );
+    }";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("theme.system", "System theme", "ns", vec![
+          "dark".into(),
+          "light".into()
+        ])]);
+      }
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_arg_const_function() {
-      // language=javascript
-      let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_variable_type() {
-      // language=javascript
-      let source_text =
-        "const getSex = () => 'male'; const val: 'male' | 'female' = getSex(); const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
-    }
-
-    #[test_log::test]
-    fn test_1() {
-      // language=javascript
-      let source_text = "function ThemeDropdownMenu() {
-  const { t } = useTranslation('ns');
-  const [theme, setTheme] = useTheme();
-  const preferredTheme: 'dark' | 'light' = getPreferredTheme();
-
-  return (
-    <Trans context={preferredTheme} i18nKey='theme.system' ns='ns' t={t}>
-        System theme
-    </Trans>
-  );
-}";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("theme.system", "System theme", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("dark".to_string(), "light".to_string())));
-    }
-
-    #[test_log::test]
-    fn test_2() {
-      // language=javascript
-      let source_text = "
-export function InvitationEmail() {
-  const role: 'admin' | 'member' | 'owner' = invitee.role as Roles;
-  return (
-    <EmailRoot>
-      <Text className='truncate'>
-        <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
-      </Text>
-    </EmailRoot>
-  );
-}
-";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("role", "Role", "ns")]);
-      assert_eq!(
-        keys.first().unwrap().context,
-        Some(vec!("admin".to_string(), "member".to_string(), "owner".to_string()))
+      #[test_log::test]
+      fn test_2() {
+        // language=javascript
+        let source_text = "
+    export function InvitationEmail() {
+      const role: 'admin' | 'member' | 'owner' = invitee.role as Roles;
+      return (
+        <EmailRoot>
+          <Text className='truncate'>
+            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+          </Text>
+        </EmailRoot>
       );
     }
+    ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_variable() {
-      // language=javascript
-      let source_text =
-        "const val = 'male'; const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string())));
-    }
+      #[test_log::test]
+      fn should_parse_jsx_context_from_variable() {
+        // language=javascript
+        let source_text =
+          "const val = 'male'; const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!["male".into()]
+        )]);
+      }
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_literal() {
-      // language=javascript
-      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;";
-      let keys = parse(source_text);
-      assert_eq!(keys.len(), 1);
-      assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string())));
+      #[test_log::test]
+      fn should_parse_jsx_context_from_string_literal() {
+        // language=javascript
+        let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_jsx_context_from_string_literal_with_multiple_entries() {
+        // language=javascript
+        let source_text = "const a = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;const b = <Trans ns='ns' i18nKey='dialog.title' context='female'>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 2);
+        pretty_assertions::assert_eq!(keys, vec![
+          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
+          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])
+        ]);
+      }
     }
   }
 }

@@ -92,9 +92,13 @@ pub struct Entry {
 impl PartialEq for Entry {
   /// Compare two entries.
   fn eq(&self, other: &Self) -> bool {
-    self.key == other.key && self.value == other.value && self.namespace == other.namespace
+    self.key == other.key
+      && self.value == other.value
+      && self.namespace == other.namespace
+      && self.context == other.context
   }
 }
+
 impl Entry {
   /// Create a new entry.
   pub fn empty<Key: Into<String>>(key: Key) -> Self {
@@ -104,6 +108,21 @@ impl Entry {
   /// Create a new entry with a value and a namespace.
   pub fn new<Key: Into<String>, Value: Into<String>, Ns: Into<String>>(key: Key, value: Value, namespace: Ns) -> Self {
     Self { key: key.into(), value: Some(value.into()), namespace: Some(namespace.into()), ..Default::default() }
+  }
+
+  pub fn new_with_context<Key: Into<String>, Value: Into<String>, Ns: Into<String>>(
+    key: Key,
+    value: Value,
+    namespace: Ns,
+    context: Vec<String>,
+  ) -> Self {
+    Self {
+      key: key.into(),
+      value: Some(value.into()),
+      namespace: Some(namespace.into()),
+      context: Some(context),
+      ..Default::default()
+    }
   }
 
   /// Create a new entry with a value.

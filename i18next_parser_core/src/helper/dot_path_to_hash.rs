@@ -135,10 +135,13 @@ fn merge_values(
         trace!("Values {:?} -> {:?}", old_value.purple(), new_value.purple());
         if *old_value != *new_value && !old_value.is_empty() {
           if new_value.is_empty() {
-            trace!("new value is empty, keeping old value {old_value:?}");
+            trace!("new value is empty, keeping old value {old_value:?}", old_value = old_value.purple());
             (old_value.as_str(), None)
           } else if has_context {
-            trace!("old value is different from new value, but has context. Keeping old value {old_value:?}");
+            trace!(
+              "old value is different from new value, but has context. Keeping old value {old_value:?}",
+              old_value = old_value.purple()
+            );
             // Since there is a context, we don't update the old value
             (old_value.as_str(), None)
           } else {
@@ -297,13 +300,8 @@ mod tests {
     assert!(result.is_some());
     let result = result.expect("");
 
-    assert!(result.contains_key("namespace.key_one"));
-    assert_eq!(result.get("namespace.key_one").expect("").0.value, "default_value");
-    assert_eq!(result.get("namespace.key_one").expect("").1, None);
-
-    assert!(result.contains_key("namespace.key_other"));
-    assert_eq!(result.get("namespace.key_other").expect("").0.value, "default_value");
-    assert_eq!(result.get("namespace.key_other").expect("").1, None);
+    assert_eq!(result.get("namespace.key_one"), Some(&(FoundEntry::new("default_value"), None)));
+    assert_eq!(result.get("namespace.key_other"), Some(&(FoundEntry::new("default_value"), None)));
   }
 
   #[test_log::test]
@@ -325,13 +323,8 @@ mod tests {
     assert!(result.is_some());
     let result = result.expect("");
 
-    assert!(result.contains_key("namespace.key_context1"));
-    assert_eq!(result.get("namespace.key_context1").expect("").0.value, "default_value");
-    assert_eq!(result.get("namespace.key_context1").expect("").1, None);
-
-    assert!(result.contains_key("namespace.key_context2"));
-    assert_eq!(result.get("namespace.key_context2").expect("").0.value, "default_value");
-    assert_eq!(result.get("namespace.key_context2").expect("").1, None);
+    assert_eq!(result.get("namespace.key_context1"), Some(&(FoundEntry::new("default_value"), None)));
+    assert_eq!(result.get("namespace.key_context2"), Some(&(FoundEntry::new("default_value"), None)));
   }
 
   #[test_log::test]

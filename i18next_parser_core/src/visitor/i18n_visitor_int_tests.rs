@@ -139,11 +139,12 @@ export function InvitationEmail() {
     let config = get_config(dir.path()).unwrap();
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new("role", "Role", "ns")]);
-    assert_eq!(
-      entries.first().unwrap().context,
-      Some(vec!("admin".to_string(), "member".to_string(), "owner".to_string()))
-    );
+    assert_eq!(entries, vec![Entry::new_with_context(
+      "role",
+      "Role",
+      "ns",
+      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+    )]);
   }
 
   #[test_log::test]
@@ -173,10 +174,11 @@ export function InvitationEmail() {
     let config = get_config(dir.path()).unwrap();
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new("role", "Role", "ns")]);
-    assert_eq!(
-      entries.first().unwrap().context,
-      Some(vec!("admin".to_string(), "member".to_string(), "owner".to_string()))
-    );
+    assert_eq!(entries, vec![Entry::new_with_context(
+      "role",
+      "Role",
+      "ns",
+      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+    )]);
   }
 }
