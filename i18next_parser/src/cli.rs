@@ -2,10 +2,11 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use anstyle::Style;
-use clap::{builder::Styles, command, Parser};
+use clap::{Parser, builder::Styles, command};
 use clap_complete::Shell;
 use color_eyre::owo_colors::OwoColorize;
 use i18next_parser_core::{
+  Config,
   generate_index,
   generate_types,
   log_time,
@@ -13,7 +14,6 @@ use i18next_parser_core::{
   parse_directory,
   print_config,
   write_to_file,
-  Config,
 };
 use log::{info, trace};
 use resolve_path::PathResolveExt;

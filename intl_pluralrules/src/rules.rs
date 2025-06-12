@@ -1,56 +1,38 @@
 #![allow(unused_variables, unused_parens, clippy::float_cmp, clippy::unreadable_literal, clippy::nonminimal_bool)]
-use unic_langid::{subtags, LanguageIdentifier};
+use unic_langid::{LanguageIdentifier, subtags};
 
-use super::{operands::PluralOperands, PluralCategory};
+use super::{PluralCategory, operands::PluralOperands};
 pub type PluralRule = fn(&PluralOperands) -> PluralCategory;
 pub static CLDR_VERSION: usize = 45;
 macro_rules! langid {
-  ($lang:expr, $script:expr, $region:expr) => {{
-    unsafe { LanguageIdentifier::from_raw_parts_unchecked($lang, $script, $region, None) }
-  }};
+  ($lang:expr, $script:expr, $region:expr) => {{ unsafe { LanguageIdentifier::from_raw_parts_unchecked($lang, $script, $region, None) } }};
 }
 pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = &[
   (
     langid!(subtags::Language::from_raw_unchecked(26209u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(27489u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28001u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28257u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -109,55 +91,35 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29537u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6386529u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7631713u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(31329u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7102818u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -179,44 +141,28 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(7169378u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(8021346u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(26466u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7301218u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -239,11 +185,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28258u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -274,11 +216,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(7893602u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -313,11 +251,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(25955u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -338,33 +272,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(6776675u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7497827u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6450019u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -412,33 +334,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(24932u64), None, None),
     |po| {
-      if (po.n == 1.0) || (po.t != 0 && (po.i == 0 || po.i == 1)) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) || (po.t != 0 && (po.i == 0 || po.i == 1)) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(25956u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6909796u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -460,11 +370,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(30308u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -474,44 +380,28 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(25957u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(27749u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28261u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28517u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -531,55 +421,35 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29797u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(30053u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(24934u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(26214u64), None, None),
     |po| {
-      if (po.i == 0 || po.i == 1) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0 || po.i == 1) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(26982u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -600,11 +470,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28518u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -624,22 +490,14 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(7501158u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(31078u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -678,44 +536,28 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(27751u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7828327u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(30055u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7828839u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -741,22 +583,14 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(24936u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7823720u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -776,11 +610,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(26984u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -820,33 +650,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(30056u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(31080u64), None, None),
     |po| {
-      if (po.i == 0 || po.i == 1) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0 || po.i == 1) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(24937u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -862,11 +680,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28521u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -916,22 +730,14 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(7300970u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6516074u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -944,44 +750,28 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(24939u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6447467u64), None, None),
     |po| {
-      if (po.i == 0 || po.i == 1) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0 || po.i == 1) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6971755u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6775659u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -994,33 +784,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(27499u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6974315u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(27755u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1030,11 +808,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28267u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1044,22 +818,14 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29547u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6452075u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1079,11 +845,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(30059u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1125,11 +887,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(31083u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1149,33 +907,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(25196u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(26476u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6973804u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1185,11 +931,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28268u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1230,33 +972,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(7561581u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(26477u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7300973u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1274,22 +1004,14 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(27757u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28269u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1309,11 +1031,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29293u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1343,11 +1061,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(6840686u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1367,77 +1081,49 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(25198u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(25710u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(25966u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(27758u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28270u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6844014u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28526u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1447,77 +1133,49 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29294u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7304046u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(31086u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7240046u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28015u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(29295u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(29551u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1527,33 +1185,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(24944u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7364976u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7168880u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1594,11 +1240,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29552u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1631,11 +1273,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28018u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1655,11 +1293,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(6713202u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1684,11 +1318,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(7042930u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1698,11 +1328,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(7430515u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1722,44 +1348,28 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(25459u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7234419u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(25715u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6841459u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1779,11 +1389,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(6841715u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1824,11 +1430,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(26995u64), None, None),
     |po| {
-      if (po.n == 0.0 || po.n == 1.0) || (po.i == 0 && po.f == 1) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 0.0 || po.n == 1.0) || (po.i == 0 && po.f == 1) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1930,33 +1532,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28275u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(28531u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(29043u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -1978,33 +1568,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29555u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7959411u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(29811u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2014,66 +1592,42 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(30323u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(30579u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7502195u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(24948u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(25972u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7300468u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2083,33 +1637,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(26996u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6777204u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(27508u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2130,11 +1672,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28276u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2147,22 +1685,14 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29300u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(29556u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2180,11 +1710,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(26485u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2209,33 +1735,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(29301u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(31349u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(25974u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2258,44 +1772,28 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(28534u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(7239030u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(24951u64), None, None),
     |po| {
-      if ((0..=1).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((0..=1).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6644087u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2305,33 +1803,21 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(26744u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(6778744u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(27001u64), None, None),
     |po| {
-      if (po.i == 1 && po.v == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 1 && po.v == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2347,11 +1833,7 @@ pub const PRS_CARDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] =
   (
     langid!(subtags::Language::from_raw_unchecked(30074u64), None, None),
     |po| {
-      if (po.i == 0) || (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i == 0) || (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2419,11 +1901,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(7102818u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2568,22 +2046,14 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(7104870u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(29286u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2593,11 +2063,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(24935u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2668,22 +2134,14 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(30056u64), None, None),
     |po| {
-      if (po.n == 1.0 || po.n == 5.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0 || po.n == 5.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(31080u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2783,11 +2241,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(28524u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2821,11 +2275,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(28525u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2847,11 +2297,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(29549u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2864,11 +2310,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(25966u64), None, None),
     |po| {
-      if ((1..=4).contains(&(po.i)) && po.f == 0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if ((1..=4).contains(&(po.i)) && po.f == 0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -2913,11 +2355,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(28530u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -3003,22 +2441,14 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(27508u64), None, None),
     |po| {
-      if (po.i % 10 == 6 || po.i % 10 == 9) || (po.n == 10.0) {
-        PluralCategory::FEW
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i % 10 == 6 || po.i % 10 == 9) || (po.n == 10.0) { PluralCategory::FEW } else { PluralCategory::OTHER }
     },
     &[PluralCategory::FEW, PluralCategory::OTHER],
   ),
   (
     langid!(subtags::Language::from_raw_unchecked(27764u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),
@@ -3031,11 +2461,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(27509u64), None, None),
     |po| {
-      if (po.i % 10 == 3 && po.i % 100 != 13) {
-        PluralCategory::FEW
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.i % 10 == 3 && po.i % 100 != 13) { PluralCategory::FEW } else { PluralCategory::OTHER }
     },
     &[PluralCategory::FEW, PluralCategory::OTHER],
   ),
@@ -3059,11 +2485,7 @@ pub const PRS_ORDINAL: &[(LanguageIdentifier, PluralRule, &[PluralCategory])] = 
   (
     langid!(subtags::Language::from_raw_unchecked(26998u64), None, None),
     |po| {
-      if (po.n == 1.0) {
-        PluralCategory::ONE
-      } else {
-        PluralCategory::OTHER
-      }
+      if (po.n == 1.0) { PluralCategory::ONE } else { PluralCategory::OTHER }
     },
     &[PluralCategory::ONE, PluralCategory::OTHER],
   ),

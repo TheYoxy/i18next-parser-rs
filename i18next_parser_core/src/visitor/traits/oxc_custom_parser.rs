@@ -306,16 +306,7 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         stmt
           .as_declaration()
           .and_then(|decl| {
-              if let Declaration::VariableDeclaration(var) = decl {
-                  if var.declarations.iter().any(|decl| decl.id.get_identifier_name().is_some_and(|name| name.eq(&identifier.name))) {
-                      self.parse_value_for_identifier_from_declaration(&identifier.name, decl).value_to_string_vec()
-                  } else {
-                      None
-                  }
-
-              } else if decl.is_type() {
-              self.parse_value_for_identifier_from_declaration(&identifier.name, decl).value_to_string_vec()
-            } else if decl.id().is_some_and(|id| id.name == identifier.name) {
+              if let Declaration::VariableDeclaration(var) = decl { if var.declarations.iter().any(|decl| decl.id.get_identifier_name().is_some_and(|name| name.eq(&identifier.name))) { self.parse_value_for_identifier_from_declaration(&identifier.name, decl).value_to_string_vec() } else { None } } else if decl.is_type() { self.parse_value_for_identifier_from_declaration(&identifier.name, decl).value_to_string_vec() } else if decl.id().is_some_and(|id| id.name == identifier.name) {
               self.parse_value_for_identifier_from_declaration(&identifier.name, decl).value_to_string_vec()
             } else {
               #[cfg(test)]

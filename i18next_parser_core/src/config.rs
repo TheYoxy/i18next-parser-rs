@@ -1,5 +1,5 @@
 //! This module provides configuration for the i18n system.
-use std::path::{PathBuf, MAIN_SEPARATOR_STR};
+use std::path::{MAIN_SEPARATOR_STR, PathBuf};
 
 use color_eyre::owo_colors::OwoColorize;
 use config::{File, FileFormat, FileSourceFile};

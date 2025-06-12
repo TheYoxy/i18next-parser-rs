@@ -96,11 +96,7 @@ fn create_relation(rel: Relation) -> TokenStream {
     for r in r1.0 {
       // Variants handled here
       let (symbol, rval) = if left.operand == Operand::N {
-        if !mod_check {
-          (quote!(po.#l), quote!(#r.0))
-        } else {
-          (quote!(po.i % #m), quote!(#r))
-        }
+        if !mod_check { (quote!(po.#l), quote!(#r.0)) } else { (quote!(po.i % #m), quote!(#r)) }
       } else {
         (if !mod_check { quote!(po.#l) } else { quote!(po.#l % #m) }, quote!(#r))
       };
@@ -115,11 +111,7 @@ fn create_relation(rel: Relation) -> TokenStream {
 
       // Variants handled here
       let (symbol, perim) = if left.operand == Operand::N {
-        if !mod_check {
-          (quote!(po.i), quote! { && po.f == 0})
-        } else {
-          (quote!(po.i), quote! {})
-        }
+        if !mod_check { (quote!(po.i), quote! { && po.f == 0}) } else { (quote!(po.i), quote! {}) }
       } else {
         (if !mod_check { quote!(po.#l) } else { quote!(po.#l % #m) }, quote! {})
       };

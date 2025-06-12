@@ -6,7 +6,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use color_eyre::{owo_colors::OwoColorize, Report};
+use color_eyre::{Report, owo_colors::OwoColorize};
 use log::trace;
 use serde_json::Value;
 use tracing::instrument;

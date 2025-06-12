@@ -1,7 +1,7 @@
 //! This module contains the plural rules and resolver.
 use std::collections::HashMap;
 
-use color_eyre::{eyre::eyre, Result};
+use color_eyre::{Result, eyre::eyre};
 use intl_pluralrules::{PluralRuleType, PluralRules};
 
 /// Cleans the provided code by replacing underscores with hyphens.

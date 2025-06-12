@@ -1,11 +1,11 @@
 use color_eyre::owo_colors::OwoColorize;
 use log::trace;
 use oxc_ast::ast::{CallExpression, JSXElement, JSXElementName};
-use oxc_ast_visit::{walk, Visit};
+use oxc_ast_visit::{Visit, walk};
 
 use crate::{
-  visitor::{entry::Location, I18NVisitor},
   Entry,
+  visitor::{I18NVisitor, entry::Location},
 };
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {

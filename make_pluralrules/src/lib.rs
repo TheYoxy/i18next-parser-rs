@@ -11,7 +11,7 @@ mod parser;
 
 use std::collections::BTreeMap;
 
-use color_eyre::eyre::{eyre, OptionExt};
+use color_eyre::eyre::{OptionExt, eyre};
 use proc_macro2::TokenStream;
 use unic_langid::LanguageIdentifier;
 

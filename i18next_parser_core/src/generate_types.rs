@@ -122,11 +122,7 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
     .collect::<Vec<_>>();
 
   let get_name_property = |name: &str| {
-    if name.chars().any(|char| !char.is_alphanumeric()) {
-      format!("'{name}'")
-    } else {
-      name.to_string()
-    }
+    if name.chars().any(|char| !char.is_alphanumeric()) { format!("'{name}'") } else { name.to_string() }
   };
 
   let ns_separator = &config.namespace_separator;

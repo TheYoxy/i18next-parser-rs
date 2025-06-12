@@ -1,7 +1,7 @@
 use std::{
   collections::HashMap,
   io::Write,
-  path::{Path, PathBuf, MAIN_SEPARATOR_STR},
+  path::{MAIN_SEPARATOR_STR, Path, PathBuf},
 };
 
 use clap::Parser;
@@ -11,11 +11,11 @@ use i18next_parser::{
   cli::{Cli, Runnable},
   utils::initialize_logging,
 };
-use i18next_parser_core::{merge_all_values, parse_directory, Config, IsEmpty, MergeResults};
+use i18next_parser_core::{Config, IsEmpty, MergeResults, merge_all_values, parse_directory};
 use log::debug;
 use pretty_assertions::assert_eq;
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tempdir::TempDir;
 
 fn setup_test<T: Into<PathBuf> + Clone>(path: T) -> color_eyre::Result<(T, Config)> {

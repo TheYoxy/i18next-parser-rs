@@ -8,7 +8,7 @@ use ignore::DirEntry;
 use log::debug;
 use tracing::instrument;
 
-use crate::{config::Config, file::parser::parse_file::parse_file, log_time, Entry};
+use crate::{Entry, config::Config, file::parser::parse_file::parse_file, log_time};
 
 fn parse_directory_mono_thread<C: AsRef<Config>>(filter: &[DirEntry], config: C) -> Vec<Entry> {
   filter
@@ -45,13 +45,6 @@ fn parse_directory_mono_thread<C: AsRef<Config>>(filter: &[DirEntry], config: C)
 /// # Arguments
 /// * `data` - The slice to chunk.
 /// * `num_chunks` - The desired number of sub-chunks.
-///
-/// # Examples
-/// ```
-/// let data = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-/// let chunks = chunk_into_n_sub_elements(&data, 3);
-/// // Expected: [[1, 2, 3, 4], [5, 6, 7], [8, 9, 10]]
-/// ```
 #[cfg(feature = "multithreaded")]
 pub fn chunk_into_n_sub_elements<T>(data: &[T], num_chunks: usize) -> Vec<&[T]> {
   let total_elements = data.len();

@@ -12,10 +12,10 @@ where
     use std::fs;
 
     let file_path: PathBuf = file_name.into();
-    let content =
-      fs::read_to_string(&file_path).expect(format!("Failed to read file: {}", file_path.display()).as_str());
-
-    print_error_location(&content, start, end);
+    _ = fs::read_to_string(&file_path).and_then(|content| {
+      print_error_location(&content, start, end);
+      Ok(())
+    });
   }
 }
 
@@ -23,9 +23,9 @@ where
 pub fn print_error_location(content: &str, start: usize, end: usize) {
   {
     use bat::{
-      line_range::{LineRange, LineRanges},
       Input,
       PrettyPrinter,
+      line_range::{LineRange, LineRanges},
     };
     use color_eyre::owo_colors::OwoColorize;
 

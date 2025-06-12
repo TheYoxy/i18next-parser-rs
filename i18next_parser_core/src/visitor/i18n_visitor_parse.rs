@@ -3,14 +3,14 @@ use log::{debug, trace, warn};
 use oxc_ast::ast::{Expression, JSXChild, JSXElementName, ObjectExpression, ObjectPropertyKind};
 
 use crate::{
+  IsEmpty,
   clean_multi_line_code,
   visitor::{
-    node_child::{NodeChild, NodeTag},
-    traits::oxc_custom_parser::OxcCustomParser,
     I18NVisitor,
     I18NextOptions,
+    node_child::{NodeChild, NodeTag},
+    traits::oxc_custom_parser::OxcCustomParser,
   },
-  IsEmpty,
 };
 
 impl<'a> I18NVisitor<'a> {
@@ -155,7 +155,9 @@ impl<'a> I18NVisitor<'a> {
           }
         });
         if non_format_props.len() > 1 {
-          warn!("The passed in object contained more than one variable - the object should look like {{{{ value, format }}}} where format is optional");
+          warn!(
+            "The passed in object contained more than one variable - the object should look like {{{{ value, format }}}} where format is optional"
+          );
           return NodeChild::Text("".to_string());
         }
 

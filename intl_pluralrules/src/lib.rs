@@ -199,7 +199,7 @@ mod tests {
   use pretty_assertions::assert_eq;
   use unic_langid::LanguageIdentifier;
 
-  use super::{PluralCategory, PluralRuleType, PluralRules, CLDR_VERSION};
+  use super::{CLDR_VERSION, PluralCategory, PluralRuleType, PluralRules};
 
   #[test]
   fn cardinals_test() {

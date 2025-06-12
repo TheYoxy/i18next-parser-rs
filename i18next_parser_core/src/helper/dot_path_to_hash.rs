@@ -6,13 +6,13 @@ use color_eyre::owo_colors::OwoColorize;
 use log::{info, trace};
 
 use crate::{
+  Config,
+  Entry,
+  Location,
   merger::merge_all_values::FoundValue,
   models::{Conflict, ConflictEntry, FoundEntry},
   transform::plural::{I18NVersion, PluralResolver},
   visitor::print_error_location_from_file,
-  Config,
-  Entry,
-  Location,
 };
 
 /// Converts an entry with a dot path to a hash.

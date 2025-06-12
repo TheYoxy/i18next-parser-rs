@@ -7,7 +7,7 @@ use oxc_ast_visit::Visit;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
 
-use crate::{log_time, visitor::I18NVisitor, Config, Entry};
+use crate::{Config, Entry, log_time, visitor::I18NVisitor};
 
 pub fn parse_file<P: AsRef<Path>, C: AsRef<Config>>(path: P, config: C) -> color_eyre::Result<Vec<Entry>> {
   let path = path.as_ref();

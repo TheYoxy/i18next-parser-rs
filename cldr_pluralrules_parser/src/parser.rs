@@ -1,13 +1,13 @@
 use std::convert::TryFrom;
 
 use nom::{
+  IResult,
   branch::alt,
   bytes::complete::tag,
   character::complete::{alphanumeric1, one_of, space0, space1},
   combinator::{map, map_res, opt},
   multi::{separated_list0, separated_list1},
   sequence::{preceded, separated_pair, tuple},
-  IResult,
 };
 
 use super::ast::*;
@@ -72,11 +72,7 @@ fn relation_operator(i: &str) -> IResult<&str, Operator> {
     map(
       tuple((tag("is"), space1, opt(tag("not")))),
       |(_, _, n)| {
-        if n.is_some() {
-          Operator::IsNot
-        } else {
-          Operator::Is
-        }
+        if n.is_some() { Operator::IsNot } else { Operator::Is }
       },
     ),
     map(tag("in"), |_| Operator::In),
@@ -130,11 +126,7 @@ fn samples(i: &str) -> IResult<&str, Option<Samples>> {
       opt(preceded(tuple((space1, tag("@decimal"), space1)), sample_list)),
     )),
     |(integer, decimal)| {
-      if integer.is_some() || decimal.is_some() {
-        Some(Samples { integer, decimal })
-      } else {
-        None
-      }
+      if integer.is_some() || decimal.is_some() { Some(Samples { integer, decimal }) } else { None }
     },
   )(i)
 }

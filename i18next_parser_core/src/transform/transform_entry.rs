@@ -2,11 +2,11 @@ use color_eyre::owo_colors::OwoColorize;
 use log::warn;
 
 use crate::{
+  Entry,
   config::Config,
   helper::{dot_path_to_hash::dot_path_to_hash, get_char_diff::get_char_diff},
   merger::merge_all_values::FoundValue,
   models::Conflict,
-  Entry,
 };
 
 /// Transforms an entry into a JSON object.

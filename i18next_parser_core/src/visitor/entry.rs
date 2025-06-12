@@ -26,8 +26,8 @@ impl Location {
   #[tracing::instrument(skip(self))]
   pub fn print(&self) {
     use bat::{
-      line_range::{LineRange, LineRanges},
       PrettyPrinter,
+      line_range::{LineRange, LineRanges},
     };
     let content = std::fs::read_to_string(&self.file).unwrap();
     let mut start_line = 1;

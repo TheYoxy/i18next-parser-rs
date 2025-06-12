@@ -2,7 +2,7 @@
 mod tests {
   use std::{
     io::Write,
-    path::{PathBuf, MAIN_SEPARATOR_STR},
+    path::{MAIN_SEPARATOR_STR, PathBuf},
   };
 
   use color_eyre::eyre::eyre;
@@ -12,7 +12,7 @@ mod tests {
   use oxc_span::SourceType;
   use tempdir::TempDir;
 
-  use crate::{visitor::I18NVisitor, Config, Entry};
+  use crate::{Config, Entry, visitor::I18NVisitor};
 
   fn parse(path: &PathBuf, config: Config) -> Vec<Entry> {
     let allocator = Allocator::default();

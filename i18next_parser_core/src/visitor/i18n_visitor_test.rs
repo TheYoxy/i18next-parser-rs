@@ -5,7 +5,7 @@ mod tests {
   use oxc_parser::Parser;
   use oxc_span::SourceType;
 
-  use crate::{visitor::I18NVisitor, Config, Entry};
+  use crate::{Config, Entry, visitor::I18NVisitor};
 
   fn parse(source_text: &str) -> Vec<Entry> {
     let allocator = Allocator::default();
@@ -258,8 +258,7 @@ mod tests {
     #[test_log::test]
     fn should_parse_t_with_default_value_and_namespace_2() {
       // language=javascript
-      let source_text =
-        "const title = t('preview.error.text', 'An error has occurred while generating the preview.\\nPlease try again.', { ns: 'invoice', })";
+      let source_text = "const title = t('preview.error.text', 'An error has occurred while generating the preview.\\nPlease try again.', { ns: 'invoice', })";
       let keys = parse(source_text);
 
       pretty_assertions::assert_eq!(keys.len(), 1);
@@ -585,8 +584,7 @@ mod tests {
       #[test_log::test]
       fn should_parse_jsx_with_count_double_reference() {
         // language=javascript
-        let source_text =
-            "const a = 2; const b = a; const el = <Trans ns='ns' i18nKey='dialog.title' count={b}>Reset password</Trans>;";
+        let source_text = "const a = 2; const b = a; const el = <Trans ns='ns' i18nKey='dialog.title' count={b}>Reset password</Trans>;";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
         pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
@@ -671,8 +669,7 @@ mod tests {
       #[test_log::test]
       fn should_parse_jsx_context_from_variable_type() {
         // language=javascript
-        let source_text =
-            "const getSex = () => 'male'; const val: 'male' | 'female' = getSex(); const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+        let source_text = "const getSex = () => 'male'; const val: 'male' | 'female' = getSex(); const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
         pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(

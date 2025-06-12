@@ -1,6 +1,6 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use intl_pluralrules::{PluralRuleType, PluralRules};
-use unic_langid::{langid, LanguageIdentifier};
+use unic_langid::{LanguageIdentifier, langid};
 
 fn plural_rules(c: &mut Criterion) {
   let langs = &["uk", "de", "sk", "ar", "fr", "it", "en", "cs", "es", "zh"];

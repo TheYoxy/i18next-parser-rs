@@ -20,13 +20,13 @@ use oxc_span::GetSpan;
 use tracing::span;
 
 use crate::{
+  Config,
+  Entry,
+  Location,
   visitor::{
     node_child::NodeChild,
     traits::{oxc_custom_parser::OxcCustomParser, oxc_program::OxcProgram, print_error_location::PrintErrorLocation},
   },
-  Config,
-  Entry,
-  Location,
 };
 
 /// This type alias represents the options for i18next.
@@ -139,9 +139,9 @@ impl<'a> I18NVisitor<'a> {
   #[tracing::instrument(skip(self), target = "instrument")]
   pub fn print_error_location(&self, span: &oxc_span::Span) {
     use bat::{
-      line_range::{LineRange, LineRanges},
       Input,
       PrettyPrinter,
+      line_range::{LineRange, LineRanges},
     };
 
     #[inline]
@@ -535,11 +535,7 @@ impl<'a> I18NVisitor<'a> {
         debug!("looking for identifier value in t");
         let value = self.find_identifier_value_as_serde(&identifier.name);
         let (i18next_options, default_value) = self.parse_option_and_default_value(obj);
-        if value.is_none() {
-          (default_value, Some(i18next_options))
-        } else {
-          todo!("Handle identifier {identifier:?}")
-        }
+        if value.is_none() { (default_value, Some(i18next_options)) } else { todo!("Handle identifier {identifier:?}") }
       },
       (Some(Argument::Identifier(identifier)), None) => {
         let value = self.find_identifier_value_as_serde(&identifier.name);

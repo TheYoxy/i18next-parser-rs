@@ -1,5 +1,5 @@
 //! This module contains the logic to transform entries into a JSON object.
-use crate::{config::Config, merger::merge_all_values::FoundValue, transform::transform_entry::transform_entry, Entry};
+use crate::{Entry, config::Config, merger::merge_all_values::FoundValue, transform::transform_entry::transform_entry};
 
 /// Represents the result of transforming entries.
 pub struct TransformEntriesResult {
@@ -38,7 +38,7 @@ mod tests {
   use pretty_assertions::assert_eq;
 
   use super::*;
-  use crate::{models::FoundEntry, Entry};
+  use crate::{Entry, models::FoundEntry};
 
   #[test_log::test(ignore = "count are not correctly implemented")]
   fn test_transform_entries() {

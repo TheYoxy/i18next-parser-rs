@@ -5,12 +5,12 @@ use color_eyre::owo_colors::OwoColorize;
 use tracing::instrument;
 
 use crate::{
+  Entry,
   config::Config,
   log_time,
-  merger::merge_results::{merge_results, MergeResults},
+  merger::merge_results::{MergeResults, merge_results},
   models::FoundEntry,
-  transform::transform_entries::{transform_entries, TransformEntriesResult},
-  Entry,
+  transform::transform_entries::{TransformEntriesResult, transform_entries},
 };
 
 pub type FoundValue = HashMap<String, FoundEntry>;
@@ -43,7 +43,7 @@ pub type FoundValue = HashMap<String, FoundEntry>;
 /// # Examples
 ///
 /// ```
-/// use i18next_parser_core::{merge_all_values, Config, Entry};
+/// use i18next_parser_core::{Config, Entry, merge_all_values};
 /// let entries = vec![Entry {
 ///   namespace: Some("default".into()),
 ///   key: "key".into(),
@@ -121,7 +121,7 @@ mod tests {
   use serde_json::json;
 
   use super::*;
-  use crate::{config::Config, helper::merge_hashes::MergeResult, Entry};
+  use crate::{Entry, config::Config, helper::merge_hashes::MergeResult};
 
   #[test]
   fn merge_all_values_simple_case() {

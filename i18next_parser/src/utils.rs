@@ -1,17 +1,17 @@
 //! Collection of utility functions and constants used throughout the project.
 
 use color_eyre::{eyre::Context, owo_colors::OwoColorize};
-use tracing::{level_filters::LevelFilter, Event, Level, Subscriber};
+use tracing::{Event, Level, Subscriber, level_filters::LevelFilter};
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
+  EnvFilter,
+  Layer,
   filter::filter_fn,
   fmt,
-  fmt::{format::FmtSpan, FormatEvent, FormatFields},
+  fmt::{FormatEvent, FormatFields, format::FmtSpan},
   layer::SubscriberExt,
   registry::LookupSpan,
   util::SubscriberInitExt,
-  EnvFilter,
-  Layer,
 };
 
 struct VerboseFilter {
@@ -228,7 +228,7 @@ pub fn initialize_panic_handler() -> color_eyre::Result<()> {
         let msg = format!("{}", panic_hook.panic_report(panic_info));
         log::error!("Error: {}", strip_ansi_escapes::strip_str(msg));
       } else {
-        use human_panic::{handle_dump, print_msg, Metadata};
+        use human_panic::{Metadata, handle_dump, print_msg};
         let meta = Metadata::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
           .authors(env!("CARGO_PKG_AUTHORS").replace(':', ", "))
           .homepage(env!("CARGO_PKG_HOMEPAGE"));

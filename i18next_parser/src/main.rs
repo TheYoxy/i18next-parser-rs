@@ -2,14 +2,14 @@ pub mod cli;
 pub mod print_count;
 pub mod utils;
 
-fn print_completions<G: clap_complete::Generator>(gen: G, cmd: &mut clap::Command) {
+fn print_completions<G: clap_complete::Generator>(generator: G, cmd: &mut clap::Command) {
   use clap_complete::generate;
   use log::debug;
   debug!("Generating completions for command: {:?}", cmd.get_name());
   if cfg!(test) {
-    generate(gen, cmd, cmd.get_name().to_string(), &mut std::io::sink())
+    generate(generator, cmd, cmd.get_name().to_string(), &mut std::io::sink())
   } else {
-    generate(gen, cmd, cmd.get_name().to_string(), &mut std::io::stdout())
+    generate(generator, cmd, cmd.get_name().to_string(), &mut std::io::stdout())
   }
 }
 

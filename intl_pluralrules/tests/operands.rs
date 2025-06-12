@@ -4,7 +4,7 @@
 
 use std::convert::{TryFrom, TryInto};
 
-use intl_pluralrules::{operands::*, PluralRuleType, PluralRules};
+use intl_pluralrules::{PluralRuleType, PluralRules, operands::*};
 use unic_langid::LanguageIdentifier;
 
 #[test]

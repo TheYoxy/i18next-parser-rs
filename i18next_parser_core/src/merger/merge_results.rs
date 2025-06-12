@@ -7,7 +7,7 @@ use serde_json::Value;
 use crate::{
   config::Config,
   file::catalog::read_file_into_serde,
-  helper::merge_hashes::{merge_hashes, MergeResult},
+  helper::merge_hashes::{MergeResult, merge_hashes},
   transform::transfer_values::transfer_values,
 };
 

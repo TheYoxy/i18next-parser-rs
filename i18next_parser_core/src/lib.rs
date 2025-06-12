@@ -13,7 +13,7 @@ pub use config::Config;
 pub use file::{parser::parse_directory::parse_directory, writer::write_to_file};
 pub use helper::{
   clean_multi_line_code::clean_multi_line_code,
-  merge_hashes::{merge_hashes, MergeResult},
+  merge_hashes::{MergeResult, merge_hashes},
 };
 pub use is_empty::IsEmpty;
 pub use merger::{merge_all_values::merge_all_values, merge_results::MergeResults};
