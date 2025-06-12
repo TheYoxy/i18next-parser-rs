@@ -1,11 +1,11 @@
-use std::{num::NonZero, path::PathBuf, time::Instant};
+use std::{path::PathBuf, time::Instant};
 
 use color_eyre::{
   eyre::{bail, eyre},
   owo_colors::{CssColors, OwoColorize},
 };
 use ignore::DirEntry;
-use log::{debug, info};
+use log::debug;
 use tracing::instrument;
 
 use crate::{config::Config, file::parser::parse_file::parse_file, log_time, Entry};
@@ -33,26 +33,79 @@ fn parse_directory_mono_thread<C: AsRef<Config>>(filter: &[DirEntry], config: C)
     .collect()
 }
 
-fn parse_directory_thread<'a>(parallelism: NonZero<usize>, filter: &'a [DirEntry], config: &'a Config) -> Vec<Entry> {
-  let len = filter.len();
-  let items_per_threads = len / parallelism;
-  let chunk_size = len.div_ceil(items_per_threads); // ceil(len / n)
+/// Chunks a slice into `num_chunks` approximately equal sub-slices.
+///
+/// Returns a `Vec` of slices, where each slice refers to a part of the original data.
+/// This method is fast because it avoids copying data and only performs index calculations.
+///
+/// If `num_chunks` is 0, an empty Vec is returned.
+/// If `num_chunks` is greater than the length of the slice, each element might become its own chunk,
+/// or some chunks might be empty, depending on the distribution strategy.
+///
+/// # Arguments
+/// * `data` - The slice to chunk.
+/// * `num_chunks` - The desired number of sub-chunks.
+///
+/// # Examples
+/// ```
+/// let data = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+/// let chunks = chunk_into_n_sub_elements(&data, 3);
+/// // Expected: [[1, 2, 3, 4], [5, 6, 7], [8, 9, 10]]
+/// ```
+#[cfg(feature = "multithreaded")]
+pub fn chunk_into_n_sub_elements<T>(data: &[T], num_chunks: usize) -> Vec<&[T]> {
+  let total_elements = data.len();
 
-  let vectors = (0..items_per_threads)
-    .map(|i| filter.iter().skip(i * chunk_size).take(chunk_size).cloned().collect::<Vec<_>>())
-    .collect::<Vec<_>>();
-  vectors
-    .iter()
-    .cloned()
-    .flat_map(|filter| {
-      std::thread::spawn({
-        let config = config.clone();
-        move || parse_directory_mono_thread(&filter, config)
-      })
-      .join()
-      .unwrap()
-    })
-    .collect::<Vec<_>>()
+  if num_chunks == 0 {
+    return Vec::new();
+  }
+  if total_elements == 0 {
+    return vec![&[]; num_chunks]; // Return `num_chunks` empty slices if data is empty
+  }
+  if num_chunks >= total_elements {
+    // If we want more chunks than elements, or equal,
+    // make each element its own chunk, and add empty chunks if needed.
+    let mut chunks: Vec<&[T]> = data.iter().map(|x| std::slice::from_ref(x)).collect();
+    // Add empty slices if num_chunks is still greater than total_elements
+    chunks.resize(num_chunks, &[]);
+    return chunks;
+  }
+
+  let base_chunk_size = total_elements / num_chunks;
+  let mut remainder = total_elements % num_chunks;
+
+  let mut result_chunks: Vec<&[T]> = Vec::with_capacity(num_chunks);
+  let mut current_idx = 0;
+
+  for _i in 0..num_chunks {
+    let mut current_chunk_size = base_chunk_size;
+    if remainder > 0 {
+      current_chunk_size += 1;
+      remainder -= 1;
+    }
+
+    let end_idx = current_idx + current_chunk_size;
+    // Ensure end_idx doesn't go out of bounds (edge case for last chunk if there's float arithmetic)
+    let end_idx = end_idx.min(total_elements);
+
+    result_chunks.push(&data[current_idx..end_idx]);
+    current_idx = end_idx;
+  }
+
+  result_chunks
+}
+
+#[cfg(feature = "multithreaded")]
+fn parse_directory_thread<'a>(parallelism: usize, filter: &'a [DirEntry], config: &'a Config) -> Vec<Entry> {
+  let chunks = chunk_into_n_sub_elements(filter, parallelism);
+  std::thread::scope(|scope| {
+    let mut vec = Vec::<Entry>::new();
+    for chunk in chunks {
+      let val = scope.spawn(|| parse_directory_mono_thread(chunk, config)).join().unwrap();
+      vec.extend(val);
+    }
+    vec
+  })
 }
 
 /// Parse a directory and return a list of entries.
@@ -90,6 +143,7 @@ pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -
     path.file_name().and_then(|s| s.to_str()).ok_or(eyre!("Unable to get filename of path {path:?}"))?;
   log_time!(format!("Reading directory {}", directory_name.yellow()), {
     debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
+
     let filter = ignore::WalkBuilder::new(path)
       .git_ignore(true)
       .git_global(true)
@@ -100,23 +154,24 @@ pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -
       .filter(|f| glob.is_match(f.path()))
       .filter(|f| !exclude.is_match(f.path()))
       .collect::<Vec<_>>();
-
-    debug!("Found {} entries", filter.len().blue());
-    if !filter.is_empty() {
+    #[cfg(feature = "multithreaded")]
+    {
       let parallelism = std::thread::available_parallelism().unwrap();
       let len = filter.len();
 
-      info!("Reading {} files", len.blue());
+      log::info!("Reading {} files", len.blue());
       let entries = if len > parallelism.get() {
         debug!("Using {parallelism} threads to read the directory {directory_name}");
-        parse_directory_thread(parallelism, &filter, config)
+        parse_directory_thread(parallelism.into(), &filter, config)
       } else {
         parse_directory_mono_thread(&filter, config)
       };
 
       Ok(entries)
-    } else {
-      bail!("No entries found in the directory {directory_name}")
+    }
+    #[cfg(not(feature = "multithreaded"))]
+    {
+      Ok(parse_directory_mono_thread(&filter, config))
     }
   })
 }

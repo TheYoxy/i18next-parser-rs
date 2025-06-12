@@ -22,7 +22,7 @@ pub fn transfer_values(source: &Value, target: &Value) -> Value {
     let mut new_target_map = target_map.clone();
     for (key, source_value) in source_map {
       if !new_target_map.contains_key(key) {
-        new_target_map.insert(key.clone(), source_value.clone());
+        new_target_map.insert(key.to_string(), source_value.clone());
       } else {
         let target_value = new_target_map.get_mut(key).unwrap();
         let transferred_value = transfer_values(source_value, target_value);

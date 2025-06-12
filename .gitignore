@@ -9,3 +9,5 @@
 # Profiling data
 profile.json
 Benchmark*.md
+flamegraph.svg
+perf.data*

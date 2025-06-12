@@ -7,28 +7,15 @@ use tracing::instrument;
 use crate::{
   config::Config,
   log_time,
-  merger::merge_results::{merge_results, MergeResults},
+  merger::{
+    merge_results::{merge_results, MergeResults},
+    FoundEntry,
+  },
   transform::transform_entries::{transform_entries, TransformEntriesResult},
   Entry,
-  Location,
 };
 
 pub type FoundValue = HashMap<String, FoundEntry>;
-#[derive(Debug, Clone)]
-pub struct FoundEntry {
-  pub value: String,
-  pub location: Location,
-}
-impl From<&str> for FoundEntry {
-  fn from(value: &str) -> Self {
-    Self { value: value.to_string(), location: Location::default() }
-  }
-}
-impl From<String> for FoundEntry {
-  fn from(value: String) -> Self {
-    Self { value, location: Location::default() }
-  }
-}
 
 /// Merges all translation values across different locales based on the provided entries and configuration.
 ///
@@ -121,7 +108,7 @@ fn to_nested_object(obj: &FoundValue) -> serde_json::Value {
     let parts = key.split('.').collect::<Vec<&str>>();
     for (index, part) in parts.iter().enumerate() {
       if index == parts.len() - 1 {
-        current.as_object_mut().unwrap().insert(part.to_string(), serde_json::Value::String(value.value.clone()));
+        current.as_object_mut().unwrap().insert(part.to_string(), serde_json::Value::String(value.value.to_string()));
       } else {
         let entry = current
           .as_object_mut()

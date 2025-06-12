@@ -6,11 +6,7 @@ authors = ["TheYoxy <floryansimar@gmail.com>"]
 license = "MIT"
 description = "A simple i18next parser"
 repository = "https://github.com/TheYoxy/i18next-parser-rs"
-include = [
-    "src/**/*",
-    "Cargo.toml",
-    "../README.md"
-]
+include = ["src/**/*", "Cargo.toml", "../README.md"]
 default-run = "i18next-parser"
 
 [[bin]]
@@ -36,9 +32,9 @@ tracing = "0.1"
 tracing-error = "0.2"
 serde = { version = "1.0.204", features = ["derive"] }
 tracing-subscriber = { version = "0.3", features = [
-    "env-filter",
-    "serde",
-    "time",
+  "env-filter",
+  "serde",
+  "time",
 ] }
 resolve-path = "0.1.0"
 

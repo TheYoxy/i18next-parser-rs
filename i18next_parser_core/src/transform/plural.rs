@@ -226,10 +226,10 @@ type Rules = HashMap<&'static str, RuleValue>;
 ///
 /// * `rules` - A Rules hashmap containing the plural rules.
 /// * `simplify_plural_suffix` - A boolean indicating whether to simplify the plural suffix.
-pub struct PluralResolver {
+pub struct PluralResolver<'a> {
   rules: Rules,
   simplify_plural_suffix: bool,
-  prepend: Option<String>,
+  prepend: &'a String,
   version: I18NVersion,
 }
 
@@ -240,20 +240,14 @@ pub enum I18NVersion {
   V4,
 }
 
-impl Default for PluralResolver {
-  fn default() -> Self {
-    Self::new(false, Some("_".to_string()), Default::default())
-  }
-}
-
-impl PluralResolver {
+impl<'a> PluralResolver<'a> {
   /// Returns a new PluralResolver with the provided simplify_plural_suffix value.
   ///
   /// # Arguments
   ///
   /// * `simplify_plural_suffix` - A boolean indicating whether to simplify the plural suffix.
   /// * `prepend` - An optional string slice that holds the value to prepend.
-  pub fn new(simplify_plural_suffix: bool, prepend: Option<String>, version: I18NVersion) -> Self {
+  pub fn new(simplify_plural_suffix: bool, prepend: &'a String, version: I18NVersion) -> Self {
     let sets = vec![
       PluralSet {
         lngs: vec![
@@ -326,7 +320,7 @@ impl PluralResolver {
   ///
   /// # Arguments
   ///
-  /// * `code` - A string slice that holds the code.
+  /// * `code` - The language code for which to get the suffixes.
   ///
   /// # Returns
   ///
@@ -338,8 +332,7 @@ impl PluralResolver {
         let lang: unic_langid::LanguageIdentifier = code.parse()?;
         let plural_rules = PluralRules::create(lang, PluralRuleType::CARDINAL).map_err(|e| eyre!(e))?;
         let result = plural_rules.resolved_options();
-        let prepend = self.prepend.clone().unwrap_or_default();
-        Ok(result.iter().map(|n| format!("{prepend}{n}")).collect::<Vec<String>>())
+        Ok(result.iter().map(|n| format!("{prepend}{n}", prepend = self.prepend)).collect::<Vec<String>>())
       },
       _ => {
         let result = match self.get_rule(code) {
@@ -374,15 +367,7 @@ impl PluralResolver {
           }
         } else {
           let rule = rules.get(idx as usize);
-          fn return_suffix(prepend: Option<String>, suffix: Option<&u32>) -> String {
-            match (prepend, suffix) {
-              (Some(prepend), Some(suffix)) => format!("{prepend}{suffix}"),
-              (None, Some(suffix)) => suffix.to_string(),
-              _ => String::new(),
-            }
-          }
-
-          return_suffix(self.prepend.clone(), rule)
+          format!("{prepend}{rule}", prepend = self.prepend, rule = rule.unwrap_or(&0))
         }
       },
       None => String::new(),
@@ -414,26 +399,23 @@ mod tests {
     use super::*;
 
     #[test_log::test]
-    fn plural_resolver_default_creates_new_with_simplified_suffix() {
-      let resolver = PluralResolver::default();
-      assert!(!resolver.simplify_plural_suffix);
-    }
-
-    #[test_log::test]
     fn plural_resolver_new_creates_new_with_given_simplify_suffix() {
-      let resolver = PluralResolver::new(false, None, Default::default());
+      let separator = "_".to_string();
+      let resolver = PluralResolver::new(false, &separator, Default::default());
       assert!(!resolver.simplify_plural_suffix);
     }
 
     #[test_log::test]
     fn get_rule_returns_none_for_non_existent_code() {
-      let resolver = PluralResolver::default();
+      let separator = "_".to_string();
+      let resolver = PluralResolver::new(false, &separator, Default::default());
       assert!(resolver.get_rule("nonexistent").is_none());
     }
 
     #[test_log::test]
     fn get_suffixes_return_elements_for_en() {
-      let resolver = PluralResolver::default();
+      let separator = "_".to_string();
+      let resolver = PluralResolver::new(false, &separator, Default::default());
       let suffixes = resolver.get_suffixes("en");
 
       assert!(suffixes.is_ok());
@@ -446,7 +428,8 @@ mod tests {
 
     #[test_log::test]
     fn get_suffixes_return_elements_for_fr() {
-      let resolver = PluralResolver::default();
+      let separator = "_".to_string();
+      let resolver = PluralResolver::new(false, &separator, Default::default());
       let suffixes = resolver.get_suffixes("fr");
 
       assert!(suffixes.is_ok());
@@ -459,7 +442,8 @@ mod tests {
 
     #[test_log::test]
     fn get_suffixes_return_elements_for_nl() {
-      let resolver = PluralResolver::default();
+      let separator = "_".to_string();
+      let resolver = PluralResolver::new(false, &separator, Default::default());
       let suffixes = resolver.get_suffixes("nl");
 
       assert!(suffixes.is_ok());
@@ -472,14 +456,16 @@ mod tests {
 
     #[test_log::test]
     fn get_suffixes_returns_empty_vector_for_non_existent_code() {
-      let resolver = PluralResolver::default();
+      let separator = "_".to_string();
+      let resolver = PluralResolver::new(false, &separator, Default::default());
       let suffixes = resolver.get_suffixes("nonexistent");
       assert!(suffixes.is_err());
     }
 
     #[test_log::test]
     fn get_suffix_returns_empty_string_for_non_existent_code() {
-      let resolver = PluralResolver::default();
+      let separator = "_".to_string();
+      let resolver = PluralResolver::new(false, &separator, Default::default());
       assert_eq!(resolver.get_suffix("nonexistent", 1), "");
     }
   }

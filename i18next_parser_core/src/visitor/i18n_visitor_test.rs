@@ -629,14 +629,14 @@ mod tests {
       assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
     }
 
-    #[test_log::test(ignore = "must be fixed")]
+    #[test_log::test]
     fn should_parse_jsx_context_from_string_arg_const_function() {
       // language=javascript
       let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
       let keys = parse(source_text);
       assert_eq!(keys.len(), 1);
       assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password", "ns")]);
-      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string())));
+      assert_eq!(keys.first().unwrap().context, Some(vec!("male".to_string(), "female".to_string())));
     }
 
     #[test_log::test]

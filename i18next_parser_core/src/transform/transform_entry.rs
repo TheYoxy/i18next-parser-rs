@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use color_eyre::{eyre::bail, owo_colors::OwoColorize};
+use color_eyre::owo_colors::OwoColorize;
 use log::warn;
 
 use crate::{
@@ -19,21 +19,21 @@ pub fn transform_entry(
   unique_count: &mut HashMap<String, usize>,
   unique_plurals_count: &mut HashMap<String, usize>,
   options: &Config,
-  suffix: Option<&str>,
+  locale: &str,
   found_values: &mut FoundValue,
-) -> color_eyre::Result<FoundValue> {
-  let namespace = entry.namespace.clone().unwrap_or("default".to_string());
-  if !unique_count.contains_key(&namespace) {
-    unique_count.insert(namespace.clone(), 0);
+) {
+  let namespace = if let Some(ns) = &entry.namespace { ns } else { "default" };
+  if !unique_count.contains_key(namespace) {
+    unique_count.insert(namespace.to_string(), 0);
   }
-  if !unique_plurals_count.contains_key(&namespace) {
-    unique_plurals_count.insert(namespace.clone(), 0);
+  if !unique_plurals_count.contains_key(namespace) {
+    unique_plurals_count.insert(namespace.to_string(), 0);
   }
 
-  let values = dot_path_to_hash(entry, suffix, options, found_values);
+  let values = dot_path_to_hash(entry, locale, options, found_values);
   if let Some(values) = &values {
     for (key, (value, conflict)) in values.iter() {
-      found_values.insert(key.clone(), value.clone());
+      found_values.insert(key.to_string(), value.clone());
 
       match conflict {
         Some(Conflict::Value(old, new)) => {
@@ -44,7 +44,7 @@ pub fn transform_entry(
             new.location.print();
           }
           if options.fail_on_warnings {
-            bail!(
+            panic!(
               "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}",
               key =
                 format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
@@ -59,16 +59,14 @@ pub fn transform_entry(
           );
         },
         _ => {
-          *unique_count.get_mut(&namespace).unwrap() += 1;
-          if suffix.is_some() {
-            *unique_plurals_count.get_mut(&namespace).unwrap() += 1;
-          }
+          *unique_count.get_mut(namespace).unwrap() += 1;
+          // if locale.is_some() {
+          //   *unique_plurals_count.get_mut(namespace).unwrap() += 1;
+          // }
         },
       }
     }
   }
-
-  Ok(found_values.clone())
 }
 
 #[cfg(test)]
@@ -91,10 +89,9 @@ mod tests {
     let mut value = FoundValue::new();
     let options = Default::default();
 
-    let result = transform_entry(&entry, &mut unique_count, &mut unique_plurals_count, &options, None, &mut value);
+    transform_entry(&entry, &mut unique_count, &mut unique_plurals_count, &options, "en", &mut value);
 
-    assert!(result.is_ok());
-    // assert_eq!(result.unwrap(), json!({"default": {"key1": "value1"}}));
+    assert_eq!(value, HashMap::from([("default.key1".to_string(), "value1".into())]));
     assert_eq!(unique_count.get("default"), Some(&1));
     assert_eq!(unique_plurals_count.get("default"), Some(&0));
   }

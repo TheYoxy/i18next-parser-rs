@@ -151,58 +151,79 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
     #[cfg(test)]
     debug!("Parsing declaration: {:?}", decl.bright_black().italic());
 
+    let parse_type_annotation = |type_annotation: &oxc_allocator::Box<'_, TSTypeAnnotation<'_>>| {
+      #[cfg(test)]
+      trace!("Type annotation: {:?}", type_annotation);
+      self
+        .parse_type_annotation_as_vec_str(&type_annotation.type_annotation)
+        .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
+    };
+
     match decl {
       Declaration::VariableDeclaration(var) => {
-        var.declarations.iter().find(|e| e.id.get_identifier_name().is_some_and(|idx| idx.eq(identifier))).and_then(
-          |item| {
+        var
+          .declarations
+          .iter()
+          .find(|e| e.id.get_identifier_name().is_some_and(|idx| idx.eq(identifier)))
+          .and_then(|item| {
+            #[cfg(test)]
             trace!("Parsing item: {:?}", item.bright_black().italic());
             item
               .init
               .as_ref()
               .and_then(|init| {
+                #[cfg(test)]
                 trace!("Parsing item value: {:?}", init.bright_black().italic());
                 self.parse_expression_to_serde_value(init)
               })
               .or_else(|| {
+                #[cfg(test)]
                 trace!("Parsing type annotation for item: {:?}", item.bright_black().italic());
-                item.id.type_annotation.as_ref().and_then(|type_annotation| {
-                  self
-                    .parse_type_annotation_as_vec_str(&type_annotation.type_annotation)
-                    .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
-                })
+                item.id.type_annotation.as_ref().and_then(parse_type_annotation)
               })
-          },
-        )
+          })
+          .or_else(|| {
+            var.declarations.iter().find_map(|e| {
+              e.init.as_ref().and_then(|init| {
+                if let Expression::ArrowFunctionExpression(arrow_function) = init {
+                  arrow_function
+                    .params
+                    .iter_bindings()
+                    .find_map(|param| find_type_of_identifier(identifier, param))
+                    .and_then(parse_type_annotation)
+                } else {
+                  None
+                }
+              })
+            })
+          })
       },
-      Declaration::FunctionDeclaration(func)
-        if func.params.iter_bindings().any(|param| find_type_of_identifier(identifier, param).is_some()) =>
-      {
-        func.params.iter_bindings().find_map(|param| find_type_of_identifier(identifier, param)).and_then(
-          |type_annotation| {
-            trace!("Type annotation: {:?}", type_annotation);
-            self
-              .parse_type_annotation_as_vec_str(&type_annotation.type_annotation)
-              .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
-          },
-        )
-      },
-      Declaration::FunctionDeclaration(func)
-        if func.id.as_ref().is_some_and(|idx| idx.name.eq(identifier)) && func.return_type.is_some() =>
-      {
-        #[cfg(test)]
-        debug!("Parsing function return type: {:?}", func.bright_black().italic());
-        self
-          .parse_type_annotation_as_vec_str(
-            func.return_type.as_ref().map(|return_type| &return_type.type_annotation).unwrap(),
-          )
-          .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
-      },
-      Declaration::FunctionDeclaration(func) if func.body.is_some() => {
-        #[cfg(test)]
-        debug!("Parsing function declaration body: {:?}", func.bright_black().italic());
-        func.body.as_ref().unwrap().statements.iter().find_map(|stmt| self.find_value_for_identifier(stmt, identifier))
+      Declaration::FunctionDeclaration(func) => {
+        func
+          .params
+          .iter_bindings()
+          .find_map(|param| find_type_of_identifier(identifier, param))
+          .and_then(parse_type_annotation)
+          .or_else(|| {
+            #[cfg(test)]
+            trace!("Parsing function return type: {:?}", func.bright_black().italic());
+            func.return_type.as_ref().and_then(parse_type_annotation)
+          })
+          .or_else(|| {
+            #[cfg(test)]
+            trace!("Parsing function declaration body: {:?}", func.bright_black().italic());
+            func
+              .body
+              .as_ref()
+              .unwrap()
+              .statements
+              .iter()
+              .find_map(|stmt| self.find_value_for_identifier(stmt, identifier))
+          })
       },
       Declaration::TSTypeAliasDeclaration(type_alias) if type_alias.id.name.eq(identifier) => {
+        #[cfg(test)]
+        trace!("Parsing type alias: {:?}", type_alias.bright_black().italic());
         self
           .parse_type_annotation_as_vec_str(&type_alias.type_annotation)
           .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
@@ -283,7 +304,7 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
                 if result.is_none() {
                   log::warn!(
                     "{} Value of identifier {} is an import declaration, which is not supported",
-                    "[Find_identifier_value_as_vec_string]".red().bold(),
+                    "[parse_type_annotation_as_vec_str]".red().bold(),
                     identifier.name.cyan()
                   );
                 }
@@ -296,13 +317,13 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         } else {
           log::warn!(
             "{} Unsupported type reference: {type_reference:?}",
-            "[Find_identifier_value_as_vec_string]".red().bold()
+            "[parse_type_annotation_as_vec_str]".red().bold()
           );
           None::<Vec<String>>
         }
       },
       _ => {
-        log::warn!("{} Unsupported type annotation: {ts_type:?}", "[Find_identifier_value_as_vec_string]".red().bold());
+        log::warn!("{} Unsupported type annotation: {ts_type:?}", "[parse_type_annotation_as_vec_str]".red().bold());
         None::<Vec<String>>
       },
     }
