@@ -25,7 +25,12 @@ use crate::{
   Location,
   visitor::{
     node_child::NodeChild,
-    traits::{oxc_custom_parser::OxcCustomParser, oxc_program::OxcProgram, print_error_location::PrintErrorLocation},
+    traits::{
+      get_line_bounds,
+      oxc_custom_parser::OxcCustomParser,
+      oxc_program::OxcProgram,
+      print_error_location::PrintErrorLocation,
+    },
   },
 };
 
@@ -65,6 +70,7 @@ pub struct I18NVisitor<'a> {
   /// the program to be parsed
   pub program: &'a Program<'a>,
   allocator: &'a Allocator,
+  working_dir: &'a PathBuf,
   /// the file name of the file being parsed
   pub file_path: PathBuf,
   /// the entries in the i18n system
@@ -94,6 +100,10 @@ impl OxcProgram for I18NVisitor<'_> {
   fn allocator(&self) -> &Allocator {
     self.allocator
   }
+
+  fn working_dir(&self) -> &PathBuf {
+    self.working_dir
+  }
 }
 impl OxcCustomParser for I18NVisitor<'_> {
 }
@@ -107,15 +117,17 @@ impl<'a> I18NVisitor<'a> {
     file_path: Path,
     config: &'a C,
   ) -> Self {
+    let working_dir = &config.as_ref().working_dir;
     I18NVisitor {
       allocator,
       program,
+      working_dir,
       file_path: file_path.into(),
       entries: Default::default(),
       options: VisitorOptions::new(config),
       current_namespace: Default::default(),
       resolver: Resolver::new(ResolveOptions {
-        roots: vec![config.as_ref().working_dir.join("src")],
+        roots: vec![working_dir.join("src")],
         extensions: vec![".ts".into(), ".tsx".into(), ".js".into(), ".jsx".into()],
         extension_alias: vec![
           (".js".to_string(), vec![".js".to_string(), ".ts".to_string()]),
@@ -123,7 +135,7 @@ impl<'a> I18NVisitor<'a> {
         ],
         prefer_relative: true,
         tsconfig: {
-          let tsconfig = config.as_ref().working_dir.join("tsconfig.json");
+          let tsconfig = working_dir.join("tsconfig.json");
           if tsconfig.exists() {
             Some(TsconfigOptions { config_file: tsconfig, references: TsconfigReferences::Auto })
           } else {
@@ -133,102 +145,6 @@ impl<'a> I18NVisitor<'a> {
         ..Default::default()
       }),
     }
-  }
-
-  #[cfg(feature = "print_error_location")]
-  #[tracing::instrument(skip(self), target = "instrument")]
-  pub fn print_error_location(&self, span: &oxc_span::Span) {
-    use bat::{
-      Input,
-      PrettyPrinter,
-      line_range::{LineRange, LineRanges},
-    };
-
-    #[inline]
-    fn get_line_bounds(text: &str, start_char_index: usize, end_char_index: usize) -> Option<(usize, usize)> {
-      if start_char_index > end_char_index || end_char_index > text.len() {
-        return None; // Invalid indices
-      }
-
-      let mut current_line = 0; // 0-indexed line numbers
-
-      let mut start_line: Option<usize> = None;
-      let mut end_line: Option<usize> = None;
-
-      // Iterate through characters and find the line bounds
-      for (idx, c) in text.char_indices() {
-        if idx >= start_char_index && start_line.is_none() {
-          start_line = Some(current_line);
-        }
-
-        if idx >= end_char_index && end_line.is_none() {
-          end_line = Some(current_line);
-          // If we found both, we can break early
-          if start_line.is_some() && end_line.is_some() {
-            break;
-          }
-        }
-
-        if c == '\n' {
-          current_line += 1;
-        }
-
-        // If we've already passed the end_char_index by a significant margin
-        // and haven't found end_line, it implies the end_char_index is within
-        // the last line if the string doesn't end with a newline.
-        // This break is an optimization.
-        if end_line.is_some() && idx > end_char_index + 10 {
-          // +10 is arbitrary for some buffer
-          break;
-        }
-      }
-
-      // Handle cases where the end_char_index is at the very end of the string
-      // and there's no trailing newline, or if it's past the last newline.
-      if let Some(s_line) = start_line {
-        if let Some(e_line) = end_line {
-          Some((s_line, e_line))
-        } else {
-          // If end_line was not set, it means the end_char_index
-          // is within the very last line of the string.
-          Some((s_line, current_line))
-        }
-      } else {
-        // This case should ideally not happen if start_char_index is valid,
-        // but included for robustness.
-        None
-      }
-    }
-
-    let content = self.program.source_text;
-
-    let start_pos = usize::try_from(span.start).unwrap();
-    let end_pos = usize::try_from(span.end).unwrap();
-    let bounds = get_line_bounds(content, start_pos, end_pos);
-    let (start_line, end_line) = match bounds {
-      Some((start, end)) => (start + 1, end + 1), // Convert to 1-indexed lines
-      None => {
-        error!("{} Invalid span: {span:?}", "[Print_error_location]".red().bold());
-        return;
-      },
-    };
-
-    const BOUND: usize = 3;
-    let range = LineRange::new(start_line.saturating_sub(BOUND), end_line + BOUND);
-    let input = Input::from_bytes(content.as_bytes());
-    let _ = PrettyPrinter::new()
-      .input(input)
-      .language(if self.program.source_type.is_typescript() { "typescript" } else { "javascript" })
-      .line_ranges(LineRanges::from(vec![range]))
-      .header(false)
-      .grid(true)
-      .line_numbers(true)
-      .highlight_range(start_line, end_line)
-      .print();
-  }
-
-  #[cfg(not(feature = "print_error_location"))]
-  pub fn print_error_location(&self, _span: &oxc_span::Span) {
   }
 
   /// Extract the namespace from the i18next function
@@ -591,6 +507,42 @@ impl<'a> I18NVisitor<'a> {
     let default_value = self.get_prop_value_as_str(elem, "defaults");
     let count = self.has_prop(elem, "count");
     let context = self.get_prop_values_of_el(elem, "context");
+
+    if context.is_none()
+      && let Some(val) = elem.opening_element.attributes.iter().find(|attr| {
+        if let JSXAttributeItem::Attribute(attr) = attr {
+          if let JSXAttributeName::Identifier(name) = &attr.name { name.name == "context" } else { false }
+        } else {
+          false
+        }
+      })
+      && let Some(f) = val.as_attribute()
+    {
+      let val = match &f.value {
+        Some(JSXAttributeValue::ExpressionContainer(container)) => {
+          container.expression.as_expression().and_then(|e| e.get_identifier_reference()).map(|id| id.name)
+        },
+        _ => None,
+      };
+
+      if let Some(val) = val {
+        let line = get_line_bounds(
+          self.program.source_text,
+          usize::try_from(f.span.start).expect("span size overload"),
+          usize::try_from(f.span.end).expect("span size overload"),
+        )
+        .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
+        .unwrap_or_default();
+        warn!(
+          "Unable to find the value of {key} {value:?} in {file_name}{line}",
+          key = "context".cyan(),
+          value = val.blue().bold(),
+          file_name = self.file_path.display().yellow(),
+          line = line.blue()
+        );
+        self.print_error_location(&f.span);
+      }
+    };
     let options = self.get_prop_value_as_str(elem, "i18n");
 
     trace!("Childrens: {:?}", elem.children);

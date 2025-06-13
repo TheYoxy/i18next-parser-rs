@@ -9,4 +9,5 @@ pub trait OxcProgram {
   fn file_path(&self) -> &PathBuf;
   fn resolver(&self) -> &Resolver;
   fn allocator(&self) -> &Allocator;
+  fn working_dir(&self) -> &PathBuf;
 }

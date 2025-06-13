@@ -1,0 +1,76 @@
+use std::path::PathBuf;
+
+use oxc_allocator::Allocator;
+use oxc_ast::ast::Program;
+use oxc_resolver::{ResolveOptions, Resolver, TsconfigOptions, TsconfigReferences};
+
+use crate::visitor::traits::{
+  oxc_custom_parser::OxcCustomParser,
+  oxc_program::OxcProgram,
+  print_error_location::PrintErrorLocation,
+};
+
+pub struct ModuleParser<'a> {
+  /// the program to be parsed
+  pub program: &'a Program<'a>,
+  allocator: &'a Allocator,
+  working_dir: &'a PathBuf,
+  /// the file name of the file being parsed
+  pub file_path: PathBuf,
+  pub(super) resolver: Resolver,
+}
+
+impl<'a> ModuleParser<'a> {
+  pub fn new(program: &'a Program, allocator: &'a Allocator, file_path: PathBuf, working_dir: &'a PathBuf) -> Self {
+    ModuleParser {
+      program,
+      allocator,
+      file_path,
+      working_dir,
+      resolver: Resolver::new(ResolveOptions {
+        roots: vec![working_dir.join("src")],
+        extensions: vec![".ts".into(), ".tsx".into(), ".js".into(), ".jsx".into()],
+        extension_alias: vec![
+          (".js".to_string(), vec![".js".to_string(), ".ts".to_string()]),
+          (".jsx".to_string(), vec![".jsx".to_string(), ".tsx".to_string()]),
+        ],
+        prefer_relative: true,
+        tsconfig: {
+          let tsconfig = working_dir.join("tsconfig.json");
+          if tsconfig.exists() {
+            Some(TsconfigOptions { config_file: tsconfig, references: TsconfigReferences::Auto })
+          } else {
+            None
+          }
+        },
+        ..Default::default()
+      }),
+    }
+  }
+}
+
+impl PrintErrorLocation for ModuleParser<'_> {
+}
+impl OxcProgram for ModuleParser<'_> {
+  fn program(&self) -> &Program<'_> {
+    self.program
+  }
+
+  fn file_path(&self) -> &PathBuf {
+    &self.file_path
+  }
+
+  fn resolver(&self) -> &Resolver {
+    &self.resolver
+  }
+
+  fn allocator(&self) -> &Allocator {
+    self.allocator
+  }
+
+  fn working_dir(&self) -> &PathBuf {
+    self.working_dir
+  }
+}
+impl OxcCustomParser for ModuleParser<'_> {
+}

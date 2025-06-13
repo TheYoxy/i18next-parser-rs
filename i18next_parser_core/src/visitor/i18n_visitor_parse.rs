@@ -65,6 +65,8 @@ impl<'a> I18NVisitor<'a> {
           ObjectPropertyKind::SpreadProperty(_prop) => {
             #[cfg(debug_assertions)]
             {
+              use crate::visitor::traits::print_error_location::PrintErrorLocation;
+
               warn!("{} Unsupported spread property", "[Parse_i18next_option]".red().bold());
               self.print_error_location(&_prop.span);
               panic!("Spread property is not supported in i18next options");

@@ -105,7 +105,7 @@ mod tests {
   use super::*;
 
   #[allow(dead_code)]
-  fn init_test(dir: &TempDir, ns: &str, locale: &str, value: &Value) -> color_eyre::Result<String> {
+  fn write_locales(dir: &TempDir, ns: &str, locale: &str, value: &Value) -> color_eyre::Result<String> {
     std::fs::create_dir_all(dir.path())?;
     let output = dir.path().join("locales").join(ns).join(format!("{locale}.json"));
     std::fs::create_dir_all(output.parent().unwrap())?;
@@ -117,7 +117,7 @@ mod tests {
     output.to_str().ok_or(eyre!("Unable to get path")).map(|s| s.to_string())
   }
 
-  #[test_log::test(ignore = "is it correct ?")]
+  #[test_log::test]
   fn merge_results_should_not_override_defaults() {
     let value = json!({
       "key": "default_value"
@@ -126,7 +126,7 @@ mod tests {
     let locale = "en";
     let namespace = "default";
     let dir = TempDir::new("merge_results").unwrap();
-    let output = init_test(&dir, locale, namespace, &value).unwrap();
+    let output = write_locales(&dir, locale, namespace, &value).unwrap();
     let catalog = json!({
         "key": "value"
     });
@@ -150,7 +150,7 @@ mod tests {
     let locale = "en";
     let namespace = "default";
     let dir = TempDir::new("merge_results").unwrap();
-    let output = init_test(&dir, locale, namespace, &value).unwrap();
+    let output = write_locales(&dir, locale, namespace, &value).unwrap();
     let catalog = json!({
         "key_male": "value",
         "key_female": "value"

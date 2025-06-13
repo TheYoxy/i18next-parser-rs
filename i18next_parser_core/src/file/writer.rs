@@ -96,11 +96,11 @@ fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> s
     handle_line_ending(&text, &config.as_ref().line_ending)
   };
 
-  if let Some(parent) = path.parent() {
-    if !parent.exists() {
-      trace!("creating parent directory: {parent:?}");
-      std::fs::create_dir_all(parent)?;
-    }
+  if let Some(parent) = path.parent()
+    && !parent.exists()
+  {
+    trace!("creating parent directory: {parent:?}");
+    std::fs::create_dir_all(parent)?;
   }
   trace!("Writing {} to {}", contents.cyan(), path.display().yellow());
   let mut file = File::create(Path::new(path))?;

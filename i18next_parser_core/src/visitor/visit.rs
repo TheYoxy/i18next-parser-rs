@@ -13,36 +13,36 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
     const TRANSLATION_FUNCTIONS: [&str; 1] = ["t"];
     if let Some(name) = expr.callee_name() {
       self.extract_namespace(name, expr);
-      if TRANSLATION_FUNCTIONS.contains(&name) {
-        if let Some(key) = self.extract_t_function_key(expr) {
-          trace!("Key: {key}", key = key.italic().cyan());
-          let (value, i18next_options) = self.read_t_args((expr.arguments.get(1), expr.arguments.get(2)));
+      if TRANSLATION_FUNCTIONS.contains(&name)
+        && let Some(key) = self.extract_t_function_key(expr)
+      {
+        trace!("Key: {key}", key = key.italic().cyan());
+        let (value, i18next_options) = self.read_t_args((expr.arguments.get(1), expr.arguments.get(2)));
 
-          let (key, namespace) = self.get_namespace(i18next_options.as_ref(), &key);
-          let has_count = match &i18next_options {
-            Some(opt) => opt.get("count").is_some(),
-            None => false,
-          };
+        let (key, namespace) = self.get_namespace(i18next_options.as_ref(), &key);
+        let has_count = match &i18next_options {
+          Some(opt) => opt.get("count").is_some(),
+          None => false,
+        };
 
-          let context = match &i18next_options {
-            Some(opt) => opt.get("context").cloned().unwrap_or(None).map(|v| vec![v]),
-            None => None,
-          };
+        let context = match &i18next_options {
+          Some(opt) => opt.get("context").cloned().unwrap_or(None).map(|v| vec![v]),
+          None => None,
+        };
 
-          self.entries.push(Entry {
-            location: Location::new(
-              self.file_path.to_str().unwrap().to_string(),
-              usize::try_from(expr.span.start).unwrap(),
-              usize::try_from(expr.span.end).unwrap(),
-            ),
-            key,
-            value,
-            namespace,
-            has_count,
-            i18next_options,
-            context,
-          });
-        }
+        self.entries.push(Entry {
+          location: Location::new(
+            self.file_path.to_str().unwrap().to_string(),
+            usize::try_from(expr.span.start).unwrap(),
+            usize::try_from(expr.span.end).unwrap(),
+          ),
+          key,
+          value,
+          namespace,
+          has_count,
+          i18next_options,
+          context,
+        });
       };
     }
     walk::walk_call_expression(self, expr);

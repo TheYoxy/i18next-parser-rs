@@ -4,6 +4,7 @@ mod traits;
 mod i18n_visitor;
 mod i18n_visitor_parse;
 mod node_child;
+mod parser;
 pub(crate) mod visit;
 
 #[cfg(test)]
