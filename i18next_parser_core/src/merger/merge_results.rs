@@ -75,20 +75,27 @@ pub fn merge_results<C: AsRef<Config>>(
   trace!("File path: {}", path.display().yellow());
   trace!("Backup path: {}", backup.display().yellow());
 
-  let value = read_file_into_serde(&path);
+  let value = read_file_into_serde(&path).inspect(|val| {
+    trace!("From {}: {}", path.display().yellow(), val.cyan());
+  });
   let value = value.as_ref();
 
-  let old_value = read_file_into_serde(&backup);
+  let old_value = read_file_into_serde(&backup).inspect(|val| {
+    trace!("From {}: {}", backup.display().yellow(), val.cyan());
+  });
   let old_value = old_value.as_ref();
 
-  trace!("Value: {:?} -> {:?}", value.cyan(), old_value.cyan());
-
   let full_key_prefix = format!("{}{}", namespace, config.namespace_separator);
+  trace!("Merging value");
   let merged = merge_hashes(value, catalog, old_value, &full_key_prefix, is_default, locale, config);
+
+  trace!("Merging old catalog");
   let old_merged = merge_hashes(old_value, &merged.new, None, &full_key_prefix, false, locale, &Config {
     keep_removed: false,
     ..Default::default()
   });
+
+  trace!("Building old catalog");
   let old_catalog = transfer_values(&merged.old, &old_merged.old);
 
   MergeResults { namespace: namespace.to_string(), locale: locale.to_string(), path, backup, merged, old_catalog }
@@ -105,7 +112,7 @@ mod tests {
   use super::*;
 
   #[allow(dead_code)]
-  fn write_locales(dir: &TempDir, ns: &str, locale: &str, value: &Value) -> color_eyre::Result<String> {
+  fn write_locale(dir: &TempDir, ns: &str, locale: &str, value: &Value) -> color_eyre::Result<String> {
     std::fs::create_dir_all(dir.path())?;
     let output = dir.path().join("locales").join(ns).join(format!("{locale}.json"));
     std::fs::create_dir_all(output.parent().unwrap())?;
@@ -118,7 +125,7 @@ mod tests {
   }
 
   #[test_log::test]
-  fn merge_results_should_not_override_defaults() {
+  fn should_not_override_defaults() {
     let value = json!({
       "key": "default_value"
     });
@@ -126,7 +133,7 @@ mod tests {
     let locale = "en";
     let namespace = "default";
     let dir = TempDir::new("merge_results").unwrap();
-    let output = write_locales(&dir, locale, namespace, &value).unwrap();
+    let output = write_locale(&dir, locale, namespace, &value).unwrap();
     let catalog = json!({
         "key": "value"
     });
@@ -140,28 +147,127 @@ mod tests {
     assert_eq!(merged.merged_count, 0, "the merge count do not match");
   }
 
-  #[test_log::test(ignore = "this should be fixed")]
-  fn merge_results_should_not_override_context() {
-    let value = json!({
-      "key_male": "default_value",
-      "key_female": "default_value"
-    });
+  mod count {
+    use pretty_assertions::assert_eq;
 
-    let locale = "en";
-    let namespace = "default";
-    let dir = TempDir::new("merge_results").unwrap();
-    let output = write_locales(&dir, locale, namespace, &value).unwrap();
-    let catalog = json!({
-        "key_male": "value",
-        "key_female": "value"
-    });
-    let is_default = true;
-    let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+    use super::*;
 
-    let result = merge_results(locale, namespace, &catalog, is_default, config);
-    let merged = result.merged;
-    assert_eq!(merged.new, value, "the new value do not match");
-    assert_eq!(merged.old, value, "the old value do not match");
-    assert_eq!(merged.merged_count, 0, "the merge count do not match");
+    #[test_log::test]
+    fn should_not_override_existing_counts() {
+      let value = json!({
+        "key_one": "default_value",
+        "key_many": "default_value"
+      });
+
+      let locale = "en";
+      let namespace = "default";
+      let dir = TempDir::new("merge_results").unwrap();
+      let output = write_locale(&dir, locale, namespace, &value).unwrap();
+      let catalog = json!({
+          "key_one": "value",
+          "key_many": "value"
+      });
+      let is_default = true;
+      let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+
+      let result = merge_results(locale, namespace, &catalog, is_default, config);
+      let merged = result.merged;
+      assert_eq!(merged.new, value, "the new value do not match");
+      assert_eq!(merged.old, json!({}), "the old value do not match");
+      assert_eq!(merged.merged_count, 0, "the merge count do not match");
+    }
+
+    #[test_log::test]
+    fn should_not_override_existing_context_but_add_missing_count() {
+      let value = json!({
+        "key_one": "default_value",
+      });
+
+      let locale = "en";
+      let namespace = "default";
+      let dir = TempDir::new("merge_results").unwrap();
+      let output = write_locale(&dir, locale, namespace, &value).unwrap();
+      let catalog = json!({
+          "key_one": "value",
+          "key_many": "default_value"
+      });
+      let is_default = true;
+      let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+
+      let result = merge_results(locale, namespace, &catalog, is_default, config);
+      let merged = result.merged;
+      assert_eq!(
+        merged.new,
+        json!({
+          "key_many": "default_value",
+          "key_one": "default_value"
+        }),
+        "the new value should not be overridden when having a context"
+      );
+      assert_eq!(merged.old, json!({}), "the old value do not match");
+      assert_eq!(merged.merged_count, 0, "the merge count do not match");
+    }
+  }
+
+  mod context {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test_log::test]
+    fn should_not_override_existing_context() {
+      let value = json!({
+        "key_male": "default_value",
+        "key_female": "default_value"
+      });
+
+      let locale = "en";
+      let namespace = "default";
+      let dir = TempDir::new("merge_results").unwrap();
+      let output = write_locale(&dir, locale, namespace, &value).unwrap();
+      let catalog = json!({
+          "key_male": "value",
+          "key_female": "value"
+      });
+      let is_default = true;
+      let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+
+      let result = merge_results(locale, namespace, &catalog, is_default, config);
+      let merged = result.merged;
+      assert_eq!(merged.new, value, "the new value should not be overridden when having a context");
+      assert_eq!(merged.old, json!({}), "the old value do not match");
+      assert_eq!(merged.merged_count, 0, "the merge count do not match");
+    }
+
+    #[test_log::test]
+    fn should_not_override_existing_context_but_add_missing_context() {
+      let value = json!({
+        "key_male": "default_value",
+      });
+
+      let locale = "en";
+      let namespace = "default";
+      let dir = TempDir::new("merge_results").unwrap();
+      let output = write_locale(&dir, locale, namespace, &value).unwrap();
+      let catalog = json!({
+          "key_male": "value",
+          "key_female": "default_value"
+      });
+      let is_default = true;
+      let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+
+      let result = merge_results(locale, namespace, &catalog, is_default, config);
+      let merged = result.merged;
+      assert_eq!(
+        merged.new,
+        json!({
+          "key_male": "default_value",
+          "key_female": "default_value"
+        }),
+        "the new value should not be overridden when having a context"
+      );
+      assert_eq!(merged.old, json!({}), "the old value do not match");
+      assert_eq!(merged.merged_count, 0, "the merge count do not match");
+    }
   }
 }
