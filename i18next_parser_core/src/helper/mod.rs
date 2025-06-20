@@ -5,3 +5,4 @@ pub mod get_char_diff;
 pub mod merge_hashes;
 pub mod serde_helper;
 pub use serde_helper::SerdeHelper;
+pub mod html_entities_replacer;

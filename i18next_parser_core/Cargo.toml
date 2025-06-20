@@ -16,11 +16,11 @@ globset = "0.4"
 ignore = "0.4"
 intl_pluralrules = { path = "../intl_pluralrules" }
 log = "0.4"
-oxc_allocator = "0.72"
-oxc_ast = "0.72"
-oxc_ast_visit = "0.72"
-oxc_parser = "0.72"
-oxc_span = "0.72"
+oxc_allocator = "0.73"
+oxc_ast = "0.73"
+oxc_ast_visit = "0.73"
+oxc_parser = "0.73"
+oxc_span = "0.73"
 oxc_resolver = "11"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
@@ -30,6 +30,7 @@ unic-langid = "0.9"
 serde_yaml_ng = "0.10"
 tracing = "0.1"
 bat = { version = "0.25", optional = true }
+htmlentity = "1.3.2"
 
 [features]
 default = ["generate_types"]

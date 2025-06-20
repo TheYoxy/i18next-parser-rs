@@ -23,6 +23,7 @@ use crate::{
   Config,
   Entry,
   Location,
+  helper::html_entities_replacer::decode_html_entities,
   visitor::{
     node_child::NodeChild,
     traits::{
@@ -561,7 +562,7 @@ impl<'a> I18NVisitor<'a> {
           usize::try_from(elem.span.end).unwrap(),
         ),
         key,
-        value: if default_value.is_empty() { None } else { Some(default_value) },
+        value: if default_value.is_empty() { None } else { decode_html_entities(&default_value).ok() },
         namespace: ns,
         has_count: count,
         i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
