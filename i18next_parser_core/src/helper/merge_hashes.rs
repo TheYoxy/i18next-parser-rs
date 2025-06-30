@@ -185,7 +185,7 @@ pub fn merge_hashes(
             unchanged_count += 1;
           },
           (_, source_value) => {
-            trace!("Source: {}", source_value);
+            trace!("Source: {source_value}");
             trace!("Pulling key: {}", from_source_key.purple());
             if config.keep_removed {
               parsed_values.insert(from_source_key.clone(), source_value.clone());

@@ -73,7 +73,10 @@ mod tests {
     /* If your code doesn't run in the DOM: */
     "lib": ["es2022"],
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "~/*": ["./src/*"],
+    }
   }
 }
         "#,
@@ -81,7 +84,7 @@ mod tests {
     .expect("should write file");
   }
 
-  #[test_log::test(ignore = "to be implemented")]
+  #[test_log::test]
   fn resolve_string_type_import_constraint_from_import() {
     let dir = TempDir::new("translations").expect("should create tempdir");
     let main = dir.path().join("src").join("main.tsx");
@@ -116,6 +119,40 @@ export function InvitationEmail() {
     )]);
   }
 
+  #[test_log::test]
+  fn resolve_string_type_from_path_import() {
+    let dir = TempDir::new("translations").expect("should create tempdir");
+    let main = dir.path().join("src").join("main.tsx");
+    write_file(
+      &main,
+      r#"import { Role } from '~/utils';
+export function InvitationEmail() {
+  const role: Role;
+  return (
+    <EmailRoot>
+      <Text className='truncate'>
+        <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+      </Text>
+    </EmailRoot>
+  );
+}"#,
+    )
+    .expect("should write file");
+
+    write_ts_config(&dir);
+
+    let utils = dir.path().join("src").join("utils.ts");
+    write_file(&utils, r#"export type Role = 'admin' | 'member' | 'owner'"#).expect("should write file");
+    let config = get_config(dir.path()).expect("should get config");
+    let entries = parse(&main, config);
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries, vec![Entry::new_with_context(
+      "role",
+      "Role",
+      "ns",
+      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+    )]);
+  }
   #[test_log::test]
   fn resolve_string_type_from_import() {
     let dir = TempDir::new("translations").expect("should create tempdir");

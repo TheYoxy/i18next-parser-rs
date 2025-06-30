@@ -703,11 +703,58 @@ mod tests {
       }
 
       #[test_log::test]
-      fn test_2() {
+      fn should_parse_jsx_context_from_variable_types() {
         // language=javascript
         let source_text = "
     export function InvitationEmail() {
       const role: 'admin' | 'member' | 'owner' = invitee.role as Roles;
+      return (
+        <EmailRoot>
+          <Text className='truncate'>
+            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+          </Text>
+        </EmailRoot>
+      );
+    }
+    ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_jsx_context_from_function_props() {
+        // language=javascript
+        let source_text = "
+    export function InvitationEmail({role}: {role: 'admin' | 'member' | 'owner'}) {
+      return (
+        <EmailRoot>
+          <Text className='truncate'>
+            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+          </Text>
+        </EmailRoot>
+      );
+    }
+    ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_jsx_context_from_generic_type() {
+        // language=javascript
+        let source_text = "
+            import type React from 'react';
+    export function InvitationEmail({role}: React.PropsWithChildren<{role: 'admin' | 'member' | 'owner'}>) {
       return (
         <EmailRoot>
           <Text className='truncate'>

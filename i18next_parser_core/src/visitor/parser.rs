@@ -2,12 +2,15 @@ use std::path::PathBuf;
 
 use oxc_allocator::Allocator;
 use oxc_ast::ast::Program;
-use oxc_resolver::{ResolveOptions, Resolver, TsconfigOptions, TsconfigReferences};
+use oxc_resolver::Resolver;
 
-use crate::visitor::traits::{
-  oxc_custom_parser::OxcCustomParser,
-  oxc_program::OxcProgram,
-  print_error_location::PrintErrorLocation,
+use crate::{
+  helper::resolver_helper::ResolveFromTsConfig,
+  visitor::traits::{
+    oxc_custom_parser::OxcCustomParser,
+    oxc_program::OxcProgram,
+    print_error_location::PrintErrorLocation,
+  },
 };
 
 pub struct ModuleParser<'a> {
@@ -25,26 +28,9 @@ impl<'a> ModuleParser<'a> {
     ModuleParser {
       program,
       allocator,
-      file_path,
+      file_path: file_path.clone(),
       working_dir,
-      resolver: Resolver::new(ResolveOptions {
-        roots: vec![working_dir.join("src")],
-        extensions: vec![".ts".into(), ".tsx".into(), ".js".into(), ".jsx".into()],
-        extension_alias: vec![
-          (".js".to_string(), vec![".js".to_string(), ".ts".to_string()]),
-          (".jsx".to_string(), vec![".jsx".to_string(), ".tsx".to_string()]),
-        ],
-        prefer_relative: true,
-        tsconfig: {
-          let tsconfig = working_dir.join("tsconfig.json");
-          if tsconfig.exists() {
-            Some(TsconfigOptions { config_file: tsconfig, references: TsconfigReferences::Auto })
-          } else {
-            None
-          }
-        },
-        ..Default::default()
-      }),
+      resolver: Resolver::from_ts_config(file_path).unwrap_or_default(),
     }
   }
 }

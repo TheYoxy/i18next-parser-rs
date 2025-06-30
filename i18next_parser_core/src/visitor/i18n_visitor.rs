@@ -15,7 +15,7 @@ use oxc_ast::ast::{
   Program,
   PropertyKey,
 };
-use oxc_resolver::{ResolveOptions, Resolver, TsconfigOptions, TsconfigReferences};
+use oxc_resolver::Resolver;
 use oxc_span::GetSpan;
 use tracing::span;
 
@@ -24,6 +24,7 @@ use crate::{
   Entry,
   Location,
   helper::html_entities_replacer::decode_html_entities,
+  helper::resolver_helper::ResolveFromTsConfig,
   visitor::{
     node_child::NodeChild,
     traits::{
@@ -112,39 +113,23 @@ impl OxcCustomParser for I18NVisitor<'_> {
 /// The visitor implementation that will search for translations inside javascript code
 impl<'a> I18NVisitor<'a> {
   /// Creates a new \[`CountASTNodes`\].
-  pub fn new<Path: Into<PathBuf>, C: AsRef<Config>>(
+  pub fn new<Path: Into<PathBuf> + Clone, C: AsRef<Config>>(
     allocator: &'a Allocator,
     program: &'a Program<'a>,
     file_path: Path,
     config: &'a C,
   ) -> Self {
     let working_dir = &config.as_ref().working_dir;
+
     I18NVisitor {
       allocator,
       program,
       working_dir,
-      file_path: file_path.into(),
+      file_path: file_path.clone().into(),
       entries: Default::default(),
       options: VisitorOptions::new(config),
       current_namespace: Default::default(),
-      resolver: Resolver::new(ResolveOptions {
-        roots: vec![working_dir.join("src")],
-        extensions: vec![".ts".into(), ".tsx".into(), ".js".into(), ".jsx".into()],
-        extension_alias: vec![
-          (".js".to_string(), vec![".js".to_string(), ".ts".to_string()]),
-          (".jsx".to_string(), vec![".jsx".to_string(), ".tsx".to_string()]),
-        ],
-        prefer_relative: true,
-        tsconfig: {
-          let tsconfig = working_dir.join("tsconfig.json");
-          if tsconfig.exists() {
-            Some(TsconfigOptions { config_file: tsconfig, references: TsconfigReferences::Auto })
-          } else {
-            None
-          }
-        },
-        ..Default::default()
-      }),
+      resolver: Resolver::from_ts_config(file_path.clone()).unwrap_or_default(),
     }
   }
 
