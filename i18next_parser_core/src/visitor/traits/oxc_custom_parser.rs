@@ -1,3 +1,5 @@
+use std::panic;
+
 use color_eyre::owo_colors::OwoColorize;
 use log::{debug, error, trace, warn};
 use oxc_ast::ast::{
@@ -39,19 +41,19 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
     } else {
       #[cfg(debug_assertions)]
       {
-        if cfg!(test) {
-          warn!(
-            "{} Unsupported statement: {stmt:?}",
-            "[find_value_for_identifier]".red().bold(),
-            stmt = stmt.bright_black().italic()
-          );
-        } else {
-          warn!(
-            "{} Unsupported statement: {}",
-            "[find_value_for_identifier]".red().bold(),
-            std::any::type_name_of_val(&stmt)
-          );
-        }
+        warn!(
+          "{} Unsupported statement: {stmt:?}",
+          "[find_value_for_identifier]".red().bold(),
+          stmt = stmt.bright_black().italic()
+        );
+      }
+      #[cfg(not(debug_assertions))]
+      {
+        debug!(
+          "{} Unsupported statement: {}",
+          "[find_value_for_identifier]".red().bold(),
+          std::any::type_name_of_val(&stmt)
+        );
       }
       None
     }
@@ -77,7 +79,7 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         "[find_identifier_value_as_serde]".red().bold(),
         name = identifier.cyan()
       );
-      #[cfg(not(test))]
+      #[cfg(not(debug_assertions))]
       debug!(
         "{} Cannot find value of {name}",
         "[find_identifier_value_as_serde]".red().bold(),
@@ -116,8 +118,9 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
   /// An optional value representing the value of the expression
   fn parse_expression_to_serde_value(&self, expr: &Expression<'_>) -> Option<Value> {
     use serde_json::json;
-    if cfg!(test) {
-      trace!("Parsing expression: {:?}", expr.bright_black().italic());
+    #[cfg(test)]
+    {
+      trace!("Parsing expression to value: {:?}", expr.bright_black().italic());
     }
 
     let ret = match expr {
@@ -159,8 +162,12 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         ))
       },
       Expression::Identifier(identifier) => self.find_identifier_value_as_serde(&identifier.name),
-      Expression::TSSatisfiesExpression(expr) => self.parse_expression_to_serde_value(&expr.expression),
-      Expression::TSAsExpression(expression) => self.parse_expression_to_serde_value(&expression.expression),
+      Expression::TSSatisfiesExpression(expr) => {
+        self.parse_expression_to_serde_value(&expr.expression).or(self.parse_ts_type(&expr.type_annotation))
+      },
+      Expression::TSAsExpression(expression) => {
+        self.parse_expression_to_serde_value(&expression.expression).or(self.parse_ts_type(&expression.type_annotation))
+      },
       Expression::CallExpression(call) => self.parse_expression_to_serde_value(&call.callee),
       _ => {
         #[cfg(debug_assertions)]
@@ -186,6 +193,8 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
 
     if let Some(ret) = &ret {
       trace!("Found value: {ret}");
+    } else {
+      trace!("{} found for expression: {:?}", "No value".red().bold(), expr.bright_black().italic());
     }
 
     ret
@@ -193,15 +202,10 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
 
   fn parse_value_for_identifier_from_declaration(&self, identifier: &str, decl: &Declaration<'_>) -> Option<Value> {
     let parse_type_annotation = |type_annotation: &oxc_allocator::Box<'_, TSTypeAnnotation<'_>>| {
-      #[cfg(debug_assertions)]
-      {
-        if cfg!(test) {
-          trace!("Type annotation: {:?}", type_annotation.bright_black());
-        }
-      }
-      self
-        .parse_ts_type_as_vec_str(&type_annotation.type_annotation)
-        .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
+      #[cfg(test)]
+      trace!("Type annotation: {:?}", type_annotation.bright_black());
+
+      self.parse_ts_type(&type_annotation.type_annotation)
     };
 
     match decl {
@@ -211,37 +215,43 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
           .iter()
           .find(|e| e.id.get_identifier_name().is_some_and(|idx| idx.eq(identifier)))
           .and_then(|item| {
-            if cfg!(test) {
-              trace!("{} Parsing item: {:?}", "[VariableDeclaration]".blue(), item.bright_black().italic());
-            } else {
-              trace!("{} Parsing item: {}", "[VariableDeclaration]".blue(), std::any::type_name_of_val(item));
-            }
+            #[cfg(test)]
+            debug!("{} Parsing item: {:?}", "[VariableDeclaration]".blue(), item.bright_black().italic());
+            #[cfg(not(test))]
+            trace!("{} Parsing item: {}", "[VariableDeclaration]".blue(), std::any::type_name_of_val(item));
             item
               .init
               .as_ref()
               .and_then(|init| {
-                if cfg!(test) {
-                  trace!("{} Parsing item value: {:?}", "[VariableDeclaration]".blue(), init.bright_black().italic());
-                } else {
-                  trace!("{} Parsing item value: {}", "[VariableDeclaration]".blue(), std::any::type_name_of_val(init));
-                }
+                #[cfg(test)]
+                debug!("{} Parsing item value: {:?}", "[VariableDeclaration]".blue(), init.bright_black().italic());
+                #[cfg(not(test))]
+                trace!("{} Parsing item value: {}", "[VariableDeclaration]".blue(), std::any::type_name_of_val(init));
                 self.parse_expression_to_serde_value(init)
               })
               .or_else(|| {
-                if cfg!(test) {
-                  trace!(
-                    "{} Parsing type annotation for item: {:?}",
-                    "[VariableDeclaration]".blue(),
-                    item.bright_black().italic()
-                  );
-                } else {
-                  trace!(
-                    "{} Parsing type annotation for item: {}",
-                    "[VariableDeclaration]".blue(),
-                    std::any::type_name_of_val(item)
-                  );
-                }
-                item.id.type_annotation.as_ref().and_then(parse_type_annotation)
+                #[cfg(test)]
+                debug!(
+                  "{} Parsing type annotation for item: {:?}",
+                  "[VariableDeclaration]".blue(),
+                  item.bright_black().italic()
+                );
+                #[cfg(not(test))]
+                trace!(
+                  "{} Parsing type annotation for item: {}",
+                  "[VariableDeclaration]".blue(),
+                  std::any::type_name_of_val(item)
+                );
+                item.id.type_annotation.as_ref().and_then(parse_type_annotation).or_else(|| {
+                  item.init.as_ref().and_then(|init| {
+                    trace!(
+                      "{} Parsing type annotation from init {:?}",
+                      "[VariableDeclaration]".blue(),
+                      init.bright_black().italic()
+                    );
+                    self.parse_expression_to_serde_value(init)
+                  })
+                })
               })
           })
           .or_else(|| {
@@ -266,51 +276,48 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
           .iter_bindings()
           .find_map(|param| self.find_type_of_identifier(identifier, param))
           .and_then(|type_annotation| {
-            if cfg!(test) {
-              trace!(
-                "{} Parsing function arguments: {:?}",
-                "[FunctionDeclaration]".blue(),
-                type_annotation.bright_black().italic()
-              );
-            } else {
-              trace!(
-                "{} Parsing function arguments: {}",
-                "[FunctionDeclaration]".blue(),
-                std::any::type_name_of_val(type_annotation)
-              );
-            }
+            #[cfg(test)]
+            debug!(
+              "{} Parsing function arguments: {:?}",
+              "[FunctionDeclaration]".blue(),
+              type_annotation.bright_black().italic()
+            );
+            #[cfg(not(test))]
+            trace!(
+              "{} Parsing function arguments: {}",
+              "[FunctionDeclaration]".blue(),
+              std::any::type_name_of_val(type_annotation)
+            );
             parse_type_annotation(type_annotation)
           })
           .or_else(|| {
-            if cfg!(test) {
-              trace!(
-                "{} Parsing function return type: {:?}",
-                "[FunctionDeclaration]".blue(),
-                func.id.bright_black().italic()
-              );
-            } else {
-              trace!(
-                "{} Parsing function return type: {}",
-                "[FunctionDeclaration]".blue(),
-                std::any::type_name_of_val(&func.id)
-              );
-            }
+            #[cfg(test)]
+            trace!(
+              "{} Parsing function return type: {:?}",
+              "[FunctionDeclaration]".blue(),
+              func.id.bright_black().italic()
+            );
+            #[cfg(not(test))]
+            trace!(
+              "{} Parsing function return type: {}",
+              "[FunctionDeclaration]".blue(),
+              std::any::type_name_of_val(&func.id)
+            );
             func.return_type.as_ref().and_then(parse_type_annotation)
           })
           .or_else(|| {
-            if cfg!(test) {
-              trace!(
-                "{} Parsing function declaration body: {:?}",
-                "[FunctionDeclaration]".blue(),
-                func.bright_black().italic()
-              );
-            } else {
-              trace!(
-                "{} Parsing function declaration body: {}",
-                "[FunctionDeclaration]".blue(),
-                std::any::type_name_of_val(func)
-              );
-            }
+            #[cfg(test)]
+            trace!(
+              "{} Parsing function declaration body: {:?}",
+              "[FunctionDeclaration]".blue(),
+              func.bright_black().italic()
+            );
+            #[cfg(not(test))]
+            trace!(
+              "{} Parsing function declaration body: {}",
+              "[FunctionDeclaration]".blue(),
+              std::any::type_name_of_val(func)
+            );
             func
               .body
               .as_ref()
@@ -318,33 +325,35 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
           })
       },
       Declaration::TSTypeAliasDeclaration(type_alias) if type_alias.id.name.eq(identifier) => {
-        if cfg!(test) {
-          trace!("{} Parsing type alias: {:?}", "[TSTypeAliasDeclaration]".blue(), type_alias.bright_black().italic());
-        } else {
-          trace!(
-            "{} Parsing type alias: {}",
-            "[TSTypeAliasDeclaration]".blue(),
-            std::any::type_name_of_val(type_alias)
-          );
-        }
-        self
-          .parse_ts_type_as_vec_str(&type_alias.type_annotation)
-          .map(|values| Value::Array(values.iter().map(|v| Value::String(v.clone())).collect()))
+        #[cfg(test)]
+        trace!(
+          "{} Parsing type alias for {}: {:?}",
+          "[TSTypeAliasDeclaration]".blue(),
+          identifier.cyan(),
+          type_alias.bright_black().italic()
+        );
+        #[cfg(not(test))]
+        trace!(
+          "{} Parsing type alias for {}: {}",
+          "[TSTypeAliasDeclaration]".blue(),
+          identifier.cyan(),
+          std::any::type_name_of_val(type_alias)
+        );
+        self.parse_ts_type(&type_alias.type_annotation)
       },
       _exported => {
-        if cfg!(test) {
-          warn!(
-            "Declaration of {identifier} is not supported {exported:?}",
-            identifier = identifier.cyan().italic(),
-            exported = _exported.bright_black().italic()
-          );
-        } else {
-          trace!(
-            "Declaration of {identifier} is not supported {exported:?}",
-            identifier = identifier.cyan().italic(),
-            exported = std::any::type_name_of_val(&_exported)
-          );
-        }
+        #[cfg(test)]
+        warn!(
+          "Declaration of {identifier} is not supported {exported:?}",
+          identifier = identifier.cyan().italic(),
+          exported = _exported.bright_black().italic()
+        );
+        #[cfg(not(test))]
+        trace!(
+          "Declaration of {identifier} is not supported {exported:?}",
+          identifier = identifier.cyan().italic(),
+          exported = std::any::type_name_of_val(&_exported)
+        );
         None
       },
     }
@@ -363,41 +372,90 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
     self.parse_expression_to_serde_value(expr).value_to_string()
   }
 
-  fn parse_ts_type_as_vec_str(&self, ts_type: &TSType<'_>) -> Option<Vec<String>> {
-    debug!("Parsing type annotation: {:?}", ts_type.bright_black().italic());
+  fn parse_ts_type(&self, ts_type: &TSType<'_>) -> Option<Value> {
+    trace!("{} Parsing type annotation: {:?}", "[parse_ts_type]".blue(), ts_type.bright_black().italic());
 
     match &ts_type {
-      TSType::TSUnionType(union_type) => get_string_values_from_union_type_literal(union_type),
+      TSType::TSLiteralType(literal) => get_value_from_literal_type(literal),
+      TSType::TSUnionType(union_type) => {
+        get_string_values_from_union_type_literal(union_type)
+          .map(|v| Value::Array(v.iter().map(|val| Value::String(val.clone())).collect()))
+      },
       TSType::TSTypeQuery(type_query) => {
-        type_query.expr_name.as_ts_type_name().and_then(|type_name| self.parse_type_name_as_vec_str(type_name))
+        type_query.expr_name.as_ts_type_name().and_then(|type_name| self.parse_ts_type_name(type_name))
       },
-      TSType::TSParenthesizedType(parenthesized) => self.parse_ts_type_as_vec_str(&parenthesized.type_annotation),
+      TSType::TSParenthesizedType(parenthesized) => self.parse_ts_type(&parenthesized.type_annotation),
       TSType::TSIndexedAccessType(indexed) if indexed.index_type.is_keyword() => {
-        self.parse_ts_type_as_vec_str(&indexed.object_type)
+        self.parse_ts_type(&indexed.object_type)
       },
-      TSType::TSTypeReference(type_reference) => self.parse_type_name_as_vec_str(&type_reference.type_name),
-      _ => {
-        if cfg!(test) {
-          warn!(
-            "{} Unsupported type annotation: {ts_type:?}",
-            "[parse_type_annotation_as_vec_str]".red().bold(),
-            ts_type = ts_type.bright_black().italic()
+      TSType::TSIndexedAccessType(indexed) if indexed.index_type.is_keyword_or_literal() => {
+        self.parse_ts_type(&indexed.index_type).value_to_string().and_then(|key| {
+          trace!(
+            "{} Looking for {} in {:?}",
+            "[parse_ts_type]".blue(),
+            key.cyan(),
+            indexed.object_type.bright_black().italic()
           );
-        } else {
-          debug!(
-            "{} Unsupported type annotation: {ts_type}",
-            "[parse_type_annotation_as_vec_str]".red().bold(),
-            ts_type = std::any::type_name_of_val(&ts_type)
-          );
+          let value = self.parse_ts_type(&indexed.object_type);
+          if let Some(Value::Object(value)) = value { value.get(&key).cloned() } else { None }
+        })
+      },
+      TSType::TSArrayType(array_type) => self.parse_ts_type(&array_type.element_type),
+      TSType::TSTypeReference(type_reference) => {
+        match &type_reference.type_name {
+          TSTypeName::IdentifierReference(identifier) if identifier.name.eq("Array") => {
+            type_reference.type_arguments.as_ref().and_then(|type_args| {
+              if type_args.params.len() == 1 {
+                self.parse_ts_type(type_args.params.first().expect("only 1 argument"))
+              } else {
+                self.parse_ts_type_name(&type_reference.type_name)
+              }
+            })
+          },
+          _ => self.parse_ts_type_name(&type_reference.type_name),
         }
+      },
+      TSType::TSTypeLiteral(type_literal) => {
+        Some(Value::Object(
+          type_literal
+            .members
+            .iter()
+            .filter_map(|signature| {
+              match signature {
+                TSSignature::TSPropertySignature(property) => {
+                  property
+                    .type_annotation
+                    .as_ref()
+                    .and_then(|v| self.parse_ts_type(&v.type_annotation))
+                    .map(|value| (property.key.name().unwrap_or_default().to_string(), value))
+                },
+                _ => None,
+              }
+            })
+            .collect(),
+        ))
+      },
+      _ => {
+        #[cfg(test)]
+        warn!(
+          "{} Unsupported type annotation: {ts_type:?}",
+          "[parse_ts_type]".red().bold(),
+          ts_type = ts_type.bright_black().italic()
+        );
+        #[cfg(not(test))]
+        debug!(
+          "{} Unsupported type annotation: {ts_type}",
+          "[parse_ts_type]".red().bold(),
+          ts_type = std::any::type_name_of_val(&ts_type)
+        );
         None
       },
     }
   }
 
-  fn parse_type_name_as_vec_str(&self, type_name: &oxc_ast::ast::TSTypeName<'_>) -> Option<Vec<String>> {
+  fn parse_ts_type_name(&self, type_name: &oxc_ast::ast::TSTypeName<'_>) -> Option<Value> {
     if let TSTypeName::IdentifierReference(identifier) = &type_name {
-      debug!("Looking for type reference {} {:?}", identifier.name.cyan(), type_name.bright_black());
+      trace!("Looking for type reference {} {:?}", identifier.name.cyan(), type_name.bright_black());
 
       let parse_type_from_declaration = |decl: &Declaration| {
         if let Declaration::VariableDeclaration(var) = decl {
@@ -406,12 +464,12 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
             .iter()
             .any(|decl| decl.id.get_identifier_name().is_some_and(|name| name.eq(&identifier.name)))
           {
-            self.parse_value_for_identifier_from_declaration(&identifier.name, decl).value_to_string_vec()
+            self.parse_value_for_identifier_from_declaration(&identifier.name, decl)
           } else {
             None
           }
         } else if decl.is_type() || decl.id().is_some_and(|id| id.name == identifier.name) {
-          self.parse_value_for_identifier_from_declaration(&identifier.name, decl).value_to_string_vec()
+          self.parse_value_for_identifier_from_declaration(&identifier.name, decl)
         } else {
           #[cfg(debug_assertions)]
           {
@@ -433,17 +491,19 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
             Statement::TSTypeAliasDeclaration(type_alias) if type_alias.id.name == identifier.name => {
               match &type_alias.type_annotation {
                 TSType::TSTypeReference(type_reference) if type_reference.type_name.eq(type_name) => {
-                  log::debug!("Skipping type {type_name} to avoid infinite loop", type_name = type_name.bright_black());
+                  log::trace!("Skipping type {type_name} to avoid infinite loop", type_name = type_name.bright_black());
                   None
                 },
-                _ => self.parse_ts_type_as_vec_str(&type_alias.type_annotation),
+                _ => self.parse_ts_type(&type_alias.type_annotation),
               }
             },
             Statement::ImportDeclaration(import_decl) => {
               let result = import_decl.specifiers.as_ref().and_then(|specifiers| {
                 specifiers.iter().find_map(|specifier| {
-                  if let ImportDeclarationSpecifier::ImportSpecifier(specifier) = specifier {
-                    if specifier.local.name.eq(&identifier.name) {
+                  match specifier {
+                    ImportDeclarationSpecifier::ImportSpecifier(specifier)
+                      if specifier.local.name.eq(&identifier.name) =>
+                    {
                       match &specifier.imported {
                         ModuleExportName::IdentifierReference(identifier_reference) => {
                           self.find_value_identifier_and_declaration(
@@ -457,29 +517,22 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
                         },
                         _ => {
                           #[cfg(debug_assertions)]
-                          {
-                            if cfg!(test) {
-                              warn!(
-                                "{} Unsupported import specifier: {:?}",
-                                "[parse_type_name_as_vec_str]".red().bold(),
-                                specifier.imported.bright_black()
-                              );
-                            } else {
-                              debug!(
-                                "{} Unsupported import specifier: {}",
-                                "[parse_type_name_as_vec_str]".red().bold(),
-                                std::any::type_name_of_val(&specifier.imported)
-                              );
-                            }
-                          }
+                          warn!(
+                            "{} Unsupported import specifier: {:?}",
+                            "[parse_ts_type_name]".red().bold(),
+                            specifier.imported.bright_black()
+                          );
+                          #[cfg(not(debug_assertions))]
+                          debug!(
+                            "{} Unsupported import specifier: {}",
+                            "[parse_ts_type_name]".red().bold(),
+                            std::any::type_name_of_val(&specifier.imported)
+                          );
                           None
                         },
                       }
-                    } else {
-                      None
-                    }
-                  } else {
-                    None
+                    },
+                    _ => None,
                   }
                 })
               });
@@ -490,29 +543,28 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
                 if result.is_none() {
                   log::warn!(
                     "{} Value of identifier {} is an import declaration, which is not supported",
-                    "[parse_type_name_as_vec_str]".red().bold(),
+                    "[parse_ts_type_name]".red().bold(),
                     identifier.name.cyan()
                   );
                   self.print_error_location(&identifier.span());
                 }
               }
 
-              result.value_to_string_vec()
+              result
             },
             _statement => {
-              if cfg!(test) {
-                warn!(
-                  "{} Unsupported statement: {statement:?}",
-                  "[parse_type_name_as_vec_str]".red().bold(),
-                  statement = _statement.bright_black().italic()
-                );
-              } else {
-                debug!(
-                  "{} Unsupported statement {}",
-                  "[parse_type_name_as_vec_str]".red().bold(),
-                  std::any::type_name_of_val(_statement)
-                );
-              }
+              #[cfg(test)]
+              warn!(
+                "{} Unsupported statement: {statement:?}",
+                "[parse_ts_type_name]".red().bold(),
+                statement = _statement.bright_black().italic()
+              );
+              #[cfg(not(test))]
+              debug!(
+                "{} Unsupported statement {}",
+                "[parse_ts_type_name]".red().bold(),
+                std::any::type_name_of_val(_statement)
+              );
               None
             },
           }
@@ -522,27 +574,26 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
       if val.is_none() {
         log::info!(
           "{} Cannot find value for identifier: {identifier:?}",
-          "[parse_type_name_as_vec_str]".red().bold(),
+          "[parse_ts_type_name]".red().bold(),
           identifier = identifier.name.cyan()
         );
       }
 
       val
     } else {
-      if cfg!(test) {
-        warn!(
-          "{} Unsupported type name: {type_name:?}",
-          "[parse_type_name_as_vec_str]".red().bold(),
-          type_name = type_name.bright_black().italic()
-        );
-      } else {
-        debug!(
-          "{} Unsupported type name: {}",
-          "[parse_type_name_as_vec_str]".red().bold(),
-          std::any::type_name_of_val(type_name)
-        );
-      }
-      None::<Vec<String>>
+      #[cfg(test)]
+      warn!(
+        "{} Unsupported type name: {type_name:?}",
+        "[parse_ts_type_name]".red().bold(),
+        type_name = type_name.bright_black().italic()
+      );
+      #[cfg(not(test))]
+      debug!(
+        "{} Unsupported type name: {}",
+        "[parse_ts_type_name]".red().bold(),
+        std::any::type_name_of_val(type_name)
+      );
+      None::<Value>
     }
   }
 
@@ -551,21 +602,21 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
     match module {
       ModuleDeclaration::ExportNamedDeclaration(decl) => {
         decl.declaration.as_ref().and_then(|declaration| {
-          if cfg!(test) {
-            log::trace!(
-              "{} Looking for identifier: {identifier:?} in declaration: {declaration:?}",
-              "[ExportNamedDeclaration]".blue(),
-              identifier = identifier.cyan(),
-              declaration = declaration.bright_black().italic(),
-            );
-          } else {
-            log::trace!(
-              "{} Looking for identifier: {identifier:?} in declaration: {declaration}",
-              "[ExportNamedDeclaration]".blue(),
-              identifier = identifier.cyan(),
-              declaration = std::any::type_name_of_val(declaration),
-            );
-          }
+          #[cfg(test)]
+          log::trace!(
+            "{} Looking for identifier: {identifier:?} in declaration: {declaration:?}",
+            "[ExportNamedDeclaration]".blue(),
+            identifier = identifier.cyan(),
+            declaration = declaration.bright_black().italic(),
+          );
+          #[cfg(not(test))]
+          log::trace!(
+            "{} Looking for identifier: {identifier:?} in declaration: {declaration}",
+            "[ExportNamedDeclaration]".blue(),
+            identifier = identifier.cyan(),
+            declaration = std::any::type_name_of_val(declaration),
+          );
+
           let result = self.parse_value_for_identifier_from_declaration(identifier, declaration);
           if let Some(result) = &result {
             log::trace!("Found: {result}", result = result.yellow());
@@ -595,13 +646,14 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         None
       },
       _module => {
-        if cfg!(test) {
-          warn!(
-            "{} Unsupported module declaration: {module:?}",
-            "[parse_value_from_module_declaration]".red().bold(),
-            module = _module.bright_black().italic()
-          );
-        } else {
+        #[cfg(test)]
+        warn!(
+          "{} Unsupported module declaration: {module:?}",
+          "[parse_value_from_module_declaration]".red().bold(),
+          module = _module.bright_black().italic()
+        );
+        #[cfg(not(test))]
+        {
           let _module = match _module {
             ModuleDeclaration::ImportDeclaration(_) => "ImportDeclaration",
             ModuleDeclaration::ExportAllDeclaration(_) => "ExportAllDeclaration",
@@ -665,23 +717,22 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         let module_parser = ModuleParser::new(&result.program, &allocator, resolved.path().into(), self.working_dir());
 
         result.program.body.iter().find_map(|stmt| {
-          if cfg!(test) {
-            log::trace!(
-              "Finding value for identifier from {} {identifier:?} in statement: {stmt:?}",
-              path.display().yellow(),
-              identifier = identifier.cyan(),
-              stmt = stmt.bright_black().italic()
-            );
-          } else {
-            trace!(
-              "Finding value for identifier from {} {identifier:?} in statement: {stmt}",
-              path.display().yellow(),
-              identifier = identifier.cyan(),
-              stmt = std::any::type_name_of_val(stmt)
-            )
-          }
+          #[cfg(debug_assertions)]
+          log::trace!(
+            "Finding value for identifier from {} {identifier:?} in statement: {stmt:?}",
+            path.display().yellow(),
+            identifier = identifier.cyan(),
+            stmt = stmt.bright_black().italic()
+          );
+          #[cfg(not(debug_assertions))]
+          trace!(
+            "Finding value for identifier from {} {identifier:?} in statement: {stmt}",
+            path.display().yellow(),
+            identifier = identifier.cyan(),
+            stmt = std::any::type_name_of_val(stmt)
+          );
           if let Some(module) = stmt.as_module_declaration() {
-            log::debug!("Parsing remote declaration {:?}", module.bright_black());
+            log::trace!("Parsing remote declaration for {} {:?}", identifier.cyan(), module.bright_black());
             let r = module_parser.parse_value_from_module_declaration(identifier, module);
             #[cfg(debug_assertions)]
             log::trace!("Found value: {r:?}", r = r.yellow());
@@ -693,7 +744,7 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
       },
       Err(err) => {
         if cfg!(test) {
-          error!("Resolver options: {}", self.resolver().options());
+          error!("Resolver options: {:#?}", self.resolver().options().bright_black().italic());
 
           panic!(
             "{} Failed to resolve import to {} from {}: {}",
@@ -714,6 +765,12 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
     identifier: &'a str,
     param: &'a BindingPattern<'a>,
   ) -> Option<&'a oxc_allocator::Box<'a, TSTypeAnnotation<'a>>> {
+    trace!(
+      "{} Looking for {} in {:?}",
+      "[find_type_of_identifier]".red().bold(),
+      identifier.cyan(),
+      param.bright_black().italic()
+    );
     match &param.kind {
       BindingPatternKind::BindingIdentifier(idx) if idx.name.eq(&identifier) => param.type_annotation.as_ref(),
       BindingPatternKind::ObjectPattern(obj) => {
@@ -724,19 +781,18 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         })
       },
       _ => {
-        if cfg!(test) {
-          warn!(
-            "{} Unsupported binding pattern: {param:?}",
-            "[find_type_of_identifier]".red().bold(),
-            param = param.bright_black().italic()
-          );
-        } else {
-          debug!(
-            "{} Unsupported binding pattern: {}",
-            "[find_type_of_identifier]".red().bold(),
-            std::any::type_name_of_val(param)
-          );
-        }
+        #[cfg(debug_assertions)]
+        warn!(
+          "{} Unsupported binding pattern: {param:?}",
+          "[find_type_of_identifier]".red().bold(),
+          param = param.bright_black().italic()
+        );
+        #[cfg(not(debug_assertions))]
+        debug!(
+          "{} Unsupported binding pattern: {}",
+          "[find_type_of_identifier]".red().bold(),
+          std::any::type_name_of_val(param)
+        );
         None
       },
     }
@@ -747,6 +803,8 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
     identifier: &str,
     ts_type: &'a TSType<'a>,
   ) -> Option<&'a oxc_allocator::Box<'a, TSTypeAnnotation<'a>>> {
+    trace!("Looking for {} in {:?}", identifier.cyan(), ts_type.bright_black().italic());
+
     match ts_type {
       TSType::TSTypeLiteral(type_literal) => {
         type_literal.members.iter().find_map(|member| {
@@ -757,58 +815,69 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
               signature.type_annotation.as_ref()
             },
             _ => {
-              if cfg!(test) {
-                warn!(
-                  "{} Unsupported type annotation in object pattern: {type_annotation:?}",
-                  "[find_type_of_identifier]".red().bold(),
-                  type_annotation = ts_type.bright_black().italic()
-                );
-              } else {
-                debug!(
-                  "{} Unsupported type annotation in object pattern: {}",
-                  "[find_type_of_identifier]".red().bold(),
-                  get_ts_type_name(ts_type)
-                );
-              }
+              #[cfg(debug_assertions)]
+              warn!(
+                "{} Unsupported type annotation in object pattern: {type_annotation:?}",
+                "[find_type_of_identifier_from_ts_type]".red().bold(),
+                type_annotation = ts_type.bright_black().italic()
+              );
+              #[cfg(not(debug_assertions))]
+              debug!(
+                "{} Unsupported type annotation in object pattern: {}",
+                "[find_type_of_identifier_from_ts_type]".red().bold(),
+                get_ts_type_name(ts_type)
+              );
               None
             },
           }
         })
       },
       TSType::TSTypeReference(type_reference) if type_reference.type_arguments.is_some() => {
-        let res = type_reference
+        type_reference
           .type_arguments
           .as_ref()
-          .and_then(|args| args.params.iter().find_map(|t| self.find_type_of_identifier_from_ts_type(identifier, t)));
-
-        if let Some(res) = res {
-          trace!("Res: {res:?}");
-        }
-
-        res
+          .and_then(|args| args.params.iter().find_map(|t| self.find_type_of_identifier_from_ts_type(identifier, t)))
       },
       _ => {
-        let type_annotation = get_ts_type_name(ts_type);
-
-        if cfg!(test) {
+        #[cfg(debug_assertions)]
+        {
           warn!(
-            "{} Unsupported type annotation in object pattern: {type_annotation}",
-            "[find_type_of_identifier]".red().bold(),
-            type_annotation = type_annotation.bold()
+            "{} Unable to find identifier {} from {type_annotation:?}",
+            "[find_type_of_identifier_from_ts_type]".red().bold(),
+            identifier.cyan(),
+            type_annotation = ts_type.bright_black().italic()
           );
-        } else {
-          debug!(
-            "{} Unsupported type annotation in object pattern: {type_annotation}",
-            "[find_type_of_identifier]".red().bold(),
-            type_annotation = type_annotation.bold()
-          );
+          use oxc_span::GetSpan;
+          self.print_error_location(&ts_type.span());
         }
+        #[cfg(not(debug_assertions))]
+        debug!(
+          "{} Unable to find identifier {} from {type_annotation}",
+          "[find_type_of_identifier_from_ts_type]".red().bold(),
+          identifier.cyan(),
+          type_annotation = get_ts_type_name(ts_type).bold()
+        );
+
         None
       },
     }
   }
 }
 
+fn get_value_from_literal_type(literal: &oxc_allocator::Box<'_, oxc_ast::ast::TSLiteralType<'_>>) -> Option<Value> {
+  match &literal.literal {
+    TSLiteral::BooleanLiteral(boolean_literal) => Some(Value::Bool(boolean_literal.value)),
+    TSLiteral::NumericLiteral(numeric_literal) => {
+      serde_json::Number::from_f64(numeric_literal.value).map(Value::Number)
+    },
+    TSLiteral::BigIntLiteral(_big_int_literal) => None,
+    TSLiteral::StringLiteral(string_literal) => Some(Value::String(string_literal.value.to_string())),
+    TSLiteral::TemplateLiteral(_template_literal) => None,
+    TSLiteral::UnaryExpression(_unary_expression) => None,
+  }
+}
+
+#[cfg(not(debug_assertions))]
 fn get_ts_type_name(ts_type: &TSType) -> &'static str {
   match ts_type {
     TSType::TSAnyKeyword(_) => "TSAnyKeyword",
@@ -882,6 +951,7 @@ fn get_string_values_from_union_type_literal(
 trait TypeNameEq {
   fn eq(&self, other: &Self) -> bool;
 }
+
 impl TypeNameEq for oxc_ast::ast::TSTypeName<'_> {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {

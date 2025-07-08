@@ -23,8 +23,7 @@ use crate::{
   Config,
   Entry,
   Location,
-  helper::html_entities_replacer::decode_html_entities,
-  helper::resolver_helper::ResolveFromTsConfig,
+  helper::{html_entities_replacer::decode_html_entities, resolver_helper::ResolveFromTsConfig},
   visitor::{
     node_child::NodeChild,
     traits::{

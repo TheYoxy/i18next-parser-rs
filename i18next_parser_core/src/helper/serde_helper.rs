@@ -10,6 +10,13 @@ impl SerdeHelper for Option<Value> {
   fn value_to_string(self) -> Option<String> {
     match self {
       Some(Value::String(s)) => Some(s),
+      Some(Value::Array(v)) => {
+        if v.len() == 1 {
+          v.first().and_then(|v| v.as_str().map(|s| s.to_string()))
+        } else {
+          None
+        }
+      },
       _ => None,
     }
   }
