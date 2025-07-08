@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use color_eyre::owo_colors::OwoColorize;
-use oxc_resolver::{AliasValue, ResolveOptions, Resolver, TsConfigSerde, TsconfigOptions, TsconfigReferences};
+use oxc_resolver::{AliasValue, ResolveOptions, Resolver, TsConfig, TsconfigOptions, TsconfigReferences};
 
 pub trait ResolveFromTsConfig {
   fn from_ts_config<P>(path: P) -> Option<Self>
@@ -40,7 +40,7 @@ impl ResolveFromTsConfig for Resolver {
 
     let tsconfig = find_tsconfig(working_dir)?;
     let config = if let Ok(mut tsconfig_content) = std::fs::read_to_string(&tsconfig) {
-      TsConfigSerde::parse(true, working_dir, tsconfig_content.as_mut_str()).ok()
+      TsConfig::parse(true, working_dir, tsconfig_content.as_mut_str()).ok()
     } else {
       None
     };

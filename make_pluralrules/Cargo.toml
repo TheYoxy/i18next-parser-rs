@@ -3,8 +3,8 @@ name = "make_pluralrules"
 version = "0.5.0"
 edition = "2024"
 authors = [
-    "Kekoa Riggin <kekoariggin@gmail.com>",
-    "Zibi Braniecki <zbraniecki@mozilla.com>",
+  "Kekoa Riggin <kekoariggin@gmail.com>",
+  "Zibi Braniecki <zbraniecki@mozilla.com>",
 ]
 description = "A Rustcode generator for CLDR plural rules."
 license = "Apache-2.0/MIT"
