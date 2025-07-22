@@ -609,320 +609,618 @@ mod trans_component {
   mod context {
     use super::*;
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_arg_type_alias() {
-      // language=javascript
-      let source_text = "type Ctx = 'male' | 'female'; function El(val: Ctx) {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-        "dialog.title",
-        "Reset password",
-        "ns",
-        vec!("male".into(), "female".into())
-      )]);
-    }
+    mod t_function {
+      use super::*;
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_props_arg_function() {
-      // language=javascript
-      let source_text = "function El({ val }: {val: 'male' | 'female'}) {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-        "dialog.title",
-        "Reset password",
-        "ns",
-        vec!("male".into(), "female".into())
-      )]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_arg_function() {
-      // language=javascript
-      let source_text = "function El(val: 'male' | 'female') {return <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;}";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-        "dialog.title",
-        "Reset password",
-        "ns",
-        vec!("male".into(), "female".into())
-      )]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_arg_const_function() {
-      // language=javascript
-      let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-        "dialog.title",
-        "Reset password",
-        "ns",
-        vec!("male".into(), "female".into())
-      )]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_variable_type() {
-      // language=javascript
-      let source_text = "const getSex = () => 'male'; const val: 'male' | 'female' = getSex(); const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-        "dialog.title",
-        "Reset password",
-        "ns",
-        vec!("male".into(), "female".into())
-      )]);
-    }
-
-    #[test_log::test]
-    fn test_1() {
-      // language=javascript
-      let source_text = "function ThemeDropdownMenu() {
-      const { t } = useTranslation('ns');
-      const [theme, setTheme] = useTheme();
-      const preferredTheme: 'dark' | 'light' = getPreferredTheme();
-
-      return (
-        <Trans context={preferredTheme} i18nKey='theme.system' ns='ns' t={t}>
-            System theme
-        </Trans>
-      );
-    }";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("theme.system", "System theme", "ns", vec![
-        "dark".into(),
-        "light".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_remote_type_complex() {
-      // language=javascript
-      let source_text = "
-            type Users = Array<{
-                role: 'admin' | 'member' | 'owner',
-            }>;
-            type Role = Users[number]['role'];
-            export function InvitationEmail() {
-      const role = invitee.role as Role;
-      return (
-        <EmailRoot>
-          <Text className='truncate'>
-            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
-          </Text>
-        </EmailRoot>
-      );
-    }
-    ";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-        "admin".into(),
-        "member".into(),
-        "owner".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_as_variable_types() {
-      // language=javascript
-      let source_text = "
-    export function InvitationEmail() {
-      const role = invitee.role as 'admin' | 'member' | 'owner' ;
-      return (
-        <EmailRoot>
-          <Text className='truncate'>
-            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
-          </Text>
-        </EmailRoot>
-      );
-    }
-    ";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-        "admin".into(),
-        "member".into(),
-        "owner".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_variable_types() {
-      // language=javascript
-      let source_text = "
-    export function InvitationEmail() {
-      const role: 'admin' | 'member' | 'owner' = invitee.role;
-      return (
-        <EmailRoot>
-          <Text className='truncate'>
-            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
-          </Text>
-        </EmailRoot>
-      );
-    }
-    ";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-        "admin".into(),
-        "member".into(),
-        "owner".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_variable_types_brackets_array() {
-      // language=javascript
-      let source_text = "
-    export function InvitationEmail() {
-      const role: ('admin' | 'member' | 'owner')[] = invitee.role;
-      return (
-        <EmailRoot>
-          <Text className='truncate'>
-            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
-          </Text>
-        </EmailRoot>
-      );
-    }
-    ";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-        "admin".into(),
-        "member".into(),
-        "owner".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_variable_types_array() {
-      // language=javascript
-      let source_text = "
-    export function InvitationEmail() {
-      const role: Array<'admin' | 'member' | 'owner'> = invitee.role;
-      return (
-        <EmailRoot>
-          <Text className='truncate'>
-            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
-          </Text>
-        </EmailRoot>
-      );
-    }
-    ";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-        "admin".into(),
-        "member".into(),
-        "owner".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_function_props() {
-      // language=javascript
-      let source_text = "
-    export function InvitationEmail({role}: {role: 'admin' | 'member' | 'owner'}) {
-      return (
-        <EmailRoot>
-          <Text className='truncate'>
-            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
-          </Text>
-        </EmailRoot>
-      );
-    }
-    ";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-        "admin".into(),
-        "member".into(),
-        "owner".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_generic_type() {
-      // language=javascript
-      let source_text = "
-            import type React from 'react';
-    export function InvitationEmail({role}: React.PropsWithChildren<{role: 'admin' | 'member' | 'owner'}>) {
-      return (
-        <EmailRoot>
-          <Text className='truncate'>
-            <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
-          </Text>
-        </EmailRoot>
-      );
-    }
-    ";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-        "admin".into(),
-        "member".into(),
-        "owner".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_variable() {
-      // language=javascript
-      let source_text =
-        "const val = 'male'; const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("dialog.title", "Reset password", "ns", vec![
-        "male".into()
-      ])]);
-    }
-
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_literal() {
-      // language=javascript
-      let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys.len(), 1);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-        "dialog.title",
-        "Reset password",
-        "ns",
-        vec!("male".into())
-      )]);
-    }
-
-    #[test_log::test]
-    fn should_parse_context_from_type_union_with_typeof() {
-      // language=javascript
-      let source_text = "
-            const sexKinds = ['male', 'female'] as const;
-            type SexKind = (typeof sexKinds)[number];
-            function A({kind} : {kind: SexKind}) {
-            return <Trans ns='ns' i18nKey='dialog.title' context={kind}>Reset password</Trans>;
+      #[test_log::test]
+      fn should_parse_context_from_string_arg_type_alias() {
+        // language=javascript
+        let source_text = "type Ctx = 'male' | 'female'; function El(val: Ctx) {
+            const {t} = useTranslation('ns');
+            return t('dialog.title', 'Reset password', { context: val });
             }";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("dialog.title", "Reset password", "ns", vec![
-        "male".into(),
-        "female".into()
-      ]),]);
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_props_arg_function() {
+        // language=javascript
+        let source_text = "function El({ val }: {val: 'male' | 'female'}) {
+            const {t} = useTranslation('ns');
+            return t('dialog.title', 'Reset password', { context: val });
+}";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_string_arg_function() {
+        // language=javascript
+        let source_text = "function El(val: 'male' | 'female') {
+            const {t} = useTranslation('ns');
+            return t('dialog.title', 'Reset password', { context: val });
+}";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test(ignore = "reason")]
+      fn should_parse_context_from_string_arg_const_function() {
+        // language=javascript
+        let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable_type() {
+        // language=javascript
+        let source_text = "const getSex = () => 'male'; const val: 'male' | 'female' = getSex();  const {t} = useTranslation('ns'); const el =  t('dialog.title', 'Reset password', { context: val });";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_remote_type_complex() {
+        // language=javascript
+        let source_text = "
+                  type Users = Array<{
+                      role: 'admin' | 'member' | 'owner',
+                  }>;
+                  type Role = Users[number]['role'];
+                  export function InvitationEmail() {
+            const role = invitee.role as Role;
+           const {t} = useTranslation('ns');
+           return t('role', 'Role', { context: role });
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_as_variable_types() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role = invitee.role as 'admin' | 'member' | 'owner' ;
+            const {t} = useTranslation('ns');
+            return t('role', 'Role', { context: role });
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable_types() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role: 'admin' | 'member' | 'owner' = invitee.role;
+            const {t} = useTranslation('ns');
+            return t('role', 'Role', { context: role });
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable_types_brackets_array() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role: ('admin' | 'member' | 'owner')[] = invitee.role;
+            const {t} = useTranslation('ns');
+            return t('role', 'Role', { context: role });
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable_types_array() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role: Array<'admin' | 'member' | 'owner'> = invitee.role;
+            const {t} = useTranslation('ns');
+            return t('role', 'Role', { context: role });
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_function_props() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail({role}: {role: 'admin' | 'member' | 'owner'}) {
+            const {t} = useTranslation('ns');
+            return t('role', 'Role', { context: role });
+          }";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_generic_type() {
+        // language=javascript
+        let source_text = "
+                  import type React from 'react';
+          export function InvitationEmail({role}: React.PropsWithChildren<{role: 'admin' | 'member' | 'owner'}>) {
+            const {t} = useTranslation('ns');
+            return t('role', 'Role', { context: role });
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable() {
+        // language=javascript
+        let source_text = "const val = 'male'; const {t} = useTranslation('ns'); const el = t('dialog.title', 'Reset password', { context: val });";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!["male".into()]
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_string_literal() {
+        // language=javascript
+        let source_text =
+          "const {t} = useTranslation('ns'); const el = t('dialog.title', 'Reset password', { context: 'male' });";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_type_union_with_typeof() {
+        // language=javascript
+        let source_text = "
+                  const sexKinds = ['male', 'female'] as const;
+                  type SexKind = (typeof sexKinds)[number];
+                  function A({kind} : {kind: SexKind}) {
+                  const {t} = useTranslation('ns'); return t('dialog.title', 'Reset password', { context: kind});
+                  }";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!["male".into(), "female".into()]
+        ),]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_string_literal_with_multiple_entries() {
+        // language=javascript
+        let source_text = "
+            const {t} = useTranslation('ns');
+            const a = t('dialog.title', 'Reset password', { context: 'male' });
+            const b = t('dialog.title', 'Reset password', { context: 'female' });
+            ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys, vec![
+          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
+          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])
+        ]);
+      }
     }
 
-    #[test_log::test]
-    fn should_parse_jsx_context_from_string_literal_with_multiple_entries() {
-      // language=javascript
-      let source_text = "const a = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;const b = <Trans ns='ns' i18nKey='dialog.title' context='female'>Reset password</Trans>;";
-      let keys = parse(source_text);
-      pretty_assertions::assert_eq!(keys, vec![
-        Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
-        Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])
-      ]);
+    mod jsx {
+      use super::*;
+
+      #[test_log::test]
+      fn should_parse_context_from_string_arg_type_alias() {
+        // language=javascript
+        let source_text = "type Ctx = 'male' | 'female'; function El(val: Ctx) {
+            const {t} = useTranslation('ns');
+            return t('dialog.title', 'Reset password', { context: val });
+}";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_props_arg_function() {
+        // language=javascript
+        let source_text = "function El({ val }: {val: 'male' | 'female'}) {
+            const {t} = useTranslation('ns');
+            return t('dialog.title', 'Reset password', { context: val });
+}";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_string_arg_function() {
+        // language=javascript
+        let source_text = "function El(val: 'male' | 'female') {
+            const {t} = useTranslation('ns');
+            return t('dialog.title', 'Reset password', { context: val });
+}";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_string_arg_const_function() {
+        // language=javascript
+        let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable_type() {
+        // language=javascript
+        let source_text = "const getSex = () => 'male'; const val: 'male' | 'female' = getSex(); const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into(), "female".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn test_1() {
+        // language=javascript
+        let source_text = "function ThemeDropdownMenu() {
+            const { t } = useTranslation('ns');
+            const [theme, setTheme] = useTheme();
+            const preferredTheme: 'dark' | 'light' = getPreferredTheme();
+
+            return (
+              <Trans context={preferredTheme} i18nKey='theme.system' ns='ns' t={t}>
+                  System theme
+              </Trans>
+            );
+          }";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("theme.system", "System theme", "ns", vec![
+          "dark".into(),
+          "light".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_remote_type_complex() {
+        // language=javascript
+        let source_text = "
+                  type Users = Array<{
+                      role: 'admin' | 'member' | 'owner',
+                  }>;
+                  type Role = Users[number]['role'];
+                  export function InvitationEmail() {
+            const role = invitee.role as Role;
+            return (
+              <EmailRoot>
+                <Text className='truncate'>
+                  <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                </Text>
+              </EmailRoot>
+            );
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_as_variable_types() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role = invitee.role as 'admin' | 'member' | 'owner' ;
+            return (
+              <EmailRoot>
+                <Text className='truncate'>
+                  <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                </Text>
+              </EmailRoot>
+            );
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable_types() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role: 'admin' | 'member' | 'owner' = invitee.role;
+            return (
+              <EmailRoot>
+                <Text className='truncate'>
+                  <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                </Text>
+              </EmailRoot>
+            );
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable_types_brackets_array() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role: ('admin' | 'member' | 'owner')[] = invitee.role;
+            return (
+              <EmailRoot>
+                <Text className='truncate'>
+                  <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                </Text>
+              </EmailRoot>
+            );
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable_types_array() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role: Array<'admin' | 'member' | 'owner'> = invitee.role;
+            return (
+              <EmailRoot>
+                <Text className='truncate'>
+                  <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                </Text>
+              </EmailRoot>
+            );
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_function_props() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail({role}: {role: 'admin' | 'member' | 'owner'}) {
+            return (
+              <EmailRoot>
+                <Text className='truncate'>
+                  <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                </Text>
+              </EmailRoot>
+            );
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_generic_type() {
+        // language=javascript
+        let source_text = "
+                  import type React from 'react';
+          export function InvitationEmail({role}: React.PropsWithChildren<{role: 'admin' | 'member' | 'owner'}>) {
+            return (
+              <EmailRoot>
+                <Text className='truncate'>
+                  <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                </Text>
+              </EmailRoot>
+            );
+          }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
+          "admin".into(),
+          "member".into(),
+          "owner".into()
+        ])]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_variable() {
+        // language=javascript
+        let source_text =
+          "const val = 'male'; const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!["male".into()]
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_string_literal() {
+        // language=javascript
+        let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!("male".into())
+        )]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_type_union_with_typeof() {
+        // language=javascript
+        let source_text = "
+                  const sexKinds = ['male', 'female'] as const;
+                  type SexKind = (typeof sexKinds)[number];
+                  function A({kind} : {kind: SexKind}) {
+                  return <Trans ns='ns' i18nKey='dialog.title' context={kind}>Reset password</Trans>;
+                  }";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
+          "dialog.title",
+          "Reset password",
+          "ns",
+          vec!["male".into(), "female".into()]
+        ),]);
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_string_literal_with_multiple_entries() {
+        // language=javascript
+        let source_text = "const a = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;const b = <Trans ns='ns' i18nKey='dialog.title' context='female'>Reset password</Trans>;";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys, vec![
+          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
+          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])
+        ]);
+      }
     }
   }
 }

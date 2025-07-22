@@ -17,6 +17,7 @@ use oxc_ast::ast::{
 };
 use oxc_resolver::Resolver;
 use oxc_span::GetSpan;
+use serde_json::Value;
 use tracing::span;
 
 use crate::{
@@ -38,7 +39,7 @@ use crate::{
 /// This type alias represents the options for i18next.
 /// It is a HashMap where the key is a String representing the option name,
 /// and the value is an Option<`String`> representing the option value.
-pub type I18NextOptions = HashMap<String, Option<String>>;
+pub type I18NextOptions = HashMap<String, Option<Value>>;
 
 /// This struct represents the options for the I18NVisitor.
 ///
@@ -468,7 +469,8 @@ impl<'a> I18NVisitor<'a> {
     trace!("Namespace separator: {separator:?}", separator = separator.italic().cyan());
     let current_namespace = &self.current_namespace;
     trace!("Current namespace: {namespace:?}", namespace = current_namespace.italic().cyan());
-    let ns_from_options = options.and_then(|o| o.get("namespace").cloned().flatten());
+    let ns_from_options =
+      options.and_then(|o| o.get("namespace").cloned().flatten().and_then(|v| v.as_str().map(|s| s.to_string())));
     trace!("Namespace from options: {namespace:?}", namespace = ns_from_options.italic().cyan());
 
     let (key, ns_from_key) = if key.contains(separator) {

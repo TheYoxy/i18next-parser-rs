@@ -27,7 +27,13 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
         };
 
         let context = match &i18next_options {
-          Some(opt) => opt.get("context").cloned().unwrap_or(None).map(|v| vec![v]),
+          Some(opt) => {
+            opt.get("context").cloned().unwrap_or(None).and_then(|v| {
+              v.as_array()
+                .map(|v| v.iter().filter_map(|v| v.as_str().map(|v| v.to_string())).collect::<_>())
+                .or(v.as_str().map(|v| v.to_string()).and_then(|v| Some(vec![v])))
+            })
+          },
           None => None,
         };
 

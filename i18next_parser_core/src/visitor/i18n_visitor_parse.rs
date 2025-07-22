@@ -23,7 +23,7 @@ impl<'a> I18NVisitor<'a> {
     if let Some(value) = i18next_options.get("defaultValue") {
       trace!("translation value found in i18next options: {value:?}");
     }
-    (i18next_options, default_value)
+    (i18next_options, default_value.and_then(|v| v.as_str().map(|v| v.to_string())))
   }
 
   /// Parse the i18next options
@@ -49,12 +49,17 @@ impl<'a> I18NVisitor<'a> {
 
             match name.to_string().as_str() {
               "defaultValue" | "count" | "namespace" => {
-                let value = self.parse_expression_as_string(&kv.value);
+                let value = self.parse_expression_to_serde_value(&kv.value);
                 kv.key.name().map(|name| (name.to_string(), value))
               },
               "ns" => {
-                let value = self.parse_expression_as_string(&kv.value);
+                let value = self.parse_expression_to_serde_value(&kv.value);
                 Some(("namespace".into(), value))
+              },
+              "context" => {
+                let value = self.parse_expression_to_serde_value(&kv.value);
+                debug!("Context value: {:?}", value);
+                Some(("context".into(), value))
               },
               _ => {
                 debug!("Couldn't parse {}", name.yellow());
