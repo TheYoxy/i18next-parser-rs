@@ -281,7 +281,10 @@ impl<'a> I18NVisitor<'a> {
                         JSXExpression::StaticMemberExpression(expression) => {
                           self.parse_expression_as_string(&expression.object).map(|v| vec![v])
                         },
-                        _ => todo!("expression container {e:?} not supported"),
+                        JSXExpression::TSAsExpression(expression) => {
+                          self.parse_expression_as_string(&expression.expression).map(|v| vec![v])
+                        },
+                        _ => todo!("expression container {e:?} not supported in {}", self.file_path.display().yellow()),
                       }
                     },
                     JSXAttributeValue::Element(_) => todo!("element not supported"),

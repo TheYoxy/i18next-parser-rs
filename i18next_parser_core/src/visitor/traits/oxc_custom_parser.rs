@@ -382,9 +382,11 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
           .map(|v| Value::Array(v.iter().map(|val| Value::String(val.clone())).collect()))
       },
       TSType::TSTypeQuery(type_query) => {
+        trace!("Type query: {:?}", type_query.bright_black().dimmed());
         type_query.expr_name.as_ts_type_name().and_then(|type_name| self.parse_ts_type_name(type_name))
       },
       TSType::TSParenthesizedType(parenthesized) => self.parse_ts_type(&parenthesized.type_annotation),
+      TSType::TSIndexedAccessType(indexed) if indexed.index_type.is_const_type_reference() => None,
       TSType::TSIndexedAccessType(indexed) if indexed.index_type.is_keyword() => {
         self.parse_ts_type(&indexed.object_type)
       },
@@ -401,6 +403,7 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
         })
       },
       TSType::TSArrayType(array_type) => self.parse_ts_type(&array_type.element_type),
+      TSType::TSTypeReference(type_reference) if type_reference.type_name.is_const() => None,
       TSType::TSTypeReference(type_reference) => {
         match &type_reference.type_name {
           TSTypeName::IdentifierReference(identifier) if identifier.name.eq("Array") => {
@@ -455,7 +458,12 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
 
   fn parse_ts_type_name(&self, type_name: &oxc_ast::ast::TSTypeName<'_>) -> Option<Value> {
     if let TSTypeName::IdentifierReference(identifier) = &type_name {
-      trace!("Looking for type reference {} {:?}", identifier.name.cyan(), type_name.bright_black());
+      trace!(
+        "Looking for type reference {} {:?} {:?}",
+        identifier.name.cyan(),
+        identifier.blue(),
+        type_name.bright_black()
+      );
 
       let parse_type_from_declaration = |decl: &Declaration| {
         if let Declaration::VariableDeclaration(var) = decl {
@@ -573,9 +581,10 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation {
 
       if val.is_none() {
         log::info!(
-          "{} Cannot find value for identifier: {identifier:?}",
+          "{} Cannot find value for identifier: {identifier:?} in {file_name}",
           "[parse_ts_type_name]".red().bold(),
-          identifier = identifier.name.cyan()
+          identifier = identifier.name.cyan(),
+          file_name = self.file_path().display().yellow()
         );
       }
 
