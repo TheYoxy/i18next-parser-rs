@@ -41,7 +41,7 @@ pub fn generate_index<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
   let config = config.as_ref();
   trace!("Generating index for i18next resources.");
 
-  let result = entries
+  let mut result = entries
     .iter()
     .map(|entry| {
       EntryValue {
@@ -57,6 +57,7 @@ pub fn generate_index<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
       }
     })
     .collect::<Vec<_>>();
+  result.sort_by(|a, b| a.name.cmp(b.name));
 
   for local in &config.locales {
     let exports = result
@@ -104,7 +105,7 @@ export default {{}};
 pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> color_eyre::Result<()> {
   let config = config.as_ref();
   trace!("Generating types for i18next resources.");
-  let result = entries
+  let mut result = entries
     .iter()
     .map(|entry| {
       EntryValue {
@@ -120,6 +121,7 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
       }
     })
     .collect::<Vec<_>>();
+  result.sort_by(|a, b| a.name.cmp(b.name));
 
   let get_name_property = |name: &str| {
     if name.chars().any(|char| !char.is_alphanumeric()) { format!("'{name}'") } else { name.to_string() }
