@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use oxc_span::Span;
+
 use crate::visitor::traits::oxc_program::OxcProgram;
 
 #[allow(unused_variables)]
@@ -31,14 +33,14 @@ pub fn print_error_location(content: &str, start: usize, end: usize) {
 
     let bounds = get_line_bounds(content, start, end);
     let (start_line, end_line) = match bounds {
-      Some((start, end)) => (start + 1, end + 1), // Convert to 1-indexed lines
+      Some((start, end)) => (start, end), // Convert to 1-indexed lines
       None => {
         log::error!("{} Invalid span: {start} {end}", "[Print_error_location]".red().bold());
         return;
       },
     };
 
-    const BOUND: usize = 3;
+    const BOUND: usize = 5;
     let range = LineRange::new(start_line.saturating_sub(BOUND), end_line + BOUND);
     let input = Input::from_bytes(content.as_bytes());
     let _ = PrettyPrinter::new()
@@ -58,7 +60,7 @@ pub fn get_line_bounds(text: &str, start_char_index: usize, end_char_index: usiz
     return None; // Invalid indices
   }
 
-  let mut current_line = 0; // 0-indexed line numbers
+  let mut current_line = 1; // 1-indexed line numbers
 
   let mut start_line: Option<usize> = None;
   let mut end_line: Option<usize> = None;
@@ -108,9 +110,23 @@ pub fn get_line_bounds(text: &str, start_char_index: usize, end_char_index: usiz
   }
 }
 
+pub trait GetLineBound: OxcProgram {
+  #[inline]
+  fn get_line_bounds(&self, span: &Span) -> String {
+    get_line_bounds(
+      self.program().source_text,
+      usize::try_from(span.start).expect("span size overload"),
+      usize::try_from(span.end).expect("span size overload"),
+    )
+    .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
+    .unwrap_or_default()
+  }
+}
+
 pub trait PrintErrorLocation: OxcProgram {
   /// Print the location of an error in the source code
   #[tracing::instrument(skip(self), target = "instrument")]
+  #[inline]
   fn print_error_location(&self, _span: &oxc_span::Span) {
     #[cfg(feature = "print_error_location")]
     {

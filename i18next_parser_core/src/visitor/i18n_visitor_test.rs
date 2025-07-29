@@ -1354,5 +1354,15 @@ mod parsing {
       let val = get_value(source_text, "TestType");
       assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
     }
+
+    #[test_log::test]
+    fn should_parse_indexed_array() {
+      let source_text = r#"
+        declare const roles: readonly ["admin", "member", "owner"];
+        type TestType = (typeof roles)[number];
+        "#;
+      let val = get_value(source_text, "TestType");
+      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+    }
   }
 }

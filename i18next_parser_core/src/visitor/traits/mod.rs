@@ -2,4 +2,4 @@ pub mod oxc_custom_parser;
 pub mod oxc_program;
 pub mod print_error_location;
 
-pub use print_error_location::{get_line_bounds, print_error_location_from_file};
+pub use print_error_location::{GetLineBound, get_line_bounds, print_error_location_from_file};

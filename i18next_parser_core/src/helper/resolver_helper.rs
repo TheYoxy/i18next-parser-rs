@@ -80,11 +80,12 @@ impl ResolveFromTsConfig for Resolver {
     let options = ResolveOptions {
       roots,
       alias,
-      extensions: vec![".ts".into(), ".tsx".into(), ".js".into(), ".jsx".into()],
+      extensions: vec![".d.ts".into(), ".ts".into(), ".tsx".into(), ".js".into(), ".jsx".into()],
       extension_alias: vec![
-        (".js".to_string(), vec![".js".to_string(), ".ts".to_string()]),
-        (".jsx".to_string(), vec![".jsx".to_string(), ".tsx".to_string()]),
+        (".js".into(), vec![".js".into(), ".ts".into(), ".d.ts".into()]),
+        (".jsx".into(), vec![".jsx".into(), ".tsx".into()]),
       ],
+      condition_names: vec!["node".into(), "types".into(), "import".into()],
       prefer_relative: true,
       tsconfig: {
         if tsconfig.exists() {
@@ -97,6 +98,7 @@ impl ResolveFromTsConfig for Resolver {
       ..Default::default()
     };
 
+    log::trace!("Instanciating resolver");
     Some(Resolver::new(options))
   }
 }

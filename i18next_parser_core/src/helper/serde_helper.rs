@@ -30,3 +30,21 @@ impl SerdeHelper for Option<Value> {
     }
   }
 }
+pub trait SerdeVecHelper {
+  fn values_to_value(self) -> Option<Value>;
+}
+
+impl SerdeVecHelper for Vec<Value> {
+  #[inline]
+  fn values_to_value(self) -> Option<Value> {
+    if self.is_empty() {
+      None
+    } else {
+      let mut values = vec![];
+      for v in self {
+        values.push(v);
+      }
+      if values.is_empty() { None } else { Some(Value::Array(values)) }
+    }
+  }
+}

@@ -7,6 +7,7 @@ use oxc_resolver::Resolver;
 use crate::{
   helper::resolver_helper::ResolveFromTsConfig,
   visitor::traits::{
+    GetLineBound,
     oxc_custom_parser::OxcCustomParser,
     oxc_program::OxcProgram,
     print_error_location::PrintErrorLocation,
@@ -14,13 +15,13 @@ use crate::{
 };
 
 pub struct ModuleParser<'a> {
+  pub(super) resolver: Resolver,
+  /// the file name of the file being parsed
+  pub file_path: PathBuf,
+  working_dir: &'a PathBuf,
   /// the program to be parsed
   pub program: &'a Program<'a>,
   allocator: &'a Allocator,
-  working_dir: &'a PathBuf,
-  /// the file name of the file being parsed
-  pub file_path: PathBuf,
-  pub(super) resolver: Resolver,
 }
 
 impl<'a> ModuleParser<'a> {
@@ -57,6 +58,9 @@ impl OxcProgram for ModuleParser<'_> {
   fn working_dir(&self) -> &PathBuf {
     self.working_dir
   }
+}
+
+impl GetLineBound for ModuleParser<'_> {
 }
 impl OxcCustomParser for ModuleParser<'_> {
 }

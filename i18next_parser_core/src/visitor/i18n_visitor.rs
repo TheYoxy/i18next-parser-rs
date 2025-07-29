@@ -24,10 +24,16 @@ use crate::{
   Config,
   Entry,
   Location,
-  helper::{html_entities_replacer::decode_html_entities, resolver_helper::ResolveFromTsConfig},
+  helper::{
+    MakeRelativePath,
+    SerdeHelper,
+    html_entities_replacer::decode_html_entities,
+    resolver_helper::ResolveFromTsConfig,
+  },
   visitor::{
     node_child::NodeChild,
     traits::{
+      GetLineBound,
       get_line_bounds,
       oxc_custom_parser::OxcCustomParser,
       oxc_program::OxcProgram,
@@ -107,6 +113,8 @@ impl OxcProgram for I18NVisitor<'_> {
     self.working_dir
   }
 }
+impl GetLineBound for I18NVisitor<'_> {
+}
 impl OxcCustomParser for I18NVisitor<'_> {
 }
 
@@ -159,12 +167,13 @@ impl<'a> I18NVisitor<'a> {
         },
         Argument::Identifier(identifier) => {
           trace!("Looking for namespace {} value from identifier", name.cyan());
-          let identifier = self.find_identifier_value_as_string(&identifier.name);
-          self.current_namespace = identifier;
+          let identifier = self.find_identifier_value_as_serde(&identifier.name);
+          self.current_namespace = identifier.and_then(|i| i.as_str().map(|i| i.to_string()));
         },
         Argument::TSAsExpression(expression) => {
           trace!("Looking for namespace {} value from `As` expression", name.cyan());
-          self.current_namespace = self.parse_expression_as_string(&expression.expression);
+          self.current_namespace =
+            self.parse_expression_as_serde(&expression.expression).and_then(|i| i.as_str().map(|i| i.to_string()));
         },
         Argument::ObjectExpression(expression) => {
           let vec = expression
@@ -177,10 +186,14 @@ impl<'a> I18NVisitor<'a> {
                     return Some(str.value.to_string());
                   },
                   PropertyKey::StaticIdentifier(ident) if ident.name == "ns" => {
-                    return self.find_identifier_value_as_string(&ident.name);
+                    return self
+                      .find_identifier_value_as_serde(&ident.name)
+                      .and_then(|i| i.as_str().map(|i| i.to_string()));
                   },
                   PropertyKey::Identifier(ident) if ident.name == "ns" => {
-                    return self.find_identifier_value_as_string(&ident.name);
+                    return self
+                      .find_identifier_value_as_serde(&ident.name)
+                      .and_then(|i| i.as_str().map(|i| i.to_string()));
                   },
                   _ => (),
                 }
@@ -252,7 +265,7 @@ impl<'a> I18NVisitor<'a> {
   /// The value of the prop
   pub(super) fn get_prop_values_of_el(&self, elem: &JSXElement<'_>, attribute_name: &str) -> Option<Vec<String>> {
     _ = span!(tracing::Level::TRACE, "get_prop_value", attribute_name = attribute_name).enter();
-    elem
+    let ret = elem
       .opening_element
       .attributes
       .iter()
@@ -262,7 +275,7 @@ impl<'a> I18NVisitor<'a> {
             if let JSXAttributeName::Identifier(identifier) = &attribute.name {
               if identifier.name == attribute_name {
                 if let Some(value) = &attribute.value {
-                  #[cfg(test)]
+                  #[cfg(debug_assertions)]
                   trace!(
                     "Value: {attribute_name} {value:?}",
                     attribute_name = attribute_name.cyan(),
@@ -275,14 +288,14 @@ impl<'a> I18NVisitor<'a> {
                       match &e.expression {
                         JSXExpression::StringLiteral(str) => Some(vec![str.value.to_string()]),
                         JSXExpression::Identifier(identifier) => {
-                          self.find_identifier_value_as_vec_string(&identifier.name)
+                          self.find_identifier_value_as_serde(&identifier.name).value_to_string_vec()
                         },
                         JSXExpression::NumericLiteral(num) => Some(vec![num.value.to_string()]),
                         JSXExpression::StaticMemberExpression(expression) => {
-                          self.parse_expression_as_string(&expression.object).map(|v| vec![v])
+                          self.parse_expression_as_serde(&expression.object).value_to_string_vec()
                         },
                         JSXExpression::TSAsExpression(expression) => {
-                          self.parse_expression_as_string(&expression.expression).map(|v| vec![v])
+                          self.parse_expression_as_serde(&expression.expression).value_to_string_vec()
                         },
                         _ => todo!("expression container {e:?} not supported in {}", self.file_path.display().yellow()),
                       }
@@ -303,7 +316,14 @@ impl<'a> I18NVisitor<'a> {
           JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
         }
       })
-      .next()
+      .next();
+
+    if let Some(ret) = &ret {
+      trace!("{} Found value: {ret:?}", "[get_prop_values_of_el]".blue());
+    } else {
+      trace!("{} {} found for expression", "[get_prop_values_of_el]".blue(), "No value".red().bold());
+    }
+    ret
   }
 
   /// Get the value of a prop in a JSX element
@@ -341,11 +361,15 @@ impl<'a> I18NVisitor<'a> {
                         JSXExpression::StringLiteral(str) => Some(str.value.to_string()),
                         JSXExpression::Identifier(identifier) => {
                           trace!("Looking for identifier value for prop");
-                          self.find_identifier_value_as_string(&identifier.name)
+                          self
+                            .find_identifier_value_as_serde(&identifier.name)
+                            .and_then(|i| i.as_str().map(|i| i.to_string()))
                         },
                         JSXExpression::NumericLiteral(num) => Some(num.value.to_string()),
                         JSXExpression::StaticMemberExpression(expression) => {
-                          self.parse_expression_as_string(&expression.object)
+                          self
+                            .parse_expression_as_serde(&expression.object)
+                            .and_then(|i| i.as_str().map(|i| i.to_string()))
                         },
                         _ => todo!("expression container {e:?} not supported"),
                       }
@@ -508,6 +532,7 @@ impl<'a> I18NVisitor<'a> {
       })
       && let Some(attribute) = val.as_attribute()
     {
+      trace!("Print missing context");
       let val = match &attribute.value {
         Some(JSXAttributeValue::ExpressionContainer(container)) => {
           container.expression.as_expression().and_then(|e| e.get_identifier_reference()).map(|id| id.name)
@@ -527,7 +552,7 @@ impl<'a> I18NVisitor<'a> {
           "Unable to find the value of {key} {value:?} in {file_name}{line}",
           key = "context".cyan(),
           value = val.blue().bold(),
-          file_name = self.file_path.display().yellow(),
+          file_name = self.file_path.make_relative(self.working_dir).display().yellow().dimmed(),
           line = line.blue()
         );
         self.print_error_location(&attribute.span);

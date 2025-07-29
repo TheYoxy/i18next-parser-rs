@@ -37,7 +37,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
               let ctx_value = context_value
                 .as_array()
                 .map(|val| val.iter().filter_map(|val| val.as_str().map(|val| val.to_string())).collect::<_>())
-                .or(context_value.as_str().map(|val| val.to_string()).and_then(|val| Some(vec![val])));
+                .or(context_value.as_str().map(|val| val.to_string()).map(|val| vec![val]));
 
               if ctx_value.is_none() {
                 let line = get_line_bounds(

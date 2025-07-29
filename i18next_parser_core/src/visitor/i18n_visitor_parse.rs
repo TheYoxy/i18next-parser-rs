@@ -1,5 +1,5 @@
 use color_eyre::owo_colors::OwoColorize;
-use log::{debug, trace, warn};
+use log::{trace, warn};
 use oxc_ast::ast::{Expression, JSXChild, JSXElementName, ObjectExpression, ObjectPropertyKind};
 
 use crate::{
@@ -46,33 +46,44 @@ impl<'a> I18NVisitor<'a> {
         match prop {
           ObjectPropertyKind::ObjectProperty(kv) => {
             let name = kv.key.name().unwrap();
+            let name_string = name.to_string();
+            let name = name_string.as_str();
 
-            match name.to_string().as_str() {
-              "defaultValue" | "count" | "namespace" => {
-                let value = self.parse_expression_to_serde_value(&kv.value);
-                kv.key.name().map(|name| (name.to_string(), value))
+            trace!("{} Parsing {}", "[parse_i18next_option]".on_yellow().black(), name.cyan());
+            let val = match name {
+              "defaultValue" | "count" | "namespace" | "context" => {
+                let value = self.parse_expression_as_serde(&kv.value);
+                Some((name.to_string(), value))
               },
               "ns" => {
-                let value = self.parse_expression_to_serde_value(&kv.value);
+                let value = self.parse_expression_as_serde(&kv.value);
                 Some(("namespace".into(), value))
               },
-              "context" => {
-                let value = self.parse_expression_to_serde_value(&kv.value);
-                debug!("Context value: {:?}", value);
-                Some(("context".into(), value))
-              },
               _ => {
-                debug!("Couldn't parse {}", name.yellow());
+                trace!("{} Skipping {}", "[parse_i18next_option]".on_yellow().black(), name.yellow());
                 None
               },
+            };
+
+            if let Some(val) = &val {
+              trace!(
+                "{} Found i18next option: {} -> {:?}",
+                "[parse_i18next_option]".on_yellow().black(),
+                name.cyan(),
+                val.purple()
+              );
+            } else {
+              trace!("{} No value found for {}", "[parse_i18next_option]".on_yellow().black(), name.cyan());
             }
+
+            val
           },
           ObjectPropertyKind::SpreadProperty(_prop) => {
             #[cfg(debug_assertions)]
             {
               use crate::visitor::traits::print_error_location::PrintErrorLocation;
 
-              warn!("{} Unsupported spread property", "[Parse_i18next_option]".red().bold());
+              warn!("{} Unsupported spread property", "[parse_i18next_option]".red().bold());
               self.print_error_location(&_prop.span);
               panic!("Spread property is not supported in i18next options");
             }

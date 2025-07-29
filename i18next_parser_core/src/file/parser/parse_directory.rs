@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::Instant};
+use std::{ops::Div, path::PathBuf, time::Instant};
 
 use color_eyre::{
   eyre::{bail, eyre},
@@ -8,23 +8,26 @@ use ignore::DirEntry;
 use log::debug;
 use tracing::instrument;
 
-use crate::{Entry, config::Config, file::parser::parse_file::parse_file, log_time};
+use crate::{Entry, config::Config, file::parser::parse_file::parse_file, helper::MakeRelativePath, log_time};
 
 fn parse_directory_mono_thread<C: AsRef<Config>>(filter: &[DirEntry], config: C) -> Vec<Entry> {
+  let config = config.as_ref();
+  let working_dir = &config.working_dir;
   filter
     .iter()
     .filter_map(move |entry| {
       let entry_path = entry.path();
       let now = Instant::now();
-      let ret = parse_file(entry_path, &config).ok();
+      let ret = parse_file(entry_path, config).ok();
       let elapsed = now.elapsed().as_secs_f64() * 1000.0;
       match &ret {
         Some(r) if !r.is_empty() => {
           let len = r.len();
-          tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.display(), format = format!("({elapsed:.2}ms)").bright_black(), count = format!("{len} translations").italic().color(CssColors::Gray) );
+          let count_by_len = elapsed.div(len as f64);
+          tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.make_relative(working_dir).display(), format = format!("({elapsed:.2}ms {})", format!("[{count_by_len:.2}ms/translation]").bright_black().dimmed()).bright_black(), count = format!("{len} translations").italic().color(CssColors::Gray) );
         },
         _ => {
-          tracing::info!(target: "file_read", "{file} {format}", file = entry_path.display().italic().color(CssColors::Gray), format = format!("({elapsed:.2}ms)").bright_black());
+          tracing::info!(target: "file_read", "{file} {format}", file = entry_path.make_relative(working_dir).display().italic().color(CssColors::Gray), format = format!("({elapsed:.2}ms)").bright_black());
         }
       }
       ret
