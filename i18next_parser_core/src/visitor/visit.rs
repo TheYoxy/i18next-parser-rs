@@ -6,7 +6,11 @@ use oxc_ast_visit::{Visit, walk};
 use crate::{
   Entry,
   helper::html_entities_replacer::decode_html_entities,
-  visitor::{I18NVisitor, entry::Location},
+  visitor::{
+    I18NVisitor,
+    entry::Location,
+    traits::{get_line_bounds, print_error_location::PrintErrorLocation},
+  },
 };
 
 impl<'a> Visit<'a> for I18NVisitor<'a> {
@@ -28,11 +32,51 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
 
         let context = match &i18next_options {
           Some(opt) => {
-            opt.get("context").cloned().unwrap_or(None).and_then(|v| {
-              v.as_array()
-                .map(|v| v.iter().filter_map(|v| v.as_str().map(|v| v.to_string())).collect::<_>())
-                .or(v.as_str().map(|v| v.to_string()).and_then(|v| Some(vec![v])))
-            })
+            let context = opt.get("context");
+            if let Some(Some(context_value)) = context {
+              let ctx_value = context_value
+                .as_array()
+                .map(|val| val.iter().filter_map(|val| val.as_str().map(|val| val.to_string())).collect::<_>())
+                .or(context_value.as_str().map(|val| val.to_string()).and_then(|val| Some(vec![val])));
+
+              if ctx_value.is_none() {
+                let line = get_line_bounds(
+                  self.program.source_text,
+                  usize::try_from(expr.span.start).expect("span size overload"),
+                  usize::try_from(expr.span.end).expect("span size overload"),
+                )
+                .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
+                .unwrap_or_default();
+                log::warn!(
+                  "Unable to find the value of {key} {value:?} in {file_name}{line}",
+                  key = "context".cyan(),
+                  value = context_value.blue().bold(),
+                  file_name = self.file_path.display().yellow(),
+                  line = line.blue()
+                );
+                self.print_error_location(&expr.span);
+              }
+
+              ctx_value
+            } else if let Some(None) = context {
+              let line = get_line_bounds(
+                self.program.source_text,
+                usize::try_from(expr.span.start).expect("span size overload"),
+                usize::try_from(expr.span.end).expect("span size overload"),
+              )
+              .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
+              .unwrap_or_default();
+              log::warn!(
+                "Unable to find the value of props {key} in {file_name}{line}",
+                key = "context".cyan(),
+                file_name = self.file_path.display().yellow(),
+                line = line.blue()
+              );
+              self.print_error_location(&expr.span);
+              None
+            } else {
+              None
+            }
           },
           None => None,
         };

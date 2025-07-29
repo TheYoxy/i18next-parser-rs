@@ -506,9 +506,9 @@ impl<'a> I18NVisitor<'a> {
           false
         }
       })
-      && let Some(f) = val.as_attribute()
+      && let Some(attribute) = val.as_attribute()
     {
-      let val = match &f.value {
+      let val = match &attribute.value {
         Some(JSXAttributeValue::ExpressionContainer(container)) => {
           container.expression.as_expression().and_then(|e| e.get_identifier_reference()).map(|id| id.name)
         },
@@ -518,8 +518,8 @@ impl<'a> I18NVisitor<'a> {
       if let Some(val) = val {
         let line = get_line_bounds(
           self.program.source_text,
-          usize::try_from(f.span.start).expect("span size overload"),
-          usize::try_from(f.span.end).expect("span size overload"),
+          usize::try_from(attribute.span.start).expect("span size overload"),
+          usize::try_from(attribute.span.end).expect("span size overload"),
         )
         .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
         .unwrap_or_default();
@@ -530,7 +530,7 @@ impl<'a> I18NVisitor<'a> {
           file_name = self.file_path.display().yellow(),
           line = line.blue()
         );
-        self.print_error_location(&f.span);
+        self.print_error_location(&attribute.span);
       }
     };
     let options = self.get_prop_value_as_str(elem, "i18n");
