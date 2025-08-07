@@ -363,6 +363,22 @@ mod trans_component {
   }
 
   #[test_log::test]
+  fn should_extract_ns_when_in_key() {
+    // language=javascript
+    let source_text = "<Trans i18nKey='ns:first' />";
+    let keys = parse(source_text);
+    pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("first", "ns")]);
+  }
+
+  #[test_log::test]
+  fn should_extract_ns_when_in_key_and_specified() {
+    // language=javascript
+    let source_text = "<Trans i18nKey='ns2:first' ns='ns' />";
+    let keys = parse(source_text);
+    pretty_assertions::assert_eq!(keys, vec![Entry::new_with_ns("first", "ns2")]);
+  }
+
+  #[test_log::test]
   #[should_panic] // todo: fix this test
   fn should_format_interpolations_correctly() {
     // language=javascript

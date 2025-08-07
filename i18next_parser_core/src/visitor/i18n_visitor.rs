@@ -569,6 +569,16 @@ impl<'a> I18NVisitor<'a> {
     let default_value = default_value.unwrap_or(node_as_string);
 
     if let Some(key) = key {
+      let separator = self.options.namespace_separator.as_deref().unwrap_or(":");
+      let (key, ns_from_key) = if key.contains(separator) {
+        let mut split = key.split(separator);
+        let ns = split.next().map(|v| v.to_string());
+        let key = split.next().map(|v| v.to_string()).unwrap();
+        (key, ns)
+      } else {
+        (key.to_string(), None)
+      };
+
       self.entries.push(Entry {
         location: Location::new(
           self.file_path.to_str().unwrap().to_string(),
@@ -577,7 +587,7 @@ impl<'a> I18NVisitor<'a> {
         ),
         key,
         value: if default_value.is_empty() { None } else { decode_html_entities(&default_value).ok() },
-        namespace: ns,
+        namespace: ns_from_key.or(ns),
         has_count: count,
         i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
         context,
