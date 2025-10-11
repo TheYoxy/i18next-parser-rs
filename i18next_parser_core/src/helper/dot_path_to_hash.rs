@@ -6,9 +6,7 @@ use color_eyre::owo_colors::OwoColorize;
 use log::{info, trace};
 
 use crate::{
-  Config,
-  Entry,
-  Location,
+  Config, Entry, Location,
   merger::merge_all_values::FoundValue,
   models::{Conflict, ConflictEntry, FoundEntry},
   transform::plural::{I18NVersion, PluralResolver},
@@ -44,8 +42,11 @@ pub fn dot_path_to_hash(
     let ns = entry.namespace.as_ref().unwrap_or(&config.default_namespace);
     let base_path = format!("{ns}{separator}{key}", key = entry.key);
     trace!("Raw path: {:?}", base_path.purple());
-    let path =
-      base_path.replace(r#"\\n"#, "\\n").replace(r#"\\r"#, "\\r").replace(r#"\\t"#, "\\t").replace(r#"\\\\"#, "\\");
+    let path = base_path
+      .replace(r#"\\n"#, "\\n")
+      .replace(r#"\\r"#, "\\r")
+      .replace(r#"\\t"#, "\\t")
+      .replace(r#"\\\\"#, "\\");
 
     trace!("Path: {:?}", path.purple());
     if path.ends_with(separator) {
@@ -61,7 +62,10 @@ pub fn dot_path_to_hash(
     .as_ref()
     .map(|context| {
       let context_separator = &config.context_separator;
-      context.iter().map(|context| format!("{context_separator}{context}")).collect::<Vec<_>>()
+      context
+        .iter()
+        .map(|context| format!("{context_separator}{context}"))
+        .collect::<Vec<_>>()
     })
     .inspect(|context| {
       trace!("Context entries: {context:?}", context = context.magenta());
@@ -81,7 +85,10 @@ pub fn dot_path_to_hash(
     None
   }
   .inspect(|count_suffixes| {
-    trace!("Count entries: {count_suffixes:?}", count_suffixes = count_suffixes.magenta());
+    trace!(
+      "Count entries: {count_suffixes:?}",
+      count_suffixes = count_suffixes.magenta()
+    );
   });
 
   trace!("Val {:?} {:?}", entry.key.purple(), entry.value.cyan());
@@ -94,23 +101,23 @@ pub fn dot_path_to_hash(
           merge_values(entry, full_path, found_value, &mut new_values, config, true);
         }
       }
-    },
+    }
     (Some(context_suffixes), None) => {
       for context in context_suffixes {
         let full_path = format!("{entry_path}{context}");
         merge_values(entry, full_path, found_value, &mut new_values, config, true);
       }
-    },
+    }
 
     (None, Some(count_suffixes)) => {
       for count in count_suffixes {
         let full_path = format!("{entry_path}{count}");
         merge_values(entry, full_path, found_value, &mut new_values, config, true);
       }
-    },
+    }
     (None, None) => {
       merge_values(entry, entry_path, found_value, &mut new_values, config, false);
-    },
+    }
   };
 
   Some(new_values)
@@ -135,7 +142,10 @@ fn merge_values(
         trace!("Values {:?} -> {:?}", old_value.purple(), new_value.purple());
         if *old_value != *new_value && !old_value.is_empty() {
           if new_value.is_empty() {
-            trace!("new value is empty, keeping old value {old_value:?}", old_value = old_value.purple());
+            trace!(
+              "new value is empty, keeping old value {old_value:?}",
+              old_value = old_value.purple()
+            );
             (old_value.as_str(), None)
           } else if has_context {
             trace!(
@@ -150,16 +160,22 @@ fn merge_values(
               new_value.as_str(),
               Some(Conflict::Value(
                 ConflictEntry::new(old_value.clone(), old_location.clone()),
-                ConflictEntry::new(new_value.clone(), Location {
-                  start: entry.location.start,
-                  end: entry.location.end,
-                  file: entry.location.file.clone(),
-                }),
+                ConflictEntry::new(
+                  new_value.clone(),
+                  Location {
+                    start: entry.location.start,
+                    end: entry.location.end,
+                    file: entry.location.file.clone(),
+                  },
+                ),
               )),
             )
           }
         } else {
-          trace!("Old value is empty or match new value, assigning new value {:?}", new_value.purple());
+          trace!(
+            "Old value is empty or match new value, assigning new value {:?}",
+            new_value.purple()
+          );
           (new_value.as_str(), None)
         }
       } else {
@@ -171,7 +187,12 @@ fn merge_values(
     .unwrap_or_default();
 
   if let Some(namespace) = &entry.namespace {
-    trace!("Setting [{:?}] {:?} -> {:?}", namespace.cyan(), entry_path.yellow(), new_value.purple());
+    trace!(
+      "Setting [{:?}] {:?} -> {:?}",
+      namespace.cyan(),
+      entry_path.yellow(),
+      new_value.purple()
+    );
   } else {
     info!(
       "Setting to default namespace [{:?}] {:?} -> {:?}",
@@ -181,7 +202,13 @@ fn merge_values(
     );
   };
 
-  new_values.insert(entry_path, (FoundEntry::new_with_location(new_value, entry.location.clone()), conflict));
+  new_values.insert(
+    entry_path,
+    (
+      FoundEntry::new_with_location(new_value, entry.location.clone()),
+      conflict,
+    ),
+  );
 }
 
 #[cfg(test)]
@@ -300,8 +327,14 @@ mod tests {
     assert!(result.is_some());
     let result = result.expect("");
 
-    assert_eq!(result.get("namespace.key_one"), Some(&(FoundEntry::new("default_value"), None)));
-    assert_eq!(result.get("namespace.key_other"), Some(&(FoundEntry::new("default_value"), None)));
+    assert_eq!(
+      result.get("namespace.key_one"),
+      Some(&(FoundEntry::new("default_value"), None))
+    );
+    assert_eq!(
+      result.get("namespace.key_other"),
+      Some(&(FoundEntry::new("default_value"), None))
+    );
   }
 
   #[test_log::test]
@@ -323,8 +356,14 @@ mod tests {
     assert!(result.is_some());
     let result = result.expect("");
 
-    assert_eq!(result.get("namespace.key_context1"), Some(&(FoundEntry::new("default_value"), None)));
-    assert_eq!(result.get("namespace.key_context2"), Some(&(FoundEntry::new("default_value"), None)));
+    assert_eq!(
+      result.get("namespace.key_context1"),
+      Some(&(FoundEntry::new("default_value"), None))
+    );
+    assert_eq!(
+      result.get("namespace.key_context2"),
+      Some(&(FoundEntry::new("default_value"), None))
+    );
   }
 
   #[test_log::test]
@@ -346,10 +385,22 @@ mod tests {
     assert!(result.is_some());
     let result = result.expect("");
 
-    assert_eq!(result.get("namespace.key_context1_one"), Some(&(FoundEntry::new("default_value"), None)));
-    assert_eq!(result.get("namespace.key_context2_one"), Some(&(FoundEntry::new("default_value"), None)));
-    assert_eq!(result.get("namespace.key_context1_other"), Some(&(FoundEntry::new("default_value"), None)));
-    assert_eq!(result.get("namespace.key_context2_other"), Some(&(FoundEntry::new("default_value"), None)));
+    assert_eq!(
+      result.get("namespace.key_context1_one"),
+      Some(&(FoundEntry::new("default_value"), None))
+    );
+    assert_eq!(
+      result.get("namespace.key_context2_one"),
+      Some(&(FoundEntry::new("default_value"), None))
+    );
+    assert_eq!(
+      result.get("namespace.key_context1_other"),
+      Some(&(FoundEntry::new("default_value"), None))
+    );
+    assert_eq!(
+      result.get("namespace.key_context2_other"),
+      Some(&(FoundEntry::new("default_value"), None))
+    );
   }
 
   #[test_log::test]
@@ -374,11 +425,17 @@ mod tests {
     let result = result.expect("");
 
     assert!(result.contains_key("namespace.key_context1"));
-    assert_eq!(result.get("namespace.key_context1").expect("").0.value, "existing_value");
+    assert_eq!(
+      result.get("namespace.key_context1").expect("").0.value,
+      "existing_value"
+    );
     assert_eq!(result.get("namespace.key_context1").expect("").1, None);
 
     assert!(result.contains_key("namespace.key_context2"));
-    assert_eq!(result.get("namespace.key_context2").expect("").0.value, "existing_value");
+    assert_eq!(
+      result.get("namespace.key_context2").expect("").0.value,
+      "existing_value"
+    );
     assert_eq!(result.get("namespace.key_context2").expect("").1, None);
   }
 }

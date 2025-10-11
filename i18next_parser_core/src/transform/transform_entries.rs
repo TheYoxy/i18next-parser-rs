@@ -30,7 +30,10 @@ pub fn transform_entries(
     value
   });
 
-  Ok(TransformEntriesResult { value, locale: locale.to_string() })
+  Ok(TransformEntriesResult {
+    value,
+    locale: locale.to_string(),
+  })
 }
 
 #[cfg(test)]
@@ -68,7 +71,9 @@ mod tests {
     let locale = "en";
     let config = Default::default();
 
-    let result = transform_entries(&entries, locale, &config).map(|e| e.value).expect("the result should be ok");
+    let result = transform_entries(&entries, locale, &config)
+      .map(|e| e.value)
+      .expect("the result should be ok");
 
     assert_eq!(result.get("default.key_male"), Some(&FoundEntry::new("male value")));
     assert_eq!(result.get("default.key_female"), Some(&FoundEntry::new("female value")));
@@ -87,7 +92,9 @@ mod tests {
     let locale = "en";
     let config = Default::default();
 
-    let result = transform_entries(&entries, locale, &config).map(|e| e.value).expect("the result should be ok");
+    let result = transform_entries(&entries, locale, &config)
+      .map(|e| e.value)
+      .expect("the result should be ok");
 
     assert_eq!(result.get("default.key_male"), Some(&FoundEntry::new("value")));
     assert_eq!(result.get("default.key_female"), Some(&FoundEntry::new("value")));
@@ -116,7 +123,9 @@ mod tests {
     let locale = "en";
     let config = Default::default();
 
-    let result = transform_entries(&entries, locale, &config).map(|e| e.value).expect("the result should be ok");
+    let result = transform_entries(&entries, locale, &config)
+      .map(|e| e.value)
+      .expect("the result should be ok");
 
     assert_eq!(result.get("default.key_male"), Some(&FoundEntry::new("male value")));
     assert_eq!(result.get("default.key_female"), Some(&FoundEntry::new("female value")));

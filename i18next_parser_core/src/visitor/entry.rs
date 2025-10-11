@@ -19,8 +19,7 @@ impl Location {
   }
 
   #[cfg(not(feature = "print_error_location"))]
-  pub fn print(&self) {
-  }
+  pub fn print(&self) {}
 
   #[cfg(feature = "print_error_location")]
   #[tracing::instrument(skip(self))]
@@ -102,12 +101,20 @@ impl PartialEq for Entry {
 impl Entry {
   /// Create a new entry.
   pub fn empty<Key: Into<String>>(key: Key) -> Self {
-    Self { key: key.into(), ..Default::default() }
+    Self {
+      key: key.into(),
+      ..Default::default()
+    }
   }
 
   /// Create a new entry with a value and a namespace.
   pub fn new<Key: Into<String>, Value: Into<String>, Ns: Into<String>>(key: Key, value: Value, namespace: Ns) -> Self {
-    Self { key: key.into(), value: Some(value.into()), namespace: Some(namespace.into()), ..Default::default() }
+    Self {
+      key: key.into(),
+      value: Some(value.into()),
+      namespace: Some(namespace.into()),
+      ..Default::default()
+    }
   }
 
   pub fn new_with_context<Key: Into<String>, Value: Into<String>, Ns: Into<String>>(
@@ -127,11 +134,19 @@ impl Entry {
 
   /// Create a new entry with a value.
   pub fn new_with_value<Key: Into<String>, Value: Into<String>>(key: Key, value: Value) -> Self {
-    Self { key: key.into(), value: Some(value.into()), ..Default::default() }
+    Self {
+      key: key.into(),
+      value: Some(value.into()),
+      ..Default::default()
+    }
   }
 
   /// Create a new entry with a namespace.
   pub fn new_with_ns<Key: Into<String>, Ns: Into<String>>(key: Key, namespace: Ns) -> Self {
-    Self { key: key.into(), namespace: Some(namespace.into()), ..Default::default() }
+    Self {
+      key: key.into(),
+      namespace: Some(namespace.into()),
+      ..Default::default()
+    }
   }
 }

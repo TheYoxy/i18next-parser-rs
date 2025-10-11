@@ -4,8 +4,7 @@ use color_eyre::{eyre::Context, owo_colors::OwoColorize};
 use tracing::{Event, Level, Subscriber, level_filters::LevelFilter};
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
-  EnvFilter,
-  Layer,
+  EnvFilter, Layer,
   filter::filter_fn,
   fmt,
   fmt::{FormatEvent, FormatFields, format::FmtSpan},
@@ -155,7 +154,11 @@ pub fn initialize_logging(verbose: &bool) -> color_eyre::Result<()> {
     .with_target(false)
     .with_ansi(true)
     .event_format(InfoFormatter)
-    .with_filter(EnvFilter::builder().with_default_directive(LevelFilter::WARN.into()).from_env_lossy())
+    .with_filter(
+      EnvFilter::builder()
+        .with_default_directive(LevelFilter::WARN.into())
+        .from_env_lossy(),
+    )
     .with_filter(filter_fn(|meta| {
       let level = *meta.level();
       level <= Level::DEBUG
@@ -207,7 +210,10 @@ pub fn initialize_logging(verbose: &bool) -> color_eyre::Result<()> {
 /// Initialize the panic handler.
 pub fn initialize_panic_handler() -> color_eyre::Result<()> {
   let hooks = color_eyre::config::HookBuilder::default()
-    .panic_section(format!("This is a bug. Consider reporting it at {}", env!("CARGO_PKG_REPOSITORY")))
+    .panic_section(format!(
+      "This is a bug. Consider reporting it at {}",
+      env!("CARGO_PKG_REPOSITORY")
+    ))
     .capture_span_trace_by_default(false)
     .display_location_section(false)
     .display_env_section(false);

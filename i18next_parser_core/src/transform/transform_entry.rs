@@ -11,7 +11,11 @@ use crate::{
 
 /// Transforms an entry into a JSON object.
 pub fn transform_entry(entry: &Entry, options: &Config, locale: &str, found_values: &mut FoundValue) {
-  let namespace = if let Some(ns) = &entry.namespace { ns } else { &options.default_namespace };
+  let namespace = if let Some(ns) = &entry.namespace {
+    ns
+  } else {
+    &options.default_namespace
+  };
 
   let values = dot_path_to_hash(entry, locale, options, found_values);
 
@@ -29,15 +33,23 @@ pub fn transform_entry(entry: &Entry, options: &Config, locale: &str, found_valu
         if options.fail_on_warnings {
           panic!(
             "Found translation key already mapped to a map or parent of new key already mapped to a string: {key}",
-            key = format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
-              .italic(),
+            key = format!(
+              "{namespace}{separator}{key}",
+              namespace = namespace.bright_yellow(),
+              key = entry.key.blue()
+            )
+            .italic(),
           )
         }
 
         warn!(
           "Found same keys with different values: {key}: {diff}",
-          key = format!("{namespace}{separator}{key}", namespace = namespace.bright_yellow(), key = entry.key.blue())
-            .italic(),
+          key = format!(
+            "{namespace}{separator}{key}",
+            namespace = namespace.bright_yellow(),
+            key = entry.key.blue()
+          )
+          .italic(),
         );
       }
     }

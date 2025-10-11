@@ -62,7 +62,9 @@ pub fn merge_hashes(
 
   let key_separator = &config.key_separator;
   let default_locale = config.default_locale();
-  let reset_values_map = reset_values.and_then(|v| v.as_object()).map_or_else(Map::new, |v| v.clone());
+  let reset_values_map = reset_values
+    .and_then(|v| v.as_object())
+    .map_or_else(Map::new, |v| v.clone());
 
   match source {
     Some(Value::Object(source_map)) => {
@@ -77,7 +79,11 @@ pub fn merge_hashes(
             from_source_value.green()
           );
         } else {
-          trace!("Current entry: {}: `{}`", from_source_key.italic().purple(), from_source_value.green());
+          trace!(
+            "Current entry: {}: `{}`",
+            from_source_key.italic().purple(),
+            from_source_value.green()
+          );
         }
         match (parsed_values.get_mut(from_source_key), from_source_value) {
           (Some(value @ Value::Object(_)), source_value @ Value::Object(_)) => {
@@ -100,33 +106,33 @@ pub fn merge_hashes(
             match nested_result.old {
               Value::Object(old_map) if !old_map.is_empty() => {
                 old.insert(from_source_key.clone(), old_map.into());
-              },
-              Value::Object(_) => {},
+              }
+              Value::Object(_) => {}
               _ => {
                 error!("Old map is not an object: {:?}", nested_result.old);
                 if cfg!(debug_assertions) {
                   panic!("Old map is not an object: {:?}", nested_result.old);
                 }
-              },
+              }
             }
 
             match nested_result.reset {
               Value::Object(reset_map) if !reset_map.is_empty() => {
                 reset.insert(from_source_key.clone(), reset_map.into());
-              },
-              Value::Object(_) => {},
+              }
+              Value::Object(_) => {}
               _ => {
                 error!("reset map is not an object: {:?}", nested_result.reset);
                 if cfg!(debug_assertions) {
                   panic!("reset map is not an object: {:?}", nested_result.reset);
                 }
-              },
+              }
             }
-          },
+          }
           (Some(target_value), source_value) if target_value == source_value => {
             trace!("{}: {} is unchanged", from_source_key.purple(), target_value.green());
             unchanged_count += 1;
-          },
+          }
           (Some(Value::String(target_value)), Value::String(source_value))
             if from_source_key.contains(&config.context_separator)
               || from_source_key.contains(&config.plural_separator) =>
@@ -139,7 +145,7 @@ pub fn merge_hashes(
             );
             *target_value = source_value.clone();
             unchanged_count += 1;
-          },
+          }
           (Some(target_value), source_value) if is_principal || reset_values_map.contains_key(from_source_key) => {
             trace!(
               "{}: {} -> {}",
@@ -151,7 +157,7 @@ pub fn merge_hashes(
             replaced_count += 1;
             reset.insert(from_source_key.clone(), Value::Bool(true));
             reset_count += 1;
-          },
+          }
           (Some(target_value), source_value @ Value::String(_)) if locale == default_locale => {
             trace!(
               "[Default locale] {}: {} -> {}",
@@ -161,29 +167,49 @@ pub fn merge_hashes(
             );
             merged_count += 1;
             *target_value = source_value.clone();
-          },
+          }
           (Some(target_value), source_value @ Value::Array(_)) => {
-            trace!("{}: {} -> {}", from_source_key.purple(), source_value.cyan(), target_value);
+            trace!(
+              "{}: {} -> {}",
+              from_source_key.purple(),
+              source_value.cyan(),
+              target_value
+            );
             old.insert(from_source_key.clone(), source_value.clone());
             replaced_count += 1;
-          },
+          }
           (Some(Value::String(target_value)), raw_source_value @ Value::String(source_value)) => {
-            trace!("{}: {} -> {}", from_source_key.purple(), source_value.green(), target_value.red().strikethrough());
+            trace!(
+              "{}: {} -> {}",
+              from_source_key.purple(),
+              source_value.green(),
+              target_value.red().strikethrough()
+            );
             old.insert(from_source_key.clone(), raw_source_value.clone());
             unchanged_count += 1;
             *target_value = source_value.clone();
-          },
+          }
           (Some(target_value), source_value @ Value::String(_)) => {
-            trace!("{}: {} -> {}", from_source_key.purple(), source_value.green(), target_value.red().strikethrough());
+            trace!(
+              "{}: {} -> {}",
+              from_source_key.purple(),
+              source_value.green(),
+              target_value.red().strikethrough()
+            );
             old.insert(from_source_key.clone(), source_value.clone());
             unchanged_count += 1;
             *target_value = source_value.clone();
-          },
+          }
           (Some(target_value), source_value @ Value::Object(_)) => {
-            trace!("{}: {} -> {}", from_source_key.purple(), target_value.green(), source_value.red().strikethrough());
+            trace!(
+              "{}: {} -> {}",
+              from_source_key.purple(),
+              target_value.green(),
+              source_value.red().strikethrough()
+            );
             old.insert(from_source_key.clone(), source_value.clone());
             unchanged_count += 1;
-          },
+          }
           (_, source_value) => {
             trace!("Source: {source_value}");
             trace!("Pulling key: {}", from_source_key.purple());
@@ -193,14 +219,14 @@ pub fn merge_hashes(
               old.insert(from_source_key.clone(), source_value.clone());
             }
             replaced_count += 1;
-          },
+          }
         }
       }
-    },
+    }
     _ => {
       trace!("No source provided, returning existing hash as is.");
       trace!("Existing: {:?}", parsed_values.cyan());
-    },
+    }
   }
 
   parsed_values.sort_keys();
@@ -233,8 +259,18 @@ mod tests {
     });
     let target = json!({ "key1": "", "key3": "" });
 
-    let result =
-      merge_hashes(Some(&source), &target, None, "", false, "en", &Config { keep_removed: true, ..Default::default() });
+    let result = merge_hashes(
+      Some(&source),
+      &target,
+      None,
+      "",
+      false,
+      "en",
+      &Config {
+        keep_removed: true,
+        ..Default::default()
+      },
+    );
 
     assert_eq!(
       result.new,
@@ -260,8 +296,18 @@ mod tests {
     });
     let target = json!({ "key1": "", "key3": "", "key4": { "key42": "" }});
 
-    let result =
-      merge_hashes(Some(&source), &target, None, "", false, "en", &Config { keep_removed: true, ..Default::default() });
+    let result = merge_hashes(
+      Some(&source),
+      &target,
+      None,
+      "",
+      false,
+      "en",
+      &Config {
+        keep_removed: true,
+        ..Default::default()
+      },
+    );
 
     assert_eq!(
       result.new,
@@ -410,7 +456,10 @@ mod tests {
       "key1": "value1",
       "key2": "value2"
     });
-    let config = Config { keep_removed: true, ..Default::default() };
+    let config = Config {
+      keep_removed: true,
+      ..Default::default()
+    };
     let reset_values = None;
 
     let result = merge_hashes(source, &existing, reset_values, "", false, "en", &config);
@@ -465,7 +514,11 @@ mod default_merge_tests {
     let result = default_merge_hashes(&source, &target);
 
     assert_eq!(result.new, json!({ "key1": "" }), "the new hash is not as expected");
-    assert_eq!(result.old, json!({ "key1": { "key11": "value1" } }), "the old hash is not as expected");
+    assert_eq!(
+      result.old,
+      json!({ "key1": { "key11": "value1" } }),
+      "the old hash is not as expected"
+    );
     assert_eq!(result.merged_count, 0);
     assert_eq!(result.unchanged_count, 1);
     assert_eq!(result.replaced_count, 0);
@@ -478,7 +531,11 @@ mod default_merge_tests {
 
     let result = default_merge_hashes(&source, &target);
 
-    assert_eq!(result.new, json!({ "key1": "value1", "key2": "" }), "the new hash is not as expected");
+    assert_eq!(
+      result.new,
+      json!({ "key1": "value1", "key2": "" }),
+      "the new hash is not as expected"
+    );
     assert_eq!(result.old, json!({}), "the old hash is not as expected");
     assert_eq!(result.merged_count, 1);
     assert_eq!(result.unchanged_count, 0);
@@ -492,8 +549,16 @@ mod default_merge_tests {
 
     let result = default_merge_hashes(&source, &target);
 
-    assert_eq!(result.new, json!({ "key1": "value1" }), "the new hash is not as expected");
-    assert_eq!(result.old, json!({ "key2": "value2"}), "the old hash is not as expected");
+    assert_eq!(
+      result.new,
+      json!({ "key1": "value1" }),
+      "the new hash is not as expected"
+    );
+    assert_eq!(
+      result.old,
+      json!({ "key2": "value2"}),
+      "the old hash is not as expected"
+    );
     assert_eq!(result.merged_count, 1);
     assert_eq!(result.unchanged_count, 0);
     assert_eq!(result.replaced_count, 1);

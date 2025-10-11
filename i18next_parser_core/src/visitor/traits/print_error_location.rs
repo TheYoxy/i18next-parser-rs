@@ -25,8 +25,7 @@ where
 pub fn print_error_location(content: &str, start: usize, end: usize) {
   {
     use bat::{
-      Input,
-      PrettyPrinter,
+      Input, PrettyPrinter,
       line_range::{LineRange, LineRanges},
     };
     use color_eyre::owo_colors::OwoColorize;
@@ -37,7 +36,7 @@ pub fn print_error_location(content: &str, start: usize, end: usize) {
       None => {
         log::error!("{} Invalid span: {start} {end}", "[Print_error_location]".red().bold());
         return;
-      },
+      }
     };
 
     const BOUND: usize = 5;
@@ -118,7 +117,13 @@ pub trait GetLineBound: OxcProgram {
       usize::try_from(span.start).expect("span size overload"),
       usize::try_from(span.end).expect("span size overload"),
     )
-    .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
+    .map(|(start, end)| {
+      if start == end {
+        format!(":{start}")
+      } else {
+        format!(":{start}-{end}")
+      }
+    })
     .unwrap_or_default()
   }
 }

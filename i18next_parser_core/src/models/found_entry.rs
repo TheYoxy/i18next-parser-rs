@@ -12,14 +12,20 @@ impl FoundEntry {
   where
     T: Into<String>,
   {
-    Self { value: value.into(), location: Location::default() }
+    Self {
+      value: value.into(),
+      location: Location::default(),
+    }
   }
 
   pub fn new_with_location<T>(value: T, location: Location) -> Self
   where
     T: Into<String>,
   {
-    Self { value: value.into(), location }
+    Self {
+      value: value.into(),
+      location,
+    }
   }
 }
 
@@ -28,15 +34,20 @@ impl PartialEq for FoundEntry {
     self.value == other.value && self.location == other.location
   }
 }
-impl Eq for FoundEntry {
-}
+impl Eq for FoundEntry {}
 impl From<&str> for FoundEntry {
   fn from(value: &str) -> Self {
-    Self { value: value.to_string(), location: Location::default() }
+    Self {
+      value: value.to_string(),
+      location: Location::default(),
+    }
   }
 }
 impl From<String> for FoundEntry {
   fn from(value: String) -> Self {
-    Self { value, location: Location::default() }
+    Self {
+      value,
+      location: Location::default(),
+    }
   }
 }

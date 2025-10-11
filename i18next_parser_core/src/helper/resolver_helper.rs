@@ -21,7 +21,11 @@ where
     Some(path.join("tsconfig.json"))
   } else {
     let parent = path.parent()?;
-    if parent.join("tsconfig.json").exists() { Some(parent.join("tsconfig.json")) } else { find_tsconfig(parent) }
+    if parent.join("tsconfig.json").exists() {
+      Some(parent.join("tsconfig.json"))
+    } else {
+      find_tsconfig(parent)
+    }
   }
 }
 
@@ -89,7 +93,10 @@ impl ResolveFromTsConfig for Resolver {
       prefer_relative: true,
       tsconfig: {
         if tsconfig.exists() {
-          let options = TsconfigOptions { config_file: tsconfig, references: TsconfigReferences::Auto };
+          let options = TsconfigOptions {
+            config_file: tsconfig,
+            references: TsconfigReferences::Auto,
+          };
           Some(options)
         } else {
           None

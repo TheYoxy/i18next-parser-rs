@@ -6,7 +6,10 @@ use make_pluralrules::generate_rs;
 /// Initialize the panic handler.
 pub fn initialize_panic_handler() -> color_eyre::Result<()> {
   let hooks = color_eyre::config::HookBuilder::default()
-    .panic_section(format!("This is a bug. Consider reporting it at {}", env!("CARGO_PKG_REPOSITORY")))
+    .panic_section(format!(
+      "This is a bug. Consider reporting it at {}",
+      env!("CARGO_PKG_REPOSITORY")
+    ))
     .capture_span_trace_by_default(false)
     .display_location_section(false)
     .display_env_section(false);
@@ -65,8 +68,10 @@ fn main() -> color_eyre::Result<()> {
   let cli = Cli::parse();
   let input_paths = &cli.input;
 
-  let input_jsons =
-    input_paths.iter().map(|path| fs::read_to_string(path).expect("file not found")).collect::<Vec<_>>();
+  let input_jsons = input_paths
+    .iter()
+    .map(|path| fs::read_to_string(path).expect("file not found"))
+    .collect::<Vec<_>>();
   let complete_rs_code = generate_rs(&input_jsons)?;
 
   let output_path = &cli.output;
@@ -75,7 +80,10 @@ fn main() -> color_eyre::Result<()> {
 
   if !cli.ugly {
     println!("Running cargo fmt on {output_path:?}");
-    Command::new("rustfmt").args([output_path]).output().expect("Failed to format the output using `rustfmt`");
+    Command::new("rustfmt")
+      .args([output_path])
+      .output()
+      .expect("Failed to format the output using `rustfmt`");
   }
 
   Ok(())

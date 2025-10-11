@@ -59,11 +59,20 @@ fn main() -> color_eyre::Result<()> {
       let elapsed = instant.elapsed().as_secs_f64() * 1000.0;
 
       if elapsed < 100.0 {
-        eprintln!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.green());
+        eprintln!(
+          "Translations generated in {duration_str:.2}ms",
+          duration_str = elapsed.green()
+        );
       } else if elapsed < 500.0 {
-        eprintln!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.yellow());
+        eprintln!(
+          "Translations generated in {duration_str:.2}ms",
+          duration_str = elapsed.yellow()
+        );
       } else {
-        eprintln!("Translations generated in {duration_str:.2}ms", duration_str = elapsed.red().bold());
+        eprintln!(
+          "Translations generated in {duration_str:.2}ms",
+          duration_str = elapsed.red().bold()
+        );
       };
     })
   }

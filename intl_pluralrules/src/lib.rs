@@ -121,14 +121,18 @@ impl<'a> PluralRules<'a> {
       PluralRuleType::CARDINAL => {
         let idx = PRS_CARDINAL.binary_search_by_key(&&langid, |(l, _, _)| l);
         idx.map(|idx| (PRS_CARDINAL[idx].1, PRS_CARDINAL[idx].2))
-      },
+      }
       PluralRuleType::ORDINAL => {
         let idx = PRS_ORDINAL.binary_search_by_key(&&langid, |(l, _, _)| l);
         idx.map(|idx| (PRS_ORDINAL[idx].1, PRS_ORDINAL[idx].2))
-      },
+      }
     };
     match returned_rule {
-      Ok((function, options)) => Ok(Self { locale: langid, function, options }),
+      Ok((function, options)) => Ok(Self {
+        locale: langid,
+        function,
+        options,
+      }),
       Err(_) => Err("unknown locale"),
     }
   }

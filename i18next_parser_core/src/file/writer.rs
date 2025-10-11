@@ -27,7 +27,14 @@ pub fn write_to_file<T: AsRef<Config>>(values: &[MergeResults], config: T) -> co
   let mut table = HashSet::<&String>::new();
   log_time!("Writing files", {
     for value in values {
-      let MergeResults { namespace, locale: _locale, path, backup, merged, old_catalog } = value;
+      let MergeResults {
+        namespace,
+        locale: _locale,
+        path,
+        backup,
+        merged,
+        old_catalog,
+      } = value;
       log::info!("Writing file: {:?}", path.yellow());
       table.insert(namespace);
 
@@ -81,7 +88,7 @@ fn handle_line_ending(text: &str, line_ending: &LineEnding) -> String {
     _ => {
       // Do nothing, as Rust automatically uses the appropriate line endings
       text.to_string()
-    },
+    }
   }
 }
 
@@ -90,7 +97,9 @@ fn push_file<T: AsRef<Config>>(path: &PathBuf, contents: &Value, config: T) -> s
     let text = if path.ends_with("yml") {
       serde_yaml_ng::to_string(contents).unwrap()
     } else {
-      serde_json::to_string_pretty(contents).map(|t| t.replace("\r\n", "\n").replace('\r', "\n")).unwrap()
+      serde_json::to_string_pretty(contents)
+        .map(|t| t.replace("\r\n", "\n").replace('\r', "\n"))
+        .unwrap()
     };
 
     handle_line_ending(&text, &config.as_ref().line_ending)

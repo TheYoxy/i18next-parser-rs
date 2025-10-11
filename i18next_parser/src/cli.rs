@@ -6,14 +6,7 @@ use clap::{Parser, builder::Styles, command};
 use clap_complete::Shell;
 use color_eyre::owo_colors::OwoColorize;
 use i18next_parser_core::{
-  Config,
-  generate_index,
-  generate_types,
-  log_time,
-  merge_all_values,
-  parse_directory,
-  print_config,
-  write_to_file,
+  Config, generate_index, generate_types, log_time, merge_all_values, parse_directory, print_config, write_to_file,
 };
 use log::{info, trace};
 use resolve_path::PathResolveExt;
@@ -22,9 +15,11 @@ use crate::print_count::{CountResults, PrintCounts};
 
 /// Create the style used by the CLI
 fn make_style() -> Styles {
-  Styles::plain()
-    .header(Style::new().bold())
-    .literal(Style::new().bold().fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))))
+  Styles::plain().header(Style::new().bold()).literal(
+    Style::new()
+      .bold()
+      .fg_color(Some(anstyle::Color::Ansi(anstyle::AnsiColor::Yellow))),
+  )
 }
 
 /// The CLI options
@@ -84,7 +79,9 @@ impl Runnable for Cli {
           let mut map = HashMap::new();
           map.insert(&result.locale, &result.merged);
           if curr.contains_key(&result.namespace) {
-            curr.get_mut(&result.namespace).and_then(|map| map.insert(&result.locale, &result.merged));
+            curr
+              .get_mut(&result.namespace)
+              .and_then(|map| map.insert(&result.locale, &result.merged));
           } else {
             curr.insert(&result.namespace, map);
           }

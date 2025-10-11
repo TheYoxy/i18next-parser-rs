@@ -113,7 +113,11 @@ impl Default for Config {
       fail_on_warnings: Default::default(),
       fail_on_update: Default::default(),
       reset_default_value_locale: Default::default(),
-      generated_types: PathBuf::from(".").join("react-i18next.resources.d.ts").to_str().unwrap().to_string(),
+      generated_types: PathBuf::from(".")
+        .join("react-i18next.resources.d.ts")
+        .to_str()
+        .unwrap()
+        .to_string(),
       dry_run: Default::default(),
     }
   }
@@ -177,7 +181,11 @@ impl Config {
 
     let mut found_config = false;
     for (file, format) in &config_files {
-      log::trace!("Looking for {} in {}", file.italic().yellow(), working_dir.display().yellow());
+      log::trace!(
+        "Looking for {} in {}",
+        file.italic().yellow(),
+        working_dir.display().yellow()
+      );
       let file_name = &working_dir.join(file);
       let config_file: File<FileSourceFile, FileFormat> = file_name.clone().into();
       let source = config_file.format(*format).required(false);
@@ -195,9 +203,12 @@ impl Config {
     log::trace!("Building configuration");
     let configuration = builder.build();
     log::trace!("Configuration built: {configuration:#?}");
-    let configuration = configuration.and_then(|config| config.try_deserialize::<Self>()).map(|config| {
-      Config { generated_types: working_dir.join(config.generated_types).to_str().unwrap().to_string(), ..config }
-    });
+    let configuration = configuration
+      .and_then(|config| config.try_deserialize::<Self>())
+      .map(|config| Config {
+        generated_types: working_dir.join(config.generated_types).to_str().unwrap().to_string(),
+        ..config
+      });
     log::trace!("Loaded configuration: {configuration:#?}");
     configuration
   }
@@ -219,7 +230,11 @@ impl Config {
   }
 
   pub fn default_locale(&self) -> &String {
-    self.locales.first().as_ref().expect("At least one locale should be defined")
+    self
+      .locales
+      .first()
+      .as_ref()
+      .expect("At least one locale should be defined")
   }
 }
 
@@ -262,7 +277,10 @@ mod config_tests {
     assert_eq!(config.working_dir, PathBuf::from("."));
     assert_eq!(config.locales, vec!["en"]);
     assert!(config.input.contains(&"src/**/*.{ts,tsx}".into()));
-    assert_eq!(config.output, ["locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR));
+    assert_eq!(
+      config.output,
+      ["locales", "$LOCALE", "$NAMESPACE.json"].join(MAIN_SEPARATOR_STR)
+    );
     assert!(!config.verbose);
   }
 

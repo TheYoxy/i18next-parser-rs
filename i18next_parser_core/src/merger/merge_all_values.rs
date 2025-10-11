@@ -67,21 +67,17 @@ pub fn merge_all_values(entries: Vec<Entry>, config: &Config) -> color_eyre::Res
 
     let result = locales
       .iter()
-      .filter_map(|locale| {
-        match transform_entries(&entries, locale, config) {
-          Ok(TransformEntriesResult { value, locale }) => {
-            let obj = to_nested_object(&value);
-            let catalog = obj.as_object().unwrap();
-            let result = catalog
-              .iter()
-              .map(|(namespace, catalog)| {
-                merge_results(&locale, namespace, catalog, locale == **default_locale, config)
-              })
-              .collect::<Vec<_>>();
-            Some(result)
-          },
-          _ => None,
+      .filter_map(|locale| match transform_entries(&entries, locale, config) {
+        Ok(TransformEntriesResult { value, locale }) => {
+          let obj = to_nested_object(&value);
+          let catalog = obj.as_object().unwrap();
+          let result = catalog
+            .iter()
+            .map(|(namespace, catalog)| merge_results(&locale, namespace, catalog, locale == **default_locale, config))
+            .collect::<Vec<_>>();
+          Some(result)
         }
+        _ => None,
       })
       .flatten()
       .collect::<Vec<_>>();
@@ -97,7 +93,10 @@ fn to_nested_object(obj: &FoundValue) -> serde_json::Value {
     let parts = key.split('.').collect::<Vec<&str>>();
     for (index, part) in parts.iter().enumerate() {
       if index == parts.len() - 1 {
-        current.as_object_mut().unwrap().insert(part.to_string(), serde_json::Value::String(value.value.to_string()));
+        current
+          .as_object_mut()
+          .unwrap()
+          .insert(part.to_string(), serde_json::Value::String(value.value.to_string()));
       } else {
         let entry = current
           .as_object_mut()
@@ -132,7 +131,10 @@ mod tests {
       value: Some("value".into()),
       ..Default::default()
     }];
-    let config = Config { locales: vec!["en".into()], ..Default::default() };
+    let config = Config {
+      locales: vec!["en".into()],
+      ..Default::default()
+    };
 
     let result = merge_all_values(entries, &config);
 
@@ -182,7 +184,10 @@ mod tests {
         ..Default::default()
       },
     ];
-    let config = Config { locales: vec!["en".into()], ..Default::default() };
+    let config = Config {
+      locales: vec!["en".into()],
+      ..Default::default()
+    };
 
     let result = merge_all_values(entries, &config);
 
@@ -232,7 +237,10 @@ mod tests {
   #[test]
   fn merge_all_values_with_empty_entries() {
     let entries = vec![];
-    let config = Config { locales: vec!["en".into()], ..Default::default() };
+    let config = Config {
+      locales: vec!["en".into()],
+      ..Default::default()
+    };
 
     let result = merge_all_values(entries, &config);
 

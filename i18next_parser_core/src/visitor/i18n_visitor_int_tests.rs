@@ -111,12 +111,15 @@ export function InvitationEmail() {
     let config = get_config(dir.path()).expect("should get config");
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new_with_context(
-      "role",
-      "Role",
-      "ns",
-      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
-    )]);
+    assert_eq!(
+      entries,
+      vec![Entry::new_with_context(
+        "role",
+        "Role",
+        "ns",
+        vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+      )]
+    );
   }
 
   #[test_log::test(ignore = "not working")]
@@ -146,12 +149,15 @@ export function InvitationEmail() {
     let config = get_config(dir.path()).expect("should get config");
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new_with_context(
-      "role",
-      "Role",
-      "ns",
-      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
-    )]);
+    assert_eq!(
+      entries,
+      vec![Entry::new_with_context(
+        "role",
+        "Role",
+        "ns",
+        vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+      )]
+    );
   }
   #[test_log::test]
   fn resolve_string_type_from_import() {
@@ -180,12 +186,15 @@ export function InvitationEmail() {
     let config = get_config(dir.path()).expect("should get config");
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new_with_context(
-      "role",
-      "Role",
-      "ns",
-      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
-    )]);
+    assert_eq!(
+      entries,
+      vec![Entry::new_with_context(
+        "role",
+        "Role",
+        "ns",
+        vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+      )]
+    );
   }
 
   #[test_log::test]
@@ -211,17 +220,23 @@ export function InvitationEmail() {
     write_ts_config(&dir);
 
     let utils = dir.path().join("src").join("utils.ts");
-    write_file(&utils, r#"export function getRole(): 'admin' | 'member' | 'owner' { return 'admin'; }"#)
-      .expect("should write file");
+    write_file(
+      &utils,
+      r#"export function getRole(): 'admin' | 'member' | 'owner' { return 'admin'; }"#,
+    )
+    .expect("should write file");
     let config = get_config(dir.path()).expect("should get config");
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new_with_context(
-      "role",
-      "Role",
-      "ns",
-      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
-    )]);
+    assert_eq!(
+      entries,
+      vec![Entry::new_with_context(
+        "role",
+        "Role",
+        "ns",
+        vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+      )]
+    );
   }
 
   #[test_log::test]
@@ -256,12 +271,15 @@ export function InvitationEmail() {
     let config = get_config(dir.path()).expect("should get config");
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new_with_context(
-      "role",
-      "Role",
-      "ns",
-      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
-    )]);
+    assert_eq!(
+      entries,
+      vec![Entry::new_with_context(
+        "role",
+        "Role",
+        "ns",
+        vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+      )]
+    );
   }
 
   #[test_log::test]
@@ -298,12 +316,15 @@ export function InvitationEmail({ role }: { role: Roles }) {
     let config = get_config(dir.path()).expect("should get config");
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new_with_context(
-      "role",
-      "Role",
-      "ns",
-      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
-    )]);
+    assert_eq!(
+      entries,
+      vec![Entry::new_with_context(
+        "role",
+        "Role",
+        "ns",
+        vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+      )]
+    );
   }
 
   #[test_log::test]
@@ -350,11 +371,14 @@ export function InvitationEmail({ role }: { role: Roles }) {
     let config = get_config(dir.path()).expect("should get config");
     let entries = parse(&main, config);
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries, vec![Entry::new_with_context(
-      "role",
-      "Role",
-      "ns",
-      vec!("admin".to_string(), "member".to_string(), "owner".to_string())
-    )]);
+    assert_eq!(
+      entries,
+      vec![Entry::new_with_context(
+        "role",
+        "Role",
+        "ns",
+        vec!("admin".to_string(), "member".to_string(), "owner".to_string())
+      )]
+    );
   }
 }

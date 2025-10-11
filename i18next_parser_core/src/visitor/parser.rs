@@ -7,10 +7,7 @@ use oxc_resolver::Resolver;
 use crate::{
   helper::resolver_helper::ResolveFromTsConfig,
   visitor::traits::{
-    GetLineBound,
-    oxc_custom_parser::OxcCustomParser,
-    oxc_program::OxcProgram,
-    print_error_location::PrintErrorLocation,
+    GetLineBound, oxc_custom_parser::OxcCustomParser, oxc_program::OxcProgram, print_error_location::PrintErrorLocation,
   },
 };
 
@@ -36,8 +33,7 @@ impl<'a> ModuleParser<'a> {
   }
 }
 
-impl PrintErrorLocation for ModuleParser<'_> {
-}
+impl PrintErrorLocation for ModuleParser<'_> {}
 impl OxcProgram for ModuleParser<'_> {
   fn program(&self) -> &Program<'_> {
     self.program
@@ -60,7 +56,5 @@ impl OxcProgram for ModuleParser<'_> {
   }
 }
 
-impl GetLineBound for ModuleParser<'_> {
-}
-impl OxcCustomParser for ModuleParser<'_> {
-}
+impl GetLineBound for ModuleParser<'_> {}
+impl OxcCustomParser for ModuleParser<'_> {}

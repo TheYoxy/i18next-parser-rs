@@ -11,23 +11,25 @@ fn is_plural(key: &str) -> bool {
 }
 
 fn count_entries(value: &Map<String, Value>) -> (usize, usize) {
-  value.iter().fold((0, 0), |(mut prev_single, mut prev_multiple), (key, curr_value)| {
-    match curr_value {
-      Value::String(_) if is_plural(key) => {
-        prev_multiple += 1;
-      },
-      Value::String(_) => {
-        prev_single += 1;
-      },
-      Value::Object(obj) => {
-        let (single, multiple) = count_entries(obj);
-        prev_single += single;
-        prev_multiple += multiple;
-      },
-      _ => {},
-    }
-    (prev_single, prev_multiple)
-  })
+  value
+    .iter()
+    .fold((0, 0), |(mut prev_single, mut prev_multiple), (key, curr_value)| {
+      match curr_value {
+        Value::String(_) if is_plural(key) => {
+          prev_multiple += 1;
+        }
+        Value::String(_) => {
+          prev_single += 1;
+        }
+        Value::Object(obj) => {
+          let (single, multiple) = count_entries(obj);
+          prev_single += single;
+          prev_multiple += multiple;
+        }
+        _ => {}
+      }
+      (prev_single, prev_multiple)
+    })
 }
 
 pub type CountResults<'a> = HashMap<&'a String, HashMap<&'a String, &'a MergeResult>>;
@@ -54,7 +56,11 @@ pub fn print_counts_inner(locale: &str, merged: &MergeResult) {
   let deleted_count = merged.reset_count;
 
   let keys = format!("Keys: {}", unique_count.underline());
-  let plurals = if unique_plurals_count == 0 { "".into() } else { format!("({unique_plurals_count} are plurals)") };
+  let plurals = if unique_plurals_count == 0 {
+    "".into()
+  } else {
+    format!("({unique_plurals_count} are plurals)")
+  };
 
   let diff = format!(
     "{}{} {}{} {}{}",

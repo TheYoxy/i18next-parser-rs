@@ -275,31 +275,116 @@ impl<'a> PluralResolver<'a> {
         nr: vec![1],
         fc: 3,
       },
-      PluralSet { lngs: vec!["be", "bs", "cnr", "dz", "hr", "ru", "sr", "uk"], nr: vec![1, 2, 5], fc: 4 },
-      PluralSet { lngs: vec!["ar"], nr: vec![0, 1, 2, 3, 11, 100], fc: 5 },
-      PluralSet { lngs: vec!["cs", "sk"], nr: vec![1, 2, 5], fc: 6 },
-      PluralSet { lngs: vec!["csb", "pl"], nr: vec![1, 2, 5], fc: 7 },
-      PluralSet { lngs: vec!["cy"], nr: vec![1, 2, 3, 8], fc: 8 },
-      PluralSet { lngs: vec!["fr"], nr: vec![1, 2], fc: 9 },
-      PluralSet { lngs: vec!["ga"], nr: vec![1, 2, 3, 7, 11], fc: 10 },
-      PluralSet { lngs: vec!["gd"], nr: vec![1, 2, 3, 20], fc: 11 },
-      PluralSet { lngs: vec!["is"], nr: vec![1, 2], fc: 12 },
-      PluralSet { lngs: vec!["jv"], nr: vec![0, 1], fc: 13 },
-      PluralSet { lngs: vec!["kw"], nr: vec![1, 2, 3, 4], fc: 14 },
-      PluralSet { lngs: vec!["lt"], nr: vec![1, 2, 10], fc: 15 },
-      PluralSet { lngs: vec!["lv"], nr: vec![1, 2, 0], fc: 16 },
-      PluralSet { lngs: vec!["mk"], nr: vec![1, 2], fc: 17 },
-      PluralSet { lngs: vec!["mnk"], nr: vec![0, 1, 2], fc: 18 },
-      PluralSet { lngs: vec!["mt"], nr: vec![1, 2, 11, 20], fc: 19 },
-      PluralSet { lngs: vec!["or"], nr: vec![2, 1], fc: 2 },
-      PluralSet { lngs: vec!["ro"], nr: vec![1, 2, 20], fc: 20 },
-      PluralSet { lngs: vec!["sl"], nr: vec![5, 1, 2, 3], fc: 21 },
-      PluralSet { lngs: vec!["he", "iw"], nr: vec![1, 2, 20, 21], fc: 22 },
+      PluralSet {
+        lngs: vec!["be", "bs", "cnr", "dz", "hr", "ru", "sr", "uk"],
+        nr: vec![1, 2, 5],
+        fc: 4,
+      },
+      PluralSet {
+        lngs: vec!["ar"],
+        nr: vec![0, 1, 2, 3, 11, 100],
+        fc: 5,
+      },
+      PluralSet {
+        lngs: vec!["cs", "sk"],
+        nr: vec![1, 2, 5],
+        fc: 6,
+      },
+      PluralSet {
+        lngs: vec!["csb", "pl"],
+        nr: vec![1, 2, 5],
+        fc: 7,
+      },
+      PluralSet {
+        lngs: vec!["cy"],
+        nr: vec![1, 2, 3, 8],
+        fc: 8,
+      },
+      PluralSet {
+        lngs: vec!["fr"],
+        nr: vec![1, 2],
+        fc: 9,
+      },
+      PluralSet {
+        lngs: vec!["ga"],
+        nr: vec![1, 2, 3, 7, 11],
+        fc: 10,
+      },
+      PluralSet {
+        lngs: vec!["gd"],
+        nr: vec![1, 2, 3, 20],
+        fc: 11,
+      },
+      PluralSet {
+        lngs: vec!["is"],
+        nr: vec![1, 2],
+        fc: 12,
+      },
+      PluralSet {
+        lngs: vec!["jv"],
+        nr: vec![0, 1],
+        fc: 13,
+      },
+      PluralSet {
+        lngs: vec!["kw"],
+        nr: vec![1, 2, 3, 4],
+        fc: 14,
+      },
+      PluralSet {
+        lngs: vec!["lt"],
+        nr: vec![1, 2, 10],
+        fc: 15,
+      },
+      PluralSet {
+        lngs: vec!["lv"],
+        nr: vec![1, 2, 0],
+        fc: 16,
+      },
+      PluralSet {
+        lngs: vec!["mk"],
+        nr: vec![1, 2],
+        fc: 17,
+      },
+      PluralSet {
+        lngs: vec!["mnk"],
+        nr: vec![0, 1, 2],
+        fc: 18,
+      },
+      PluralSet {
+        lngs: vec!["mt"],
+        nr: vec![1, 2, 11, 20],
+        fc: 19,
+      },
+      PluralSet {
+        lngs: vec!["or"],
+        nr: vec![2, 1],
+        fc: 2,
+      },
+      PluralSet {
+        lngs: vec!["ro"],
+        nr: vec![1, 2, 20],
+        fc: 20,
+      },
+      PluralSet {
+        lngs: vec!["sl"],
+        nr: vec![5, 1, 2, 3],
+        fc: 21,
+      },
+      PluralSet {
+        lngs: vec!["he", "iw"],
+        nr: vec![1, 2, 20, 21],
+        fc: 22,
+      },
     ];
 
     let rules = create_rules(sets);
 
-    Self { rules, simplify_plural_suffix, prepend, version }
+    Self {
+      rules,
+      simplify_plural_suffix,
+      prepend,
+      version,
+    }
   }
 
   /// Returns the plural rule for the provided code.
@@ -332,8 +417,13 @@ impl<'a> PluralResolver<'a> {
         let lang: unic_langid::LanguageIdentifier = code.parse()?;
         let plural_rules = PluralRules::create(lang, PluralRuleType::CARDINAL).map_err(|e| eyre!(e))?;
         let result = plural_rules.resolved_options();
-        Ok(result.iter().map(|n| format!("{prepend}{n}", prepend = self.prepend)).collect::<Vec<String>>())
-      },
+        Ok(
+          result
+            .iter()
+            .map(|n| format!("{prepend}{n}", prepend = self.prepend))
+            .collect::<Vec<String>>(),
+        )
+      }
       _ => {
         let result = match self.get_rule(code) {
           Some((numbers, _)) => numbers.iter().map(|&n| self.get_suffix(code, n)).collect(),
@@ -341,7 +431,7 @@ impl<'a> PluralResolver<'a> {
         };
 
         Ok(result)
-      },
+      }
     }
   }
 
@@ -369,7 +459,7 @@ impl<'a> PluralResolver<'a> {
           let rule = rules.get(idx as usize);
           format!("{prepend}{rule}", prepend = self.prepend, rule = rule.unwrap_or(&0))
         }
-      },
+      }
       None => String::new(),
     }
   }

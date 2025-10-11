@@ -61,8 +61,11 @@ fn create_relation(rel: Relation) -> TokenStream {
   let r1 = convert_rangl(right);
 
   // If there is a modulus, convert to literal. If not, placehold literal
-  let (mod_check, m) =
-    if let Some(modulus) = left.modulus { (true, convert_literal((modulus.0).0)) } else { (false, convert_literal(0)) };
+  let (mod_check, m) = if let Some(modulus) = left.modulus {
+    (true, convert_literal((modulus.0).0))
+  } else {
+    (false, convert_literal(0))
+  };
 
   // Here, we have to manage 4 varying types of expression that we may write.
 
@@ -85,7 +88,11 @@ fn create_relation(rel: Relation) -> TokenStream {
         (quote!(#rfront), quote!(#rback), quote!(po.i % #m))
       }
     } else {
-      (quote!(#rfront), quote!(#rback), if !mod_check { quote!(po.#l) } else { quote!(po.i % #m) })
+      (
+        quote!(#rfront),
+        quote!(#rback),
+        if !mod_check { quote!(po.#l) } else { quote!(po.i % #m) },
+      )
     };
 
     let rel_tokens = quote! { #rfront #o #whole_symbol && #whole_symbol #o #rback};
@@ -96,7 +103,11 @@ fn create_relation(rel: Relation) -> TokenStream {
     for r in r1.0 {
       // Variants handled here
       let (symbol, rval) = if left.operand == Operand::N {
-        if !mod_check { (quote!(po.#l), quote!(#r.0)) } else { (quote!(po.i % #m), quote!(#r)) }
+        if !mod_check {
+          (quote!(po.#l), quote!(#r.0))
+        } else {
+          (quote!(po.i % #m), quote!(#r))
+        }
       } else {
         (if !mod_check { quote!(po.#l) } else { quote!(po.#l % #m) }, quote!(#r))
       };
@@ -111,7 +122,11 @@ fn create_relation(rel: Relation) -> TokenStream {
 
       // Variants handled here
       let (symbol, perim) = if left.operand == Operand::N {
-        if !mod_check { (quote!(po.i), quote! { && po.f == 0}) } else { (quote!(po.i), quote! {}) }
+        if !mod_check {
+          (quote!(po.i), quote! { && po.f == 0})
+        } else {
+          (quote!(po.i), quote! {})
+        }
       } else {
         (if !mod_check { quote!(po.#l) } else { quote!(po.#l % #m) }, quote! {})
       };
@@ -119,13 +134,13 @@ fn create_relation(rel: Relation) -> TokenStream {
       let rel_tokens = match operator {
         Operator::In | Operator::Is | Operator::EQ => {
           quote! { (#rfront ..= #rback).contains(&(#symbol)) #perim }
-        },
+        }
         Operator::NotIn | Operator::NotEQ | Operator::IsNot => {
           quote! { !(#rfront ..= #rback).contains(&(#symbol)) #perim }
-        },
+        }
         Operator::Within | Operator::NotWithin => {
           panic!("There was a problem with the source file.")
-        },
+        }
       };
       relations.push(rel_tokens);
     }
@@ -139,7 +154,7 @@ fn create_relation(rel: Relation) -> TokenStream {
       } else {
         quote! { #(#relations)||* }
       }
-    },
+    }
     Operator::NotIn | Operator::NotEQ | Operator::IsNot => quote! { #(#relations)&&* },
     Operator::Within | Operator::NotWithin => quote! { #(#relations)||* },
   }

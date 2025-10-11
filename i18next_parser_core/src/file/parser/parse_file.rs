@@ -11,11 +11,18 @@ use crate::{Config, Entry, log_time, visitor::I18NVisitor};
 
 pub fn parse_file<P: AsRef<Path>, C: AsRef<Config>>(path: P, config: C) -> color_eyre::Result<Vec<Entry>> {
   let path = path.as_ref();
-  let file_name = path.file_name().and_then(|s| s.to_str()).unwrap();
-  let source_text = log_time!(format!("Reading file {}", file_name.yellow().italic()), { read_to_string(path) })?;
+  let file_name = if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
+    file_name
+  } else {
+    return Err(color_eyre::eyre::eyre!("Invalid file name"));
+  };
+
+  let source_text = log_time!(format!("Reading file {}", file_name.yellow().italic()), {
+    read_to_string(path)
+  })?;
 
   let allocator = &Allocator::default();
-  let source_type = SourceType::from_path(path).unwrap();
+  let source_type = SourceType::from_path(path)?;
   let parser = Parser::new(allocator, source_text.as_str(), source_type);
   let parsed = parser.parse();
   let mut visitor = I18NVisitor::new(allocator, &parsed.program, path, &config);

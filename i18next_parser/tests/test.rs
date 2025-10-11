@@ -86,7 +86,9 @@ fn should_parse_successfully() {
 
 fn create_file<P: AsRef<Path>, V: ?Sized + Serialize>(path: P, value: &V) -> color_eyre::Result<()> {
   let path = path.as_ref();
-  let parent = path.parent().ok_or(eyre!("unable to get parent of {}", path.display().yellow()))?;
+  let parent = path
+    .parent()
+    .ok_or(eyre!("unable to get parent of {}", path.display().yellow()))?;
   std::fs::create_dir_all(parent)?;
   let file = std::fs::File::create(path)?;
   serde_json::to_writer_pretty(file, value)?;
@@ -116,7 +118,9 @@ fn should_not_override_current_values() {
     let locales: Vec<String> = vec!["en".into(), "fr".into()];
     for lang in &locales {
       let file = dir_path.join("locales").join(lang).join("ns.json");
-      let raw_val = map.get(lang.as_str()).ok_or(eyre!("Unable to get {} value", lang.yellow()))?;
+      let raw_val = map
+        .get(lang.as_str())
+        .ok_or(eyre!("Unable to get {} value", lang.yellow()))?;
       create_file(file, raw_val)?;
     }
 

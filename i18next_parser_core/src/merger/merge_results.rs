@@ -90,15 +90,30 @@ pub fn merge_results<C: AsRef<Config>>(
   let merged = merge_hashes(value, catalog, old_value, &full_key_prefix, is_default, locale, config);
 
   trace!("Merging old catalog");
-  let old_merged = merge_hashes(old_value, &merged.new, None, &full_key_prefix, false, locale, &Config {
-    keep_removed: false,
-    ..Default::default()
-  });
+  let old_merged = merge_hashes(
+    old_value,
+    &merged.new,
+    None,
+    &full_key_prefix,
+    false,
+    locale,
+    &Config {
+      keep_removed: false,
+      ..Default::default()
+    },
+  );
 
   trace!("Building old catalog");
   let old_catalog = transfer_values(&merged.old, &old_merged.old);
 
-  MergeResults { namespace: namespace.to_string(), locale: locale.to_string(), path, backup, merged, old_catalog }
+  MergeResults {
+    namespace: namespace.to_string(),
+    locale: locale.to_string(),
+    path,
+    backup,
+    merged,
+    old_catalog,
+  }
 }
 
 #[cfg(test)]
@@ -121,7 +136,10 @@ mod tests {
     serde_json::to_writer_pretty(file, &value)?;
     debug!("Written {} to {}", value.cyan(), output.display().yellow());
 
-    output.to_str().ok_or(eyre!("Unable to get path")).map(|s| s.to_string())
+    output
+      .to_str()
+      .ok_or(eyre!("Unable to get path"))
+      .map(|s| s.to_string())
   }
 
   #[test_log::test]
@@ -138,7 +156,11 @@ mod tests {
         "key": "value"
     });
     let is_default = true;
-    let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+    let config = Config {
+      locales: vec![locale.into()],
+      output,
+      ..Default::default()
+    };
 
     let result = merge_results(locale, namespace, &catalog, is_default, config);
     let merged = result.merged;
@@ -168,7 +190,11 @@ mod tests {
           "key_many": "value"
       });
       let is_default = true;
-      let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+      let config = Config {
+        locales: vec![locale.into()],
+        output,
+        ..Default::default()
+      };
 
       let result = merge_results(locale, namespace, &catalog, is_default, config);
       let merged = result.merged;
@@ -192,7 +218,11 @@ mod tests {
           "key_many": "default_value"
       });
       let is_default = true;
-      let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+      let config = Config {
+        locales: vec![locale.into()],
+        output,
+        ..Default::default()
+      };
 
       let result = merge_results(locale, namespace, &catalog, is_default, config);
       let merged = result.merged;
@@ -230,11 +260,18 @@ mod tests {
           "key_female": "value"
       });
       let is_default = true;
-      let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+      let config = Config {
+        locales: vec![locale.into()],
+        output,
+        ..Default::default()
+      };
 
       let result = merge_results(locale, namespace, &catalog, is_default, config);
       let merged = result.merged;
-      assert_eq!(merged.new, value, "the new value should not be overridden when having a context");
+      assert_eq!(
+        merged.new, value,
+        "the new value should not be overridden when having a context"
+      );
       assert_eq!(merged.old, json!({}), "the old value do not match");
       assert_eq!(merged.merged_count, 0, "the merge count do not match");
     }
@@ -254,7 +291,11 @@ mod tests {
           "key_female": "default_value"
       });
       let is_default = true;
-      let config = Config { locales: vec![locale.into()], output, ..Default::default() };
+      let config = Config {
+        locales: vec![locale.into()],
+        output,
+        ..Default::default()
+      };
 
       let result = merge_results(locale, namespace, &catalog, is_default, config);
       let merged = result.merged;

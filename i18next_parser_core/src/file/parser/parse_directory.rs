@@ -5,7 +5,8 @@ use color_eyre::{
   owo_colors::{CssColors, OwoColorize},
 };
 use ignore::DirEntry;
-use log::debug;
+use log::{debug, warn};
+use oxc_span::UnknownExtension;
 use tracing::instrument;
 
 use crate::{Entry, config::Config, file::parser::parse_file::parse_file, helper::MakeRelativePath, log_time};
@@ -15,25 +16,41 @@ fn parse_directory_mono_thread<C: AsRef<Config>>(filter: &[DirEntry], config: C)
   let working_dir = &config.working_dir;
   filter
     .iter()
-    .filter_map(move |entry| {
-      let entry_path = entry.path();
-      let now = Instant::now();
-      let ret = parse_file(entry_path, config).ok();
-      let elapsed = now.elapsed().as_secs_f64() * 1000.0;
-      match &ret {
-        Some(r) if !r.is_empty() => {
-          let len = r.len();
-          let count_by_len = elapsed.div(len as f64);
-          tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.make_relative(working_dir).display(), format = format!("({elapsed:.2}ms {})", format!("[{count_by_len:.2}ms/translation]").bright_black().dimmed()).bright_black(), count = format!("{len} translations").italic().color(CssColors::Gray) );
-        },
-        _ => {
-          tracing::info!(target: "file_read", "{file} {format}", file = entry_path.make_relative(working_dir).display().italic().color(CssColors::Gray), format = format!("({elapsed:.2}ms)").bright_black());
-        }
-      }
-      ret
-    })
+    .filter_map(|entry| read_content(config, working_dir, entry))
     .flatten()
     .collect()
+}
+
+fn read_content(config: &Config, working_dir: &PathBuf, entry: &DirEntry) -> Option<Vec<Entry>> {
+  let entry_path = entry.path();
+  let now = Instant::now();
+  let ret = parse_file(entry_path, config);
+  let elapsed = now.elapsed().as_secs_f64() * 1000.0;
+  match &ret {
+    Ok(r) if !r.is_empty() => {
+      let len = r.len();
+      let count_by_len = elapsed.div(len as f64);
+      tracing::info!(target: "file_read", "{file} {format} {count}", file = entry_path.make_relative(working_dir).display(), format = format!("({elapsed:.2}ms {})", format!("[{count_by_len:.2}ms/translation]").bright_black().dimmed()).bright_black(), count = format!("{len} translations").italic().color(CssColors::Gray));
+    }
+    Err(error) if error.downcast_ref::<UnknownExtension>().is_some() => {
+      if let Some(file_name) = entry_path.to_path_buf().file_name().and_then(|s| s.to_str()) {
+        warn!("File {} is unsupported", file_name);
+      } else {
+        warn!("File {} is unsupported", entry_path.display());
+      };
+      return None;
+    }
+    Err(error) if config.verbose => {
+      warn!("Unable to parse file {}: \n{:#?}", entry_path.display(), error);
+    }
+    Err(_) => {
+      warn!("Unable to parse file: {}", entry_path.display());
+    }
+    _ => {
+      tracing::info!(target: "file_read", "{file} {format}", file = entry_path.make_relative(working_dir).display().italic().color(CssColors::Gray), format = format!("({elapsed:.2}ms)").bright_black());
+    }
+  }
+  ret.ok()
 }
 
 /// Chunks a slice into `num_chunks` approximately equal sub-slices.
@@ -97,7 +114,10 @@ fn parse_directory_thread<'a>(parallelism: usize, filter: &'a [DirEntry], config
   std::thread::scope(|scope| {
     let mut vec = Vec::<Entry>::new();
     for chunk in chunks {
-      let val = scope.spawn(|| parse_directory_mono_thread(chunk, config)).join().unwrap();
+      let val = scope
+        .spawn(|| parse_directory_mono_thread(chunk, config))
+        .join()
+        .unwrap();
       vec.extend(val);
     }
     vec
@@ -135,10 +155,16 @@ pub fn parse_directory<P: Into<PathBuf>, C: AsRef<Config>>(path: P, config: C) -
     bail!("Directory {path:?} does not exist");
   }
 
-  let directory_name =
-    path.file_name().and_then(|s| s.to_str()).ok_or(eyre!("Unable to get filename of path {path:?}"))?;
+  let directory_name = path
+    .file_name()
+    .and_then(|s| s.to_str())
+    .ok_or(eyre!("Unable to get filename of path {path:?}"))?;
   log_time!(format!("Reading directory {}", directory_name.yellow()), {
-    debug!("Reading directory {} to find {:?}", path.display().yellow(), &config.input);
+    debug!(
+      "Reading directory {} to find {:?}",
+      path.display().yellow(),
+      &config.input
+    );
 
     let filter = ignore::WalkBuilder::new(path)
       .git_ignore(true)

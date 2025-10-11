@@ -121,7 +121,16 @@ fn custom_type() {
     type Error = &'static str;
 
     fn try_into(self) -> Result<PluralOperands, Self::Error> {
-      Ok(PluralOperands { n: self.value as f64, i: self.value as u64, v: 0, w: 0, f: 0, t: 0, c: 0, e: 0 })
+      Ok(PluralOperands {
+        n: self.value as f64,
+        i: self.value as u64,
+        v: 0,
+        w: 0,
+        f: 0,
+        t: 0,
+        c: 0,
+        e: 0,
+      })
     }
   }
 

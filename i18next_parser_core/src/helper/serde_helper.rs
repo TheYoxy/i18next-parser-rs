@@ -16,7 +16,7 @@ impl SerdeHelper for Option<Value> {
         } else {
           None
         }
-      },
+      }
       _ => None,
     }
   }
@@ -44,7 +44,11 @@ impl SerdeVecHelper for Vec<Value> {
       for v in self {
         values.push(v);
       }
-      if values.is_empty() { None } else { Some(Value::Array(values)) }
+      if values.is_empty() {
+        None
+      } else {
+        Some(Value::Array(values))
+      }
     }
   }
 }

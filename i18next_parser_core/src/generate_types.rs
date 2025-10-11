@@ -43,18 +43,16 @@ pub fn generate_index<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
 
   let mut result = entries
     .iter()
-    .map(|entry| {
-      EntryValue {
-        name: entry.namespace.as_str(),
-        display_name: format!("{}_{}", camelize(entry.namespace.as_str()), entry.locale),
-        locale: entry.locale.as_str(),
-        path: entry
-          .path
-          .strip_prefix(&config.working_dir)
-          .unwrap_or_else(|_| panic!("Failed to strip prefix"))
-          .to_str()
-          .unwrap(),
-      }
+    .map(|entry| EntryValue {
+      name: entry.namespace.as_str(),
+      display_name: format!("{}_{}", camelize(entry.namespace.as_str()), entry.locale),
+      locale: entry.locale.as_str(),
+      path: entry
+        .path
+        .strip_prefix(&config.working_dir)
+        .unwrap_or_else(|_| panic!("Failed to strip prefix"))
+        .to_str()
+        .unwrap(),
     })
     .collect::<Vec<_>>();
   result.sort_by(|a, b| a.name.cmp(b.name));
@@ -66,13 +64,27 @@ pub fn generate_index<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
       .map(|entry| format!("export * from './{}.json';", entry.name))
       .collect::<Vec<String>>()
       .join("\n");
-    let output = config.output.replace("$LOCALE", local).replace("/$NAMESPACE.json", "/index.ts");
+    let output = config
+      .output
+      .replace("$LOCALE", local)
+      .replace("/$NAMESPACE.json", "/index.ts");
     write_exports(config, &exports, &output)?;
   }
 
-  let exports =
-    config.locales.iter().map(|locale| format!("export * from './{locale}';")).collect::<Vec<String>>().join("\n");
-  write_exports(config, &exports, &config.output.replace("/$LOCALE", "").replace("/$NAMESPACE.json", "/index.ts"))?;
+  let exports = config
+    .locales
+    .iter()
+    .map(|locale| format!("export * from './{locale}';"))
+    .collect::<Vec<String>>()
+    .join("\n");
+  write_exports(
+    config,
+    &exports,
+    &config
+      .output
+      .replace("/$LOCALE", "")
+      .replace("/$NAMESPACE.json", "/index.ts"),
+  )?;
 
   Ok(())
 }
@@ -107,24 +119,26 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
   trace!("Generating types for i18next resources.");
   let mut result = entries
     .iter()
-    .map(|entry| {
-      EntryValue {
-        name: entry.namespace.as_str(),
-        display_name: format!("{}_{}", camelize(entry.namespace.as_str()), entry.locale),
-        locale: entry.locale.as_str(),
-        path: entry
-          .path
-          .strip_prefix(&config.working_dir)
-          .unwrap_or_else(|_| panic!("Failed to strip prefix"))
-          .to_str()
-          .unwrap(),
-      }
+    .map(|entry| EntryValue {
+      name: entry.namespace.as_str(),
+      display_name: format!("{}_{}", camelize(entry.namespace.as_str()), entry.locale),
+      locale: entry.locale.as_str(),
+      path: entry
+        .path
+        .strip_prefix(&config.working_dir)
+        .unwrap_or_else(|_| panic!("Failed to strip prefix"))
+        .to_str()
+        .unwrap(),
     })
     .collect::<Vec<_>>();
   result.sort_by(|a, b| a.name.cmp(b.name));
 
   let get_name_property = |name: &str| {
-    if name.chars().any(|char| !char.is_alphanumeric()) { format!("'{name}'") } else { name.to_string() }
+    if name.chars().any(|char| !char.is_alphanumeric()) {
+      format!("'{name}'")
+    } else {
+      name.to_string()
+    }
   };
 
   let ns_separator = &config.namespace_separator;
@@ -143,7 +157,10 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
       .iter()
       .map(|entry| format!("{}: typeof {};", get_name_property(entry.name), entry.display_name))
       .collect::<Vec<String>>();
-    vec.push(format!("{}: {{}}", get_name_property(config.default_namespace.as_str())));
+    vec.push(format!(
+      "{}: {{}}",
+      get_name_property(config.default_namespace.as_str())
+    ));
     vec.join("\n      ")
   } else {
     result
@@ -159,7 +176,11 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
       resource_map.insert(entry.locale, vec![]);
     }
     let map_entry = resource_map.get_mut(entry.locale).unwrap();
-    map_entry.push(format!("{}: typeof {};", get_name_property(entry.name), entry.display_name));
+    map_entry.push(format!(
+      "{}: typeof {};",
+      get_name_property(entry.name),
+      entry.display_name
+    ));
   }
 
   let mut resources = String::new();
@@ -167,7 +188,10 @@ pub fn generate_types<C: AsRef<Config>>(entries: &[MergeResults], config: C) -> 
     resources += &format!("{}: {{\n{}\n}},\n", key, value.join("\n        "));
   }
 
-  let mut types = result.iter().map(|entry| format!("'{}'", entry.name)).collect::<Vec<String>>();
+  let mut types = result
+    .iter()
+    .map(|entry| format!("'{}'", entry.name))
+    .collect::<Vec<String>>();
 
   types.sort();
   types.dedup();

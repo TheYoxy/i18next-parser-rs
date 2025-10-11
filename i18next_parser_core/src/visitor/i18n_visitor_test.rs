@@ -121,11 +121,14 @@ mod t_function {
       "const title1 = t('toast.title1'); const title2 = t('toast.title2'); const title3 = t('toast.title3');";
     let keys = parse(source_text);
     pretty_assertions::assert_eq!(keys.len(), 3);
-    pretty_assertions::assert_eq!(keys, vec![
-      Entry::empty("toast.title1"),
-      Entry::empty("toast.title2"),
-      Entry::empty("toast.title3")
-    ]);
+    pretty_assertions::assert_eq!(
+      keys,
+      vec![
+        Entry::empty("toast.title1"),
+        Entry::empty("toast.title2"),
+        Entry::empty("toast.title3")
+      ]
+    );
   }
 
   #[test_log::test]
@@ -135,11 +138,14 @@ mod t_function {
       "const title1 = t('toast.title'); const title2 = t('toast.title'); const title3 = t('toast.title');";
     let keys = parse(source_text);
     pretty_assertions::assert_eq!(keys.len(), 3);
-    pretty_assertions::assert_eq!(keys, vec![
-      Entry::empty("toast.title"),
-      Entry::empty("toast.title"),
-      Entry::empty("toast.title")
-    ]);
+    pretty_assertions::assert_eq!(
+      keys,
+      vec![
+        Entry::empty("toast.title"),
+        Entry::empty("toast.title"),
+        Entry::empty("toast.title")
+      ]
+    );
   }
 
   #[test_log::test]
@@ -260,11 +266,14 @@ mod t_function {
     let keys = parse(source_text);
 
     pretty_assertions::assert_eq!(keys.len(), 1);
-    pretty_assertions::assert_eq!(keys, vec![Entry::new(
-      "preview.error.text",
-      "An error has occurred while generating the preview.\nPlease try again.",
-      "invoice"
-    )]);
+    pretty_assertions::assert_eq!(
+      keys,
+      vec![Entry::new(
+        "preview.error.text",
+        "An error has occurred while generating the preview.\nPlease try again.",
+        "invoice"
+      )]
+    );
   }
 
   #[test_log::test]
@@ -280,14 +289,17 @@ mod t_function {
     let keys = parse(source_text);
 
     pretty_assertions::assert_eq!(keys.len(), 2);
-    pretty_assertions::assert_eq!(keys, vec![
-      Entry::new("preview.error.title", "Error", "invoice"),
-      Entry::new(
-        "preview.error.text",
-        "An error has occurred while generating the preview.\nPlease try again.",
-        "invoice"
-      ),
-    ]);
+    pretty_assertions::assert_eq!(
+      keys,
+      vec![
+        Entry::new("preview.error.title", "Error", "invoice"),
+        Entry::new(
+          "preview.error.text",
+          "An error has occurred while generating the preview.\nPlease try again.",
+          "invoice"
+        ),
+      ]
+    );
   }
 
   #[test_log::test]
@@ -321,7 +333,10 @@ mod translation_component {
     let source_text = "<Translation>{(t) => <>{t('first', 'Main')}{t('second')}</>}</Translation>";
     let keys = parse(source_text);
     pretty_assertions::assert_eq!(keys.len(), 2);
-    pretty_assertions::assert_eq!(keys, vec![Entry::new_with_value("first", "Main"), Entry::empty("second")]);
+    pretty_assertions::assert_eq!(
+      keys,
+      vec![Entry::new_with_value("first", "Main"), Entry::empty("second")]
+    );
   }
 
   #[test_log::test]
@@ -514,7 +529,10 @@ mod trans_component {
       "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password {{attempt}}</Trans>;";
     let keys = parse(source_text);
     pretty_assertions::assert_eq!(keys.len(), 1);
-    pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]);
+    pretty_assertions::assert_eq!(
+      keys,
+      vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]
+    );
   }
 
   #[test_log::test]
@@ -523,7 +541,10 @@ mod trans_component {
     let source_text = "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Reset password {{ attempt: attempt + 1 }}</Trans>;";
     let keys = parse(source_text);
     pretty_assertions::assert_eq!(keys.len(), 1);
-    pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]);
+    pretty_assertions::assert_eq!(
+      keys,
+      vec![Entry::new("dialog.title", "Reset password {{attempt}}", "ns")]
+    );
   }
 
   #[test_log::test]
@@ -532,7 +553,10 @@ mod trans_component {
     let source_text = "const attempt = 0; const el = <Trans ns='ns' i18nKey='dialog.title'>Attempt {{ attempt: attempt + 1 }} on 10</Trans>;";
     let keys = parse(source_text);
     pretty_assertions::assert_eq!(keys.len(), 1);
-    pretty_assertions::assert_eq!(keys, vec![Entry::new("dialog.title", "Attempt {{attempt}} on 10", "ns")]);
+    pretty_assertions::assert_eq!(
+      keys,
+      vec![Entry::new("dialog.title", "Attempt {{attempt}} on 10", "ns")]
+    );
   }
 
   #[test_log::test]
@@ -637,12 +661,15 @@ mod trans_component {
             }";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -654,12 +681,15 @@ mod trans_component {
 }";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -671,12 +701,15 @@ mod trans_component {
 }";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test(ignore = "reason")]
@@ -685,12 +718,15 @@ mod trans_component {
         let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -699,12 +735,15 @@ mod trans_component {
         let source_text = "const getSex = () => 'male'; const val: 'male' | 'female' = getSex();  const {t} = useTranslation('ns'); const el =  t('dialog.title', 'Reset password', { context: val });";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -723,11 +762,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -742,11 +785,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -761,11 +808,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -780,11 +831,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -799,11 +854,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -816,11 +875,15 @@ mod trans_component {
           }";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -835,11 +898,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -848,12 +915,15 @@ mod trans_component {
         let source_text = "const val = 'male'; const {t} = useTranslation('ns'); const el = t('dialog.title', 'Reset password', { context: val });";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!["male".into()]
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!["male".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -863,12 +933,15 @@ mod trans_component {
           "const {t} = useTranslation('ns'); const el = t('dialog.title', 'Reset password', { context: 'male' });";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -881,12 +954,15 @@ mod trans_component {
                   const {t} = useTranslation('ns'); return t('dialog.title', 'Reset password', { context: kind});
                   }";
         let keys = parse(source_text);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!["male".into(), "female".into()]
-        ),]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!["male".into(), "female".into()]
+          ),]
+        );
       }
 
       #[test_log::test]
@@ -898,10 +974,13 @@ mod trans_component {
             const b = t('dialog.title', 'Reset password', { context: 'female' });
             ";
         let keys = parse(source_text);
-        pretty_assertions::assert_eq!(keys, vec![
-          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
-          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])
-        ]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![
+            Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
+            Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])
+          ]
+        );
       }
     }
 
@@ -917,12 +996,15 @@ mod trans_component {
 }";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -934,12 +1016,15 @@ mod trans_component {
 }";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -951,12 +1036,15 @@ mod trans_component {
 }";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -965,12 +1053,15 @@ mod trans_component {
         let source_text = "const El = (val: 'male' | 'female') => <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -979,12 +1070,15 @@ mod trans_component {
         let source_text = "const getSex = () => 'male'; const val: 'male' | 'female' = getSex(); const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into(), "female".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into(), "female".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1003,10 +1097,15 @@ mod trans_component {
           }";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("theme.system", "System theme", "ns", vec![
-          "dark".into(),
-          "light".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "theme.system",
+            "System theme",
+            "ns",
+            vec!["dark".into(), "light".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1030,11 +1129,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1054,11 +1157,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1078,11 +1185,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1102,11 +1213,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1126,11 +1241,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1149,11 +1268,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1173,11 +1296,15 @@ mod trans_component {
           ";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context("role", "Role", "ns", vec![
-          "admin".into(),
-          "member".into(),
-          "owner".into()
-        ])]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1187,12 +1314,15 @@ mod trans_component {
           "const val = 'male'; const el = <Trans ns='ns' i18nKey='dialog.title' context={val}>Reset password</Trans>;";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!["male".into()]
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!["male".into()]
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1201,12 +1331,15 @@ mod trans_component {
         let source_text = "const el = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;";
         let keys = parse(source_text);
         pretty_assertions::assert_eq!(keys.len(), 1);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!("male".into())
-        )]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!("male".into())
+          )]
+        );
       }
 
       #[test_log::test]
@@ -1219,12 +1352,15 @@ mod trans_component {
                   return <Trans ns='ns' i18nKey='dialog.title' context={kind}>Reset password</Trans>;
                   }";
         let keys = parse(source_text);
-        pretty_assertions::assert_eq!(keys, vec![Entry::new_with_context(
-          "dialog.title",
-          "Reset password",
-          "ns",
-          vec!["male".into(), "female".into()]
-        ),]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "dialog.title",
+            "Reset password",
+            "ns",
+            vec!["male".into(), "female".into()]
+          ),]
+        );
       }
 
       #[test_log::test]
@@ -1232,10 +1368,13 @@ mod trans_component {
         // language=javascript
         let source_text = "const a = <Trans ns='ns' i18nKey='dialog.title' context='male'>Reset password</Trans>;const b = <Trans ns='ns' i18nKey='dialog.title' context='female'>Reset password</Trans>;";
         let keys = parse(source_text);
-        pretty_assertions::assert_eq!(keys, vec![
-          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
-          Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])
-        ]);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![
+            Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["male".into()]),
+            Entry::new_with_context("dialog.title", "Reset password", "ns", vec!["female".into()])
+          ]
+        );
       }
     }
   }
@@ -1271,7 +1410,10 @@ mod parsing {
       let source_text = "type TestType = 'admin' | 'member' | 'owner';";
 
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
 
     #[test_log::test]
@@ -1280,7 +1422,10 @@ mod parsing {
       let source_text = "type TestType = Array<'admin' | 'member' | 'owner'>;";
 
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
 
     #[test_log::test]
@@ -1289,7 +1434,10 @@ mod parsing {
       let source_text = "type TestType = ('admin' | 'member' | 'owner')[];";
 
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
 
     #[test_log::test]
@@ -1316,7 +1464,10 @@ mod parsing {
         ";
 
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
 
     #[test_log::test]
@@ -1328,7 +1479,10 @@ mod parsing {
         ";
 
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
 
     #[test_log::test]
@@ -1340,7 +1494,10 @@ mod parsing {
         ";
 
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
 
     #[test_log::test]
@@ -1354,7 +1511,10 @@ mod parsing {
         ";
 
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
 
     #[test_log::test]
@@ -1368,7 +1528,10 @@ mod parsing {
         ";
 
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
 
     #[test_log::test]
@@ -1378,7 +1541,10 @@ mod parsing {
         type TestType = (typeof roles)[number];
         "#;
       let val = get_value(source_text, "TestType");
-      assert_eq!(val, Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()])))
+      assert_eq!(
+        val,
+        Some(Value::Array(vec!["admin".into(), "member".into(), "owner".into()]))
+      )
     }
   }
 }

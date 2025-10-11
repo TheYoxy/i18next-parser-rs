@@ -36,7 +36,12 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             if let Some(Some(context_value)) = context {
               let ctx_value = context_value
                 .as_array()
-                .map(|val| val.iter().filter_map(|val| val.as_str().map(|val| val.to_string())).collect::<_>())
+                .map(|val| {
+                  val
+                    .iter()
+                    .filter_map(|val| val.as_str().map(|val| val.to_string()))
+                    .collect::<_>()
+                })
                 .or(context_value.as_str().map(|val| val.to_string()).map(|val| vec![val]));
 
               if ctx_value.is_none() {
@@ -45,7 +50,13 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
                   usize::try_from(expr.span.start).expect("span size overload"),
                   usize::try_from(expr.span.end).expect("span size overload"),
                 )
-                .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
+                .map(|(start, end)| {
+                  if start == end {
+                    format!(":{start}")
+                  } else {
+                    format!(":{start}-{end}")
+                  }
+                })
                 .unwrap_or_default();
                 log::warn!(
                   "Unable to find the value of {key} {value:?} in {file_name}{line}",
@@ -64,7 +75,13 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
                 usize::try_from(expr.span.start).expect("span size overload"),
                 usize::try_from(expr.span.end).expect("span size overload"),
               )
-              .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
+              .map(|(start, end)| {
+                if start == end {
+                  format!(":{start}")
+                } else {
+                  format!(":{start}-{end}")
+                }
+              })
               .unwrap_or_default();
               log::warn!(
                 "Unable to find the value of props {key} in {file_name}{line}",
@@ -77,7 +94,7 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
             } else {
               None
             }
-          },
+          }
           None => None,
         };
 
@@ -105,11 +122,11 @@ impl<'a> Visit<'a> for I18NVisitor<'a> {
       JSXElementName::Identifier(id) if COMPONENT_FUNCTIONS.contains(&id.name.as_ref()) => {
         trace!("Extracting data from {}", elem.opening_element.name);
         self.extract_jsx_entries(elem);
-      },
+      }
       JSXElementName::IdentifierReference(id) if COMPONENT_FUNCTIONS.contains(&id.name.as_ref()) => {
         self.extract_jsx_entries(elem);
-      },
-      _ => {},
+      }
+      _ => {}
     };
     walk::walk_jsx_element(self, elem);
   }

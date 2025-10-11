@@ -146,7 +146,7 @@ pub fn gen_mid(
       tokens = quote! { #tokens else { PluralCategory::OTHER } };
 
       tokens
-    },
+    }
     None => quote! { { PluralCategory::OTHER }  },
   };
 

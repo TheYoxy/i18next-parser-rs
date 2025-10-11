@@ -4,16 +4,8 @@ use color_eyre::owo_colors::OwoColorize;
 use log::{debug, error, trace, warn};
 use oxc_allocator::Allocator;
 use oxc_ast::ast::{
-  Argument,
-  CallExpression,
-  JSXAttributeItem,
-  JSXAttributeName,
-  JSXAttributeValue,
-  JSXElement,
-  JSXExpression,
-  ObjectPropertyKind,
-  Program,
-  PropertyKey,
+  Argument, CallExpression, JSXAttributeItem, JSXAttributeName, JSXAttributeValue, JSXElement, JSXExpression,
+  ObjectPropertyKind, Program, PropertyKey,
 };
 use oxc_resolver::Resolver;
 use oxc_span::GetSpan;
@@ -21,22 +13,14 @@ use serde_json::Value;
 use tracing::span;
 
 use crate::{
-  Config,
-  Entry,
-  Location,
+  Config, Entry, Location,
   helper::{
-    MakeRelativePath,
-    SerdeHelper,
-    html_entities_replacer::decode_html_entities,
-    resolver_helper::ResolveFromTsConfig,
+    MakeRelativePath, SerdeHelper, html_entities_replacer::decode_html_entities, resolver_helper::ResolveFromTsConfig,
   },
   visitor::{
     node_child::NodeChild,
     traits::{
-      GetLineBound,
-      get_line_bounds,
-      oxc_custom_parser::OxcCustomParser,
-      oxc_program::OxcProgram,
+      GetLineBound, get_line_bounds, oxc_custom_parser::OxcCustomParser, oxc_program::OxcProgram,
       print_error_location::PrintErrorLocation,
     },
   },
@@ -62,7 +46,10 @@ pub struct VisitorOptions {
 impl VisitorOptions {
   pub fn new<C: AsRef<Config>>(config: C) -> Self {
     let config = config.as_ref();
-    VisitorOptions { namespace_separator: Some(config.namespace_separator.clone()), ..Default::default() }
+    VisitorOptions {
+      namespace_separator: Some(config.namespace_separator.clone()),
+      ..Default::default()
+    }
   }
 }
 
@@ -90,8 +77,7 @@ pub struct I18NVisitor<'a> {
   pub(super) resolver: Resolver,
 }
 
-impl PrintErrorLocation for I18NVisitor<'_> {
-}
+impl PrintErrorLocation for I18NVisitor<'_> {}
 impl OxcProgram for I18NVisitor<'_> {
   fn program(&self) -> &Program<'_> {
     self.program
@@ -113,10 +99,8 @@ impl OxcProgram for I18NVisitor<'_> {
     self.working_dir
   }
 }
-impl GetLineBound for I18NVisitor<'_> {
-}
-impl OxcCustomParser for I18NVisitor<'_> {
-}
+impl GetLineBound for I18NVisitor<'_> {}
+impl OxcCustomParser for I18NVisitor<'_> {}
 
 /// The visitor implementation that will search for translations inside javascript code
 impl<'a> I18NVisitor<'a> {
@@ -164,17 +148,18 @@ impl<'a> I18NVisitor<'a> {
           let value = str.value.to_string();
           trace!("Getting namespace from {} {}", name.cyan(), value.blue());
           self.current_namespace = if value.is_empty() { None } else { Some(value) };
-        },
+        }
         Argument::Identifier(identifier) => {
           trace!("Looking for namespace {} value from identifier", name.cyan());
           let identifier = self.find_identifier_value_as_serde(&identifier.name);
           self.current_namespace = identifier.and_then(|i| i.as_str().map(|i| i.to_string()));
-        },
+        }
         Argument::TSAsExpression(expression) => {
           trace!("Looking for namespace {} value from `As` expression", name.cyan());
-          self.current_namespace =
-            self.parse_expression_as_serde(&expression.expression).and_then(|i| i.as_str().map(|i| i.to_string()));
-        },
+          self.current_namespace = self
+            .parse_expression_as_serde(&expression.expression)
+            .and_then(|i| i.as_str().map(|i| i.to_string()));
+        }
         Argument::ObjectExpression(expression) => {
           let vec = expression
             .properties
@@ -184,21 +169,25 @@ impl<'a> I18NVisitor<'a> {
                 match &obj.key {
                   PropertyKey::StringLiteral(str) if str.value == "ns" => {
                     return Some(str.value.to_string());
-                  },
+                  }
                   PropertyKey::StaticIdentifier(ident) if ident.name == "ns" => {
                     return self
                       .find_identifier_value_as_serde(&ident.name)
                       .and_then(|i| i.as_str().map(|i| i.to_string()));
-                  },
+                  }
                   PropertyKey::Identifier(ident) if ident.name == "ns" => {
                     return self
                       .find_identifier_value_as_serde(&ident.name)
                       .and_then(|i| i.as_str().map(|i| i.to_string()));
-                  },
+                  }
                   _ => (),
                 }
                 self.print_error_location(&prop.span());
-                warn!("{} Unsupported property key: {:?}", "[Extract_namespace]".red().bold(), obj.key);
+                warn!(
+                  "{} Unsupported property key: {:?}",
+                  "[Extract_namespace]".red().bold(),
+                  obj.key
+                );
               }
 
               None
@@ -206,11 +195,14 @@ impl<'a> I18NVisitor<'a> {
             .collect::<Vec<String>>();
           let value = vec.first();
           self.current_namespace = value.cloned();
-        },
+        }
         arg => {
           self.print_error_location(&arg.span());
-          warn!("{} Unsupported argument for {name} {arg:?}", "[Extract_namespace]".red().bold(),);
-        },
+          warn!(
+            "{} Unsupported argument for {name} {arg:?}",
+            "[Extract_namespace]".red().bold(),
+          );
+        }
       }
     }
   }
@@ -226,20 +218,16 @@ impl<'a> I18NVisitor<'a> {
   ///
   /// A boolean indicating whether the prop exists
   pub(super) fn has_prop(&self, elem: &JSXElement<'_>, attribute_name: &str) -> bool {
-    elem.opening_element.attributes.iter().any(|elem| {
-      match elem {
-        JSXAttributeItem::Attribute(attribute) => {
-          if let JSXAttributeName::Identifier(identifier) = &attribute.name {
-            if identifier.name == attribute_name {
-              if let Some(value) = &attribute.value {
-                match value {
-                  JSXAttributeValue::StringLiteral(_) => true,
-                  JSXAttributeValue::ExpressionContainer(_) => true,
-                  JSXAttributeValue::Element(_) => todo!("element not supported"),
-                  JSXAttributeValue::Fragment(_) => todo!("fragment not supported"),
-                }
-              } else {
-                false
+    elem.opening_element.attributes.iter().any(|elem| match elem {
+      JSXAttributeItem::Attribute(attribute) => {
+        if let JSXAttributeName::Identifier(identifier) = &attribute.name {
+          if identifier.name == attribute_name {
+            if let Some(value) = &attribute.value {
+              match value {
+                JSXAttributeValue::StringLiteral(_) => true,
+                JSXAttributeValue::ExpressionContainer(_) => true,
+                JSXAttributeValue::Element(_) => todo!("element not supported"),
+                JSXAttributeValue::Fragment(_) => todo!("fragment not supported"),
               }
             } else {
               false
@@ -247,9 +235,11 @@ impl<'a> I18NVisitor<'a> {
           } else {
             false
           }
-        },
-        JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
+        } else {
+          false
+        }
       }
+      JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
     })
   }
 
@@ -287,19 +277,22 @@ impl<'a> I18NVisitor<'a> {
                       // todo this expression will contains the required identifier
                       match &e.expression {
                         JSXExpression::StringLiteral(str) => Some(vec![str.value.to_string()]),
-                        JSXExpression::Identifier(identifier) => {
-                          self.find_identifier_value_as_serde(&identifier.name).value_to_string_vec()
-                        },
+                        JSXExpression::Identifier(identifier) => self
+                          .find_identifier_value_as_serde(&identifier.name)
+                          .value_to_string_vec(),
                         JSXExpression::NumericLiteral(num) => Some(vec![num.value.to_string()]),
                         JSXExpression::StaticMemberExpression(expression) => {
                           self.parse_expression_as_serde(&expression.object).value_to_string_vec()
-                        },
-                        JSXExpression::TSAsExpression(expression) => {
-                          self.parse_expression_as_serde(&expression.expression).value_to_string_vec()
-                        },
-                        _ => todo!("expression container {e:?} not supported in {}", self.file_path.display().yellow()),
+                        }
+                        JSXExpression::TSAsExpression(expression) => self
+                          .parse_expression_as_serde(&expression.expression)
+                          .value_to_string_vec(),
+                        _ => todo!(
+                          "expression container {e:?} not supported in {}",
+                          self.file_path.display().yellow()
+                        ),
                       }
-                    },
+                    }
                     JSXAttributeValue::Element(_) => todo!("element not supported"),
                     JSXAttributeValue::Fragment(_) => todo!("fragment not supported"),
                   }
@@ -312,7 +305,7 @@ impl<'a> I18NVisitor<'a> {
             } else {
               None
             }
-          },
+          }
           JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
         }
       })
@@ -321,7 +314,11 @@ impl<'a> I18NVisitor<'a> {
     if let Some(ret) = &ret {
       trace!("{} Found value: {ret:?}", "[get_prop_values_of_el]".blue());
     } else {
-      trace!("{} {} found for expression", "[get_prop_values_of_el]".blue(), "No value".red().bold());
+      trace!(
+        "{} {} found for expression",
+        "[get_prop_values_of_el]".blue(),
+        "No value".red().bold()
+      );
     }
     ret
   }
@@ -364,16 +361,14 @@ impl<'a> I18NVisitor<'a> {
                           self
                             .find_identifier_value_as_serde(&identifier.name)
                             .and_then(|i| i.as_str().map(|i| i.to_string()))
-                        },
+                        }
                         JSXExpression::NumericLiteral(num) => Some(num.value.to_string()),
-                        JSXExpression::StaticMemberExpression(expression) => {
-                          self
-                            .parse_expression_as_serde(&expression.object)
-                            .and_then(|i| i.as_str().map(|i| i.to_string()))
-                        },
+                        JSXExpression::StaticMemberExpression(expression) => self
+                          .parse_expression_as_serde(&expression.object)
+                          .and_then(|i| i.as_str().map(|i| i.to_string())),
                         _ => todo!("expression container {e:?} not supported"),
                       }
-                    },
+                    }
                     JSXAttributeValue::Element(_) => todo!("element not supported"),
                     JSXAttributeValue::Fragment(_) => todo!("fragment not supported"),
                   }
@@ -386,7 +381,7 @@ impl<'a> I18NVisitor<'a> {
             } else {
               None
             }
-          },
+          }
           JSXAttributeItem::SpreadAttribute(_) => todo!("warn that spread attribute is not supported"),
         }
       })
@@ -399,22 +394,28 @@ impl<'a> I18NVisitor<'a> {
     childs
       .iter()
       .enumerate()
-      .map(|(index, e)| {
-        match e {
-          NodeChild::Text(text) => text.clone(),
-          NodeChild::Js(text) => text.clone(),
-          NodeChild::Tag(tag) => {
-            let tag_name = &tag.name;
-            let use_tag_name = tag.is_basic
-              && self.options.trans_keep_basic_html_nodes_for.as_ref().is_some_and(|nodes| nodes.contains(tag_name));
-            let element_name = if use_tag_name { tag_name } else { &format!("{index}") };
-            let children_string = tag.children.as_ref().map(|v| self.jsx_element_to_string(v)).unwrap_or_default();
-            if !(children_string.is_empty() && use_tag_name && tag.self_closing) {
-              format!("<{element_name}>{children_string}</{element_name}>")
-            } else {
-              format!("<{element_name} />")
-            }
-          },
+      .map(|(index, e)| match e {
+        NodeChild::Text(text) => text.clone(),
+        NodeChild::Js(text) => text.clone(),
+        NodeChild::Tag(tag) => {
+          let tag_name = &tag.name;
+          let use_tag_name = tag.is_basic
+            && self
+              .options
+              .trans_keep_basic_html_nodes_for
+              .as_ref()
+              .is_some_and(|nodes| nodes.contains(tag_name));
+          let element_name = if use_tag_name { tag_name } else { &format!("{index}") };
+          let children_string = tag
+            .children
+            .as_ref()
+            .map(|v| self.jsx_element_to_string(v))
+            .unwrap_or_default();
+          if !(children_string.is_empty() && use_tag_name && tag.self_closing) {
+            format!("<{element_name}>{children_string}</{element_name}>")
+          } else {
+            format!("<{element_name} />")
+          }
         }
       })
       .collect::<Vec<_>>()
@@ -425,7 +426,11 @@ impl<'a> I18NVisitor<'a> {
     &mut self,
     args: (Option<&Argument<'a>>, Option<&Argument<'a>>),
   ) -> (Option<String>, Option<I18NextOptions>) {
-    debug!("Reading t arguments: {:?} - {:?}", args.0.bright_black().italic(), args.1.bright_black().italic());
+    debug!(
+      "Reading t arguments: {:?} - {:?}",
+      args.0.bright_black().italic(),
+      args.1.bright_black().italic()
+    );
 
     match args {
       (Some(Argument::StringLiteral(str)), Some(Argument::ObjectExpression(obj))) => {
@@ -435,37 +440,41 @@ impl<'a> I18NVisitor<'a> {
 
         let value = if value.is_empty() { default_value } else { Some(value) };
         (value, Some(i18next_options))
-      },
+      }
       (Some(Argument::StringLiteral(str)), Some(Argument::Identifier(_))) => {
         let value = str.value.to_string();
         trace!("translation value defined as string literal: {}", value.cyan());
         #[cfg(debug_assertions)]
         warn!("The 3rd argument of t is an identifier. This is not supported and will be ignored.");
         (Some(value), None)
-      },
+      }
       (Some(Argument::StringLiteral(str)), None) => {
         let value = str.value.to_string();
         trace!("translation value defined as string literal: {}", value.cyan());
         (Some(value), None)
-      },
+      }
       (Some(Argument::ObjectExpression(obj)), None) => {
         trace!("settings provided as 2nd argument {:?}", obj.bright_black().italic());
         let (i18next_options, default_value) = self.parse_option_and_default_value(obj);
 
         (default_value, Some(i18next_options))
-      },
+      }
       (None, Some(Argument::ObjectExpression(obj))) => {
         trace!("settings provided as 3rd argument without 2nd argument");
         let (i18next_options, default_value) = self.parse_option_and_default_value(obj);
 
         (default_value, Some(i18next_options))
-      },
+      }
       (Some(Argument::Identifier(identifier)), Some(Argument::ObjectExpression(obj))) => {
         debug!("looking for identifier value in t");
         let value = self.find_identifier_value_as_serde(&identifier.name);
         let (i18next_options, default_value) = self.parse_option_and_default_value(obj);
-        if value.is_none() { (default_value, Some(i18next_options)) } else { todo!("Handle identifier {identifier:?}") }
-      },
+        if value.is_none() {
+          (default_value, Some(i18next_options))
+        } else {
+          todo!("Handle identifier {identifier:?}")
+        }
+      }
       (Some(Argument::Identifier(identifier)), None) => {
         let value = self.find_identifier_value_as_serde(&identifier.name);
         debug!("identifier value: {value:?}");
@@ -476,12 +485,12 @@ impl<'a> I18NVisitor<'a> {
           error!("Unable to parse {value:?}");
           todo!("Handle {value:?}");
         }
-      },
+      }
       (None, None) => (None, None),
       (arg_1, arg_2) => {
         warn!("Unknown argument combination type: {arg_1:?} {arg_2:?}");
         todo!("Handle argument {arg_1:?} {arg_2:?}")
-      },
+      }
     }
   }
 
@@ -493,12 +502,25 @@ impl<'a> I18NVisitor<'a> {
   /// * `options` - The options to get the namespace from
   pub(super) fn get_namespace(&self, options: Option<&I18NextOptions>, key: &str) -> (String, Option<String>) {
     let separator = self.options.namespace_separator.as_deref().unwrap_or(":");
-    trace!("Namespace separator: {separator:?}", separator = separator.italic().cyan());
+    trace!(
+      "Namespace separator: {separator:?}",
+      separator = separator.italic().cyan()
+    );
     let current_namespace = &self.current_namespace;
-    trace!("Current namespace: {namespace:?}", namespace = current_namespace.italic().cyan());
-    let ns_from_options =
-      options.and_then(|o| o.get("namespace").cloned().flatten().and_then(|v| v.as_str().map(|s| s.to_string())));
-    trace!("Namespace from options: {namespace:?}", namespace = ns_from_options.italic().cyan());
+    trace!(
+      "Current namespace: {namespace:?}",
+      namespace = current_namespace.italic().cyan()
+    );
+    let ns_from_options = options.and_then(|o| {
+      o.get("namespace")
+        .cloned()
+        .flatten()
+        .and_then(|v| v.as_str().map(|s| s.to_string()))
+    });
+    trace!(
+      "Namespace from options: {namespace:?}",
+      namespace = ns_from_options.italic().cyan()
+    );
 
     let (key, ns_from_key) = if key.contains(separator) {
       let mut split = key.split(separator);
@@ -508,7 +530,10 @@ impl<'a> I18NVisitor<'a> {
     } else {
       (key.to_string(), None)
     };
-    trace!("Namespace from key: {namespace:?}", namespace = ns_from_key.italic().cyan());
+    trace!(
+      "Namespace from key: {namespace:?}",
+      namespace = ns_from_key.italic().cyan()
+    );
 
     let namespace = ns_from_key.or(ns_from_options).or(current_namespace.clone());
     trace!("Namespace: {namespace:?}", namespace = namespace.italic().cyan());
@@ -525,7 +550,11 @@ impl<'a> I18NVisitor<'a> {
     if context.is_none()
       && let Some(val) = elem.opening_element.attributes.iter().find(|attr| {
         if let JSXAttributeItem::Attribute(attr) = attr {
-          if let JSXAttributeName::Identifier(name) = &attr.name { name.name == "context" } else { false }
+          if let JSXAttributeName::Identifier(name) = &attr.name {
+            name.name == "context"
+          } else {
+            false
+          }
         } else {
           false
         }
@@ -534,9 +563,11 @@ impl<'a> I18NVisitor<'a> {
     {
       trace!("Print missing context");
       let val = match &attribute.value {
-        Some(JSXAttributeValue::ExpressionContainer(container)) => {
-          container.expression.as_expression().and_then(|e| e.get_identifier_reference()).map(|id| id.name)
-        },
+        Some(JSXAttributeValue::ExpressionContainer(container)) => container
+          .expression
+          .as_expression()
+          .and_then(|e| e.get_identifier_reference())
+          .map(|id| id.name),
         _ => None,
       };
 
@@ -546,13 +577,24 @@ impl<'a> I18NVisitor<'a> {
           usize::try_from(attribute.span.start).expect("span size overload"),
           usize::try_from(attribute.span.end).expect("span size overload"),
         )
-        .map(|(start, end)| if start == end { format!(":{start}") } else { format!(":{start}-{end}") })
+        .map(|(start, end)| {
+          if start == end {
+            format!(":{start}")
+          } else {
+            format!(":{start}-{end}")
+          }
+        })
         .unwrap_or_default();
         warn!(
           "Unable to find the value of {key} {value:?} in {file_name}{line}",
           key = "context".cyan(),
           value = val.blue().bold(),
-          file_name = self.file_path.make_relative(self.working_dir).display().yellow().dimmed(),
+          file_name = self
+            .file_path
+            .make_relative(self.working_dir)
+            .display()
+            .yellow()
+            .dimmed(),
           line = line.blue()
         );
         self.print_error_location(&attribute.span);
@@ -586,7 +628,11 @@ impl<'a> I18NVisitor<'a> {
           usize::try_from(elem.span.end).unwrap(),
         ),
         key,
-        value: if default_value.is_empty() { None } else { decode_html_entities(&default_value).ok() },
+        value: if default_value.is_empty() {
+          None
+        } else {
+          decode_html_entities(&default_value).ok()
+        },
         namespace: ns_from_key.or(ns),
         has_count: count,
         i18next_options: options.and_then(|v| serde_json::from_str(&v).ok()),
@@ -602,7 +648,7 @@ impl<'a> I18NVisitor<'a> {
       Some(Argument::StringLiteral(str)) => {
         trace!("t Arg: {:?}", str.bright_black().italic());
         Some(str.value.to_string().clone())
-      },
+      }
       Some(Argument::TemplateLiteral(template)) => {
         trace!("t Arg: {:?}", template.bright_black().italic());
         trace!("t quasis: {:?}", template.quasis);
@@ -617,7 +663,7 @@ impl<'a> I18NVisitor<'a> {
           warn!("Template literal are not supported for now");
           None
         }
-      },
+      }
       Some(Argument::BinaryExpression(bin)) => {
         trace!("t Arg: {:?}", bin.bright_black().italic());
         #[cfg(debug_assertions)]
@@ -630,7 +676,7 @@ impl<'a> I18NVisitor<'a> {
           warn!("Binary expression are not supported for now");
           None
         }
-      },
+      }
       Some(Argument::CallExpression(expression)) => {
         #[cfg(debug_assertions)]
         {
@@ -638,7 +684,7 @@ impl<'a> I18NVisitor<'a> {
         }
         trace!("Skipping CallExpression as it is unsupported");
         None
-      },
+      }
       Some(Argument::StaticMemberExpression(expression)) => {
         #[cfg(debug_assertions)]
         {
@@ -646,7 +692,7 @@ impl<'a> I18NVisitor<'a> {
         }
         trace!("Skipping StaticMemberExpression as it is unsupported");
         None
-      },
+      }
       Some(Argument::Identifier(identifier)) => {
         #[cfg(debug_assertions)]
         {
@@ -654,7 +700,7 @@ impl<'a> I18NVisitor<'a> {
         }
         trace!("Skipping Identifier as it is unsupported");
         None
-      },
+      }
       Some(Argument::TSAsExpression(expression)) => {
         #[cfg(debug_assertions)]
         {
@@ -662,11 +708,14 @@ impl<'a> I18NVisitor<'a> {
         }
         trace!("Skipping TSAsExpression as it is unsupported");
         None
-      },
+      }
       Some(arg) => {
         #[cfg(debug_assertions)]
         {
-          log::warn!("Unknown argument type found in [{}]: {arg:?}", self.file_path.display().yellow());
+          log::warn!(
+            "Unknown argument type found in [{}]: {arg:?}",
+            self.file_path.display().yellow()
+          );
           self.print_error_location(&arg.span());
 
           todo!("Handle argument {arg:?} in {}", self.file_path.display().yellow())
@@ -676,11 +725,11 @@ impl<'a> I18NVisitor<'a> {
           warn!("Unknown argument type {arg:?}");
           None
         }
-      },
+      }
       None => {
         warn!("No key provided, skipping entry");
         None
-      },
+      }
     }
   }
 }

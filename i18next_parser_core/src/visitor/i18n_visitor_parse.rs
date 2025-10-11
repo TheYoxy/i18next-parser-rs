@@ -3,11 +3,9 @@ use log::{trace, warn};
 use oxc_ast::ast::{Expression, JSXChild, JSXElementName, ObjectExpression, ObjectPropertyKind};
 
 use crate::{
-  IsEmpty,
-  clean_multi_line_code,
+  IsEmpty, clean_multi_line_code,
   visitor::{
-    I18NVisitor,
-    I18NextOptions,
+    I18NVisitor, I18NextOptions,
     node_child::{NodeChild, NodeTag},
     traits::oxc_custom_parser::OxcCustomParser,
   },
@@ -23,7 +21,10 @@ impl<'a> I18NVisitor<'a> {
     if let Some(value) = i18next_options.get("defaultValue") {
       trace!("translation value found in i18next options: {value:?}");
     }
-    (i18next_options, default_value.and_then(|v| v.as_str().map(|v| v.to_string())))
+    (
+      i18next_options,
+      default_value.and_then(|v| v.as_str().map(|v| v.to_string())),
+    )
   }
 
   /// Parse the i18next options
@@ -42,54 +43,64 @@ impl<'a> I18NVisitor<'a> {
     obj
       .properties
       .iter()
-      .filter_map(|prop| {
-        match prop {
-          ObjectPropertyKind::ObjectProperty(kv) => {
-            let name = kv.key.name().unwrap();
-            let name_string = name.to_string();
-            let name = name_string.as_str();
+      .filter_map(|prop| match prop {
+        ObjectPropertyKind::ObjectProperty(kv) => {
+          let name = kv.key.name().unwrap();
+          let name_string = name.to_string();
+          let name = name_string.as_str();
 
-            trace!("{} Parsing {}", "[parse_i18next_option]".on_yellow().black(), name.cyan());
-            let val = match name {
-              "defaultValue" | "count" | "namespace" | "context" => {
-                let value = self.parse_expression_as_serde(&kv.value);
-                Some((name.to_string(), value))
-              },
-              "ns" => {
-                let value = self.parse_expression_as_serde(&kv.value);
-                Some(("namespace".into(), value))
-              },
-              _ => {
-                trace!("{} Skipping {}", "[parse_i18next_option]".on_yellow().black(), name.yellow());
-                None
-              },
-            };
-
-            if let Some(val) = &val {
+          trace!(
+            "{} Parsing {}",
+            "[parse_i18next_option]".on_yellow().black(),
+            name.cyan()
+          );
+          let val = match name {
+            "defaultValue" | "count" | "namespace" | "context" => {
+              let value = self.parse_expression_as_serde(&kv.value);
+              Some((name.to_string(), value))
+            }
+            "ns" => {
+              let value = self.parse_expression_as_serde(&kv.value);
+              Some(("namespace".into(), value))
+            }
+            _ => {
               trace!(
-                "{} Found i18next option: {} -> {:?}",
+                "{} Skipping {}",
                 "[parse_i18next_option]".on_yellow().black(),
-                name.cyan(),
-                val.purple()
+                name.yellow()
               );
-            } else {
-              trace!("{} No value found for {}", "[parse_i18next_option]".on_yellow().black(), name.cyan());
+              None
             }
+          };
 
-            val
-          },
-          ObjectPropertyKind::SpreadProperty(_prop) => {
-            #[cfg(debug_assertions)]
-            {
-              use crate::visitor::traits::print_error_location::PrintErrorLocation;
+          if let Some(val) = &val {
+            trace!(
+              "{} Found i18next option: {} -> {:?}",
+              "[parse_i18next_option]".on_yellow().black(),
+              name.cyan(),
+              val.purple()
+            );
+          } else {
+            trace!(
+              "{} No value found for {}",
+              "[parse_i18next_option]".on_yellow().black(),
+              name.cyan()
+            );
+          }
 
-              warn!("{} Unsupported spread property", "[parse_i18next_option]".red().bold());
-              self.print_error_location(&_prop.span);
-              panic!("Spread property is not supported in i18next options");
-            }
-            #[cfg(not(debug_assertions))]
-            None
-          },
+          val
+        }
+        ObjectPropertyKind::SpreadProperty(_prop) => {
+          #[cfg(debug_assertions)]
+          {
+            use crate::visitor::traits::print_error_location::PrintErrorLocation;
+
+            warn!("{} Unsupported spread property", "[parse_i18next_option]".red().bold());
+            self.print_error_location(&_prop.span);
+            panic!("Spread property is not supported in i18next options");
+          }
+          #[cfg(not(debug_assertions))]
+          None
         }
       })
       .collect::<I18NextOptions>()
@@ -98,48 +109,50 @@ impl<'a> I18NVisitor<'a> {
   pub(super) fn parse_jsx_children(childs: &oxc_allocator::Vec<JSXChild<'a>>) -> Vec<NodeChild> {
     childs
       .iter()
-      .map(|child| {
-        match child {
-          JSXChild::Text(text) => {
-            let atom = &text.value;
-            let clean_multi_line_code = clean_multi_line_code(atom);
-            trace!("Text: {atom:?} -> {clean_multi_line_code:?}");
-            NodeChild::Text(clean_multi_line_code)
-          },
-          JSXChild::Element(element) => {
-            let name = if let JSXElementName::Identifier(id) = &element.opening_element.name { &id.name } else { "" };
-            let is_basic = element.opening_element.attributes.is_empty();
-            let has_dynamic_children = element.children.iter().any(|child| {
-              if let JSXChild::Element(e) = child {
-                if let JSXElementName::Identifier(id) = &e.opening_element.name {
-                  id.name.eq("i18nIsDynamicList")
-                } else {
-                  false
-                }
+      .map(|child| match child {
+        JSXChild::Text(text) => {
+          let atom = &text.value;
+          let clean_multi_line_code = clean_multi_line_code(atom);
+          trace!("Text: {atom:?} -> {clean_multi_line_code:?}");
+          NodeChild::Text(clean_multi_line_code)
+        }
+        JSXChild::Element(element) => {
+          let name = if let JSXElementName::Identifier(id) = &element.opening_element.name {
+            &id.name
+          } else {
+            ""
+          };
+          let is_basic = element.opening_element.attributes.is_empty();
+          let has_dynamic_children = element.children.iter().any(|child| {
+            if let JSXChild::Element(e) = child {
+              if let JSXElementName::Identifier(id) = &e.opening_element.name {
+                id.name.eq("i18nIsDynamicList")
               } else {
                 false
               }
-            });
-            let children = if has_dynamic_children {
-              None
             } else {
-              let childs = &element.children;
-              Some(Self::parse_jsx_children(childs))
-            };
+              false
+            }
+          });
+          let children = if has_dynamic_children {
+            None
+          } else {
+            let childs = &element.children;
+            Some(Self::parse_jsx_children(childs))
+          };
 
-            NodeChild::Tag(NodeTag {
-              children,
-              name: name.to_string(),
-              is_basic,
-              self_closing: element.closing_element.is_none(),
-            })
-          },
-          JSXChild::ExpressionContainer(exp) => {
-            let exp = exp.expression.as_expression().map(Self::parse_expression_child);
-            exp.unwrap_or(NodeChild::Text("".to_string()))
-          },
-          _ => todo!(),
+          NodeChild::Tag(NodeTag {
+            children,
+            name: name.to_string(),
+            is_basic,
+            self_closing: element.closing_element.is_none(),
+          })
         }
+        JSXChild::ExpressionContainer(exp) => {
+          let exp = exp.expression.as_expression().map(Self::parse_expression_child);
+          exp.unwrap_or(NodeChild::Text("".to_string()))
+        }
+        _ => todo!(),
       })
       .filter(|e| !e.is_empty())
       .collect::<Vec<_>>()
@@ -152,14 +165,18 @@ impl<'a> I18NVisitor<'a> {
       Expression::TSAsExpression(e) => Self::parse_expression_child(&e.expression),
       Expression::CallExpression(e) if e.callee.is_identifier_reference() && !e.arguments.is_empty() => {
         Self::parse_expression_child(&e.callee)
-      },
+      }
       Expression::ObjectExpression(e) => {
         let non_format_props = e
           .properties
           .iter()
           .filter_map(|prop| {
             if let ObjectPropertyKind::ObjectProperty(obj) = prop {
-              obj.key.name().map(|name| name != "format").and_then(|o| if o { Some(obj) } else { None })
+              obj
+                .key
+                .name()
+                .map(|name| name != "format")
+                .and_then(|o| if o { Some(obj) } else { None })
             } else {
               None
             }
@@ -180,24 +197,30 @@ impl<'a> I18NVisitor<'a> {
         }
 
         let value = if let Some(format_props) = format_props {
-          let text = non_format_props.first().and_then(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default();
+          let text = non_format_props
+            .first()
+            .and_then(|p| p.key.name().map(|str| str.to_string()))
+            .unwrap_or_default();
           if let ObjectPropertyKind::ObjectProperty(obj) = format_props {
             match &obj.value {
               Expression::StringLiteral(str) => Some(format!("{}, {}", text, str.value)),
               _ => {
                 warn!("The format property should be a string literal");
                 None
-              },
+              }
             }
           } else {
             None
           }
         } else {
-          non_format_props.first().map(|p| p.key.name().map(|str| str.to_string())).unwrap_or_default()
+          non_format_props
+            .first()
+            .map(|p| p.key.name().map(|str| str.to_string()))
+            .unwrap_or_default()
         };
 
         NodeChild::Js(format!("{{{{{}}}}}", value.unwrap_or_default()))
-      },
+      }
       _ => NodeChild::Text("".to_string()),
     }
   }

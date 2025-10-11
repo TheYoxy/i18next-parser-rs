@@ -1,5 +1,11 @@
 //! Macros for the core crate.
-#![allow(unused_variables, unused_parens, clippy::float_cmp, clippy::unreadable_literal, clippy::nonminimal_bool)]
+#![allow(
+  unused_variables,
+  unused_parens,
+  clippy::float_cmp,
+  clippy::unreadable_literal,
+  clippy::nonminimal_bool
+)]
 
 /// Log the execution time of a function.
 #[macro_export]

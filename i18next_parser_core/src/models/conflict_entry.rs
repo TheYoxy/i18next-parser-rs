@@ -10,12 +10,18 @@ pub struct ConflictEntry {
 }
 impl From<&str> for ConflictEntry {
   fn from(value: &str) -> Self {
-    Self { value: value.to_string(), location: Location::default() }
+    Self {
+      value: value.to_string(),
+      location: Location::default(),
+    }
   }
 }
 impl From<String> for ConflictEntry {
   fn from(value: String) -> Self {
-    Self { value, location: Location::default() }
+    Self {
+      value,
+      location: Location::default(),
+    }
   }
 }
 
