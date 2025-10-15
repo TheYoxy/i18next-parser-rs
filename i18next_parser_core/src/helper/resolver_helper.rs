@@ -86,8 +86,8 @@ impl ResolveFromTsConfig for Resolver {
       alias,
       extensions: vec![".d.ts".into(), ".ts".into(), ".tsx".into(), ".js".into(), ".jsx".into()],
       extension_alias: vec![
-        (".js".into(), vec![".js".into(), ".ts".into(), ".d.ts".into()]),
-        (".jsx".into(), vec![".jsx".into(), ".tsx".into()]),
+        (".js".into(), vec![".d.ts".into(), ".ts".into(), ".js".into()]),
+        (".jsx".into(), vec![".tsx".into(), ".jsx".into()]),
       ],
       condition_names: vec!["node".into(), "types".into(), "import".into()],
       prefer_relative: true,

@@ -285,8 +285,13 @@ impl<'a> I18NVisitor<'a> {
                           self.parse_expression_as_serde(&expression.object).value_to_string_vec()
                         }
                         JSXExpression::TSAsExpression(expression) => self
-                          .parse_expression_as_serde(&expression.expression)
-                          .value_to_string_vec(),
+                          .parse_ts_type(&expression.type_annotation)
+                          .value_to_string_vec()
+                          .or(
+                            self
+                              .parse_expression_as_serde(&expression.expression)
+                              .value_to_string_vec(),
+                          ),
                         _ => todo!(
                           "expression container {e:?} not supported in {}",
                           self.file_path.display().yellow()

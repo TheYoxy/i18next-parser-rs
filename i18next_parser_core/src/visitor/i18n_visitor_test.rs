@@ -1112,12 +1112,40 @@ mod trans_component {
       fn should_parse_context_from_remote_type_complex() {
         // language=javascript
         let source_text = "
-                  type Users = Array<{
-                      role: 'admin' | 'member' | 'owner',
-                  }>;
-                  type Role = Users[number]['role'];
-                  export function InvitationEmail() {
-            const role = invitee.role as Role;
+            type Users = Array<{
+                role: 'admin' | 'member' | 'owner',
+            }>;
+            type Role = Users[number]['role'];
+            export function InvitationEmail() {
+                const role = invitee.role as Role;
+                return (
+                <EmailRoot>
+                    <Text className='truncate'>
+                    <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                    </Text>
+                </EmailRoot>
+                );
+            }
+          ";
+        let keys = parse(source_text);
+        pretty_assertions::assert_eq!(keys.len(), 1);
+        pretty_assertions::assert_eq!(
+          keys,
+          vec![Entry::new_with_context(
+            "role",
+            "Role",
+            "ns",
+            vec!["admin".into(), "member".into(), "owner".into()]
+          )]
+        );
+      }
+
+      #[test_log::test]
+      fn should_parse_context_from_as_variable_types() {
+        // language=javascript
+        let source_text = "
+          export function InvitationEmail() {
+            const role = invitee.role as 'admin' | 'member' | 'owner';
             return (
               <EmailRoot>
                 <Text className='truncate'>
@@ -1141,15 +1169,15 @@ mod trans_component {
       }
 
       #[test_log::test]
-      fn should_parse_context_from_as_variable_types() {
+      fn should_parse_context_from_as_direct() {
         // language=javascript
         let source_text = "
           export function InvitationEmail() {
-            const role = invitee.role as 'admin' | 'member' | 'owner' ;
+            const role = invitee.role;
             return (
               <EmailRoot>
                 <Text className='truncate'>
-                  <Trans context={role} i18nKey='role' ns='ns'>Role</Trans>
+                  <Trans context={role as 'admin' | 'member' | 'owner'} i18nKey='role' ns='ns'>Role</Trans>
                 </Text>
               </EmailRoot>
             );
