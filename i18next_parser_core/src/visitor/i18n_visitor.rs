@@ -138,7 +138,6 @@ impl<'a> I18NVisitor<'a> {
   pub(super) fn extract_namespace(&mut self, name: &str, expr: &CallExpression<'a>) {
     let arg = match name {
       "useTranslation" | "withTranslation" => expr.arguments.first(),
-      "getFixedT" => expr.arguments.get(1),
       "cloneInstance" => expr.arguments.first(),
       _ => None,
     };
@@ -590,6 +589,7 @@ impl<'a> I18NVisitor<'a> {
           }
         })
         .unwrap_or_default();
+        panic!("Print missing context");
         warn!(
           "Unable to find the value of {key} {value:?} in {file_name}{line}",
           key = "context".cyan(),

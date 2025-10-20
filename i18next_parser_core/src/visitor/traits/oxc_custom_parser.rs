@@ -49,6 +49,31 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
     }
   }
 
+  fn find_value_for_identifier_from_start_declarations(&self, stmt: &Statement<'_>, identifier: &str) -> Option<Value> {
+    if let Some(module) = stmt.as_module_declaration() {
+      match module {
+        ModuleDeclaration::ExportNamedDeclaration(_) => None,
+        ModuleDeclaration::ImportDeclaration(_) => None,
+        ModuleDeclaration::ExportAllDeclaration(declaration) => {
+          self.find_value_identifier_and_declaration(declaration.source.value.as_str(), identifier)
+        }
+        ModuleDeclaration::ExportDefaultDeclaration(_) => None,
+        _module => {
+          #[cfg(debug_assertions)]
+          warn!(
+            "{} Unsupported module declaration: {module:?}",
+            "[parse_value_from_module_declaration]".red().bold(),
+            module = _module.bright_black().italic()
+          );
+
+          None
+        }
+      }
+    } else {
+      None
+    }
+  }
+
   /// Find the value of an identifier.
   ///
   /// # Arguments
@@ -155,11 +180,11 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
       )),
       Expression::Identifier(identifier) => self.find_identifier_value_as_serde(&identifier.name),
       Expression::TSSatisfiesExpression(expr) => self
-        .parse_ts_type(&expr.type_annotation)
-        .or_else(|| self.parse_expression_as_serde(&expr.expression)),
+        .parse_expression_as_serde(&expr.expression)
+        .or_else(|| self.parse_ts_type(&expr.type_annotation)),
       Expression::TSAsExpression(expression) => self
-        .parse_ts_type(&expression.type_annotation)
-        .or_else(|| self.parse_expression_as_serde(&expression.expression)),
+        .parse_expression_as_serde(&expression.expression)
+        .or_else(|| self.parse_ts_type(&expression.type_annotation)),
       Expression::CallExpression(call) => self.parse_expression_as_serde(&call.callee),
       Expression::StaticMemberExpression(_static_member) => None,
       Expression::ConditionalExpression(condition) => {
@@ -290,19 +315,11 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
         }
       }
       Declaration::TSTypeAliasDeclaration(type_alias) if type_alias.id.name.eq(identifier) => {
-        #[cfg(debug_assertions)]
         trace!(
           "{} Parsing type alias for {}: {:?}",
           "[TSTypeAliasDeclaration]".blue(),
           identifier.cyan(),
           type_alias.bright_black().italic()
-        );
-        #[cfg(not(debug_assertions))]
-        trace!(
-          "{} Parsing type alias for {}: {}",
-          "[TSTypeAliasDeclaration]".blue(),
-          identifier.cyan(),
-          std::any::type_name_of_val(type_alias)
         );
         self.parse_ts_type(&type_alias.type_annotation)
       }
@@ -328,7 +345,7 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
 
   fn parse_ts_type(&self, ts_type: &TSType<'_>) -> Option<Value> {
     trace!(
-      "{} Parsing type annotation: {:?}",
+      "{} Parsing type: {:?}",
       "[parse_ts_type]".blue(),
       ts_type.bright_black().italic()
     );
@@ -564,6 +581,10 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
             }
             Statement::VariableDeclaration(_) => None,
             Statement::TSTypeAliasDeclaration(_) => None,
+            Statement::ExportNamedDeclaration(export) if export.declaration.is_some() => {
+              let decl = export.declaration.as_ref().unwrap();
+              self.parse_value_for_identifier_from_declaration(&identifier.name, decl)
+            }
             Statement::ExportNamedDeclaration(_) => None,
             Statement::ExportAllDeclaration(_) => None,
             Statement::ExportDefaultDeclaration(_) => None,
@@ -571,17 +592,11 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
             Statement::ExpressionStatement(_) => None,
             Statement::TSInterfaceDeclaration(_) => None,
             _statement => {
-              #[cfg(debug_assertions)]
               warn!(
-                "{} Unsupported statement: {statement:?}",
+                "{} Unsupported statement: {statement:?} [Declaration Type: {is_declaration}]",
                 "[parse_ts_type_name]".red().bold(),
-                statement = _statement.bright_black().italic()
-              );
-              #[cfg(not(debug_assertions))]
-              log::debug!(
-                "{} Unsupported statement {}",
-                "[parse_ts_type_name]".red().bold(),
-                std::any::type_name_of_val(_statement)
+                statement = _statement.bright_black().italic(),
+                is_declaration = _statement.is_declaration()
               );
               None
             }
@@ -638,7 +653,7 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
     match module {
       ModuleDeclaration::ExportNamedDeclaration(decl) => decl.declaration.as_ref().and_then(|declaration| {
         log::trace!(
-          "{} Looking for identifier: {identifier:?} in declaration: {declaration:?}",
+          "{} Looking for identifier {identifier:?} in declaration: {declaration:?}",
           "[ExportNamedDeclaration]".blue(),
           identifier = identifier.cyan(),
           declaration = declaration.bright_black().italic(),
@@ -727,6 +742,10 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
     } else {
       path_to_resolve
     };
+    if path == path_to_resolve {
+      warn!("Attempting to resolve the same path {path_to_resolve} from itself, which may lead to infinite recursion.");
+      return None;
+    }
 
     trace!(
       "{} resolving {} from {}",
@@ -738,6 +757,18 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
     let resolved = self.resolver().resolve_with_context(path, path_to_resolve, &mut ctx);
     match resolved {
       Ok(resolved) => {
+        if resolved
+          .path()
+          .as_os_str()
+          .to_str()
+          .is_some_and(|s| s.contains("node_modules"))
+        {
+          trace!(
+            "Skipping the resolution of node_modules file {}",
+            resolved.path().display().yellow()
+          );
+          return None;
+        }
         trace!(
           "{} resolved to {}",
           "[find_value_identifier_and_declaration]".on_green().black().bold(),
@@ -784,7 +815,20 @@ pub trait OxcCustomParser: OxcProgram + PrintErrorLocation + GetLineBound {
           .program
           .body
           .iter()
-          .find_map(|stmt| module_parser.find_value_for_identifier(stmt, identifier));
+          .find_map(|stmt| module_parser.find_value_for_identifier(stmt, identifier))
+          .or_else(|| {
+            trace!(
+              "{} Looking into every exported * modules for {}",
+              "[find_value_identifier_and_declaration]".on_yellow().black().bold(),
+              identifier.cyan(),
+            );
+            result
+              .program
+              .body
+              .iter()
+              .filter(|stmt| stmt.is_module_declaration())
+              .find_map(|stmt| module_parser.find_value_for_identifier_from_start_declarations(stmt, identifier))
+          });
         if let Some(val) = &val {
           trace!(
             "{} Found value {} for {} in {}",
