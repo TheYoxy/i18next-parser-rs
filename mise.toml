@@ -1,0 +1,7 @@
+[tools]
+rust = { version = "nightly", profile = "default" }
+rust-analyzer = "latest"
+cargo = "latest"
+
+[env]
+RUST_LOG = "warn"
